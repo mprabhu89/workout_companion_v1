@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'startup/startup_page.dart';
+import 'theme/app_theme.dart';
 
 class WorkoutCompanionApp extends StatelessWidget {
   const WorkoutCompanionApp({super.key});
@@ -10,6 +11,8 @@ class WorkoutCompanionApp extends StatelessWidget {
     return MaterialApp(
       title: 'Workout Companion',
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
       home: const StartupPage(),
     );
