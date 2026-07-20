@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'startup/startup_page.dart';
+import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
 class WorkoutCompanionApp extends StatelessWidget {
@@ -8,13 +8,15 @@ class WorkoutCompanionApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Workout Companion',
       debugShowCheckedModeBanner: false,
+
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      home: const StartupPage(),
+
+      routerConfig: appRouter,
     );
   }
 }
