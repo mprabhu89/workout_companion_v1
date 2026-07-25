@@ -1,0 +1,92 @@
+import 'package:flutter/material.dart';
+
+import '../../domain/entities/workout_target_type.dart';
+import 'exercise_header_card.dart';
+import 'notes_editor.dart';
+import 'rest_selector.dart';
+import 'sets_selector.dart';
+import 'target_type_selector.dart';
+import 'target_value_editor.dart';
+
+class WorkoutExerciseForm extends StatelessWidget {
+  const WorkoutExerciseForm({
+    super.key,
+    required this.exerciseName,
+    required this.sets,
+    required this.restSeconds,
+    required this.targetType,
+    required this.targetValueController,
+    required this.notesController,
+    required this.onSetsChanged,
+    required this.onRestChanged,
+    required this.onTargetTypeChanged,
+    this.onChangeExercise,
+  });
+
+  final String exerciseName;
+
+  final int sets;
+
+  final int restSeconds;
+
+  final WorkoutTargetType targetType;
+
+  final TextEditingController targetValueController;
+
+  final TextEditingController notesController;
+
+  final ValueChanged<int> onSetsChanged;
+
+  final ValueChanged<int> onRestChanged;
+
+  final ValueChanged<WorkoutTargetType> onTargetTypeChanged;
+
+  final VoidCallback? onChangeExercise;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ExerciseHeaderCard(
+          exerciseName: exerciseName,
+          onChangeExercise: onChangeExercise,
+        ),
+
+        const SizedBox(height: 16),
+
+        SetsSelector(
+          value: sets,
+          onChanged: onSetsChanged,
+        ),
+
+        const SizedBox(height: 16),
+
+        TargetTypeSelector(
+          value: targetType,
+          onChanged: onTargetTypeChanged,
+        ),
+
+        const SizedBox(height: 16),
+
+        TargetValueEditor(
+          targetType: targetType,
+          controller: targetValueController,
+        ),
+
+        const SizedBox(height: 16),
+
+        RestSelector(
+          value: restSeconds,
+          onChanged: onRestChanged,
+        ),
+
+        const SizedBox(height: 16),
+
+        NotesEditor(
+          controller: notesController,
+        ),
+      ],
+    );
+  }
+}

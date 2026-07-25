@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../data/repositories/in_memory_exercise_repository.dart';
 import '../../domain/entities/exercise.dart';
 import '../controllers/exercise_library_controller.dart';
 import 'create_exercise_screen.dart';
+import '../../../../core/di/repository_registry.dart';
 
 class ExerciseLibraryScreen extends StatefulWidget {
   const ExerciseLibraryScreen({super.key});
@@ -22,7 +22,7 @@ class _ExerciseLibraryScreenState
     super.initState();
 
     _controller = ExerciseLibraryController(
-      repository: InMemoryExerciseRepository(),
+      repository: RepositoryRegistry.exerciseRepository,
     );
 
     _controller.addListener(_refresh);

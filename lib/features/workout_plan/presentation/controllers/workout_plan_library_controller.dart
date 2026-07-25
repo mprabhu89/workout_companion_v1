@@ -5,65 +5,47 @@ import '../../domain/repositories/workout_plan_repository.dart';
 
 class WorkoutPlanLibraryController extends ChangeNotifier {
   WorkoutPlanLibraryController({
-    required WorkoutPlanRepository repository,
-  }) : _repository = repository;
+    required this.repository,
+  });
 
-  final WorkoutPlanRepository _repository;
+  final WorkoutPlanRepository repository;
 
-  List<WorkoutPlan> _workoutPlans = const [];
-
+  List<WorkoutPlan> _workoutPlans = [];
   bool _isLoading = false;
 
-  List<WorkoutPlan> get workoutPlans =>
-      List.unmodifiable(_workoutPlans);
+  List<WorkoutPlan> get workoutPlans => _workoutPlans;
 
   bool get isLoading => _isLoading;
 
-  bool get isEmpty =>
-      !_isLoading && _workoutPlans.isEmpty;
+  bool get isEmpty => _workoutPlans.isEmpty;
 
   Future<void> loadWorkoutPlans() async {
     _setLoading(true);
 
-    _workoutPlans =
-        await _repository.getAllWorkoutPlans();
+    _workoutPlans = await repository.getAllWorkoutPlans();
 
     _setLoading(false);
   }
 
-  Future<void> saveWorkoutPlan(
-    WorkoutPlan workoutPlan,
-  ) async {
-    await _repository.saveWorkoutPlan(workoutPlan);
+  Future<void> saveWorkoutPlan(WorkoutPlan workoutPlan) async {
+    await repository.saveWorkoutPlan(workoutPlan);
     await loadWorkoutPlans();
   }
 
   Future<void> deleteWorkoutPlan(String id) async {
-    await _repository.deleteWorkoutPlan(id);
+    await repository.deleteWorkoutPlan(id);
     await loadWorkoutPlans();
   }
 
-  Future<bool> workoutPlanNameExists(
-    String name,
-  ) {
-    return _repository.existsByName(name);
+  Future<bool> workoutPlanNameExists(String name) {
+    return repository.existsByName(name);
   }
 
-  WorkoutPlan? getWorkoutPlanById(String id) {
-    try {
-      return _workoutPlans.firstWhere(
-        (plan) => plan.id == id,
-      );
-    } on StateError {
-      return null;
-    }
+  Future<WorkoutPlan?> getWorkoutPlanById(String id) {
+    return repository.getWorkoutPlanById(id);
   }
 
   void _setLoading(bool value) {
-    if (_isLoading == value) {
-      return;
-    }
-
     _isLoading = value;
     notifyListeners();
   }
