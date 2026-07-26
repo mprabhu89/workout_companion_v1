@@ -5,6 +5,7 @@ import '../../../../core/widgets/app_delete_confirmation_dialog.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_list_card.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
+import '../../../workout_exercise/presentation/screens/workout_exercise_library_screen.dart';
 import '../../domain/entities/workout_group.dart';
 import '../controllers/workout_group_controller.dart';
 import 'create_workout_group_screen.dart';
@@ -40,15 +41,30 @@ class _WorkoutGroupLibraryScreenState
     _controller.loadWorkoutGroups();
   }
 
+  Future<void> _openWorkoutExercises(
+    WorkoutGroup workoutGroup,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WorkoutExerciseLibraryScreen(
+          workoutGroupName: workoutGroup.name,
+        ),
+      ),
+    );
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   Future<void> _createWorkoutGroup() async {
     final workoutGroup =
         await Navigator.of(context).push<WorkoutGroup>(
       MaterialPageRoute(
         builder: (_) => CreateWorkoutGroupScreen(
           workoutDayId: widget.workoutDayId,
-          existingNames: _controller.workoutGroups
-              .map((e) => e.name)
-              .toList(),
+          existingNames:
+              _controller.workoutGroups.map((e) => e.name).toList(),
         ),
       ),
     );
@@ -71,9 +87,8 @@ class _WorkoutGroupLibraryScreenState
         builder: (_) => CreateWorkoutGroupScreen(
           workoutDayId: widget.workoutDayId,
           workoutGroup: workoutGroup,
-          existingNames: _controller.workoutGroups
-              .map((e) => e.name)
-              .toList(),
+          existingNames:
+              _controller.workoutGroups.map((e) => e.name).toList(),
         ),
       ),
     );
@@ -131,22 +146,30 @@ class _WorkoutGroupLibraryScreenState
                           'Tap + to create your first workout group.',
                     )
                   : ListView.builder(
-                      itemCount:
-                          _controller.workoutGroups.length,
+                      itemCount: _controller.workoutGroups.length,
                       itemBuilder: (context, index) {
                         final group =
                             _controller.workoutGroups[index];
 
                         return AppListCard(
                           title: group.name,
-                          subtitle:
-                              'Order: ${group.groupOrder}',
+                          subtitle: 'Order: ${group.groupOrder}',
                           onTap: () =>
-                              _editWorkoutGroup(group),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () =>
-                                _deleteWorkoutGroup(group),
+                              _openWorkoutExercises(group),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () =>
+                                    _editWorkoutGroup(group),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () =>
+                                    _deleteWorkoutGroup(group),
+                              ),
+                            ],
                           ),
                         );
                       },

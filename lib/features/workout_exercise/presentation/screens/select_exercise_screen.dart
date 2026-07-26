@@ -4,7 +4,8 @@ import '../../../../core/di/repository_registry.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_list_card.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../workout/domain/entities/exercise.dart';
+import '../../../exercise/domain/entities/exercise.dart';
+
 
 class SelectExerciseScreen extends StatefulWidget {
   const SelectExerciseScreen({super.key});
@@ -27,7 +28,7 @@ class _SelectExerciseScreenState
   }
 
   Future<void> _loadExercises() async {
-    _exercises = await RepositoryRegistry.exerciseRepository.getAllExercises();
+    _exercises = await RepositoryRegistry.exerciseRepository.getExercises();
 
     if (mounted) {
       setState(() {

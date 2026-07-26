@@ -1,5 +1,5 @@
-import '../../features/workout/data/repositories/in_memory_exercise_repository.dart';
-import '../../features/workout/domain/repositories/exercise_repository.dart';
+import '../../features/exercise/data/repositories/in_memory_exercise_repository.dart';
+import '../../features/exercise/domain/repositories/exercise_repository.dart';
 import '../../features/workout_group/data/repositories/in_memory_workout_group_repository.dart';
 import '../../features/workout_group/domain/repositories/workout_group_repository.dart';
 import '../../features/workout_plan/data/repositories/in_memory_workout_plan_repository.dart';

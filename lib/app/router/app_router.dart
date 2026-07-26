@@ -2,7 +2,7 @@ import 'package:go_router/go_router.dart';
 
 //import '../startup/startup_page.dart';
 import '../../features/developer/presentation/screens/developer_home_screen.dart';
-import '../../features/workout/presentation/screens/exercise_library_screen.dart';
+import '../../features/exercise/presentation/screens/exercise_library_screen.dart';
 import '../../features/workout_plan/presentation/screens/workout_plan_library_screen.dart';
 
 final GoRouter appRouter = GoRouter(
