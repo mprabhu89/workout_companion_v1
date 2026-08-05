@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/repository_registry.dart';
-import '../../../../core/widgets/app_empty_state.dart';
-import '../../../../core/widgets/app_list_card.dart';
-import '../../../../core/widgets/app_loading_indicator.dart';
 import '../../../exercise/domain/entities/exercise.dart';
 
-
 class SelectExerciseScreen extends StatefulWidget {
-  const SelectExerciseScreen({super.key});
+  const SelectExerciseScreen({
+    super.key,
+  });
 
   @override
   State<SelectExerciseScreen> createState() =>
@@ -17,24 +15,26 @@ class SelectExerciseScreen extends StatefulWidget {
 
 class _SelectExerciseScreenState
     extends State<SelectExerciseScreen> {
-  bool _isLoading = true;
-
   List<Exercise> _exercises = [];
+
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadExercises();
+    _load();
   }
 
-  Future<void> _loadExercises() async {
-    _exercises = await RepositoryRegistry.exerciseRepository.getExercises();
+  Future<void> _load() async {
+    _exercises =
+        await RepositoryRegistry.exerciseRepository
+            .getExercises();
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -44,29 +44,37 @@ class _SelectExerciseScreenState
         title: const Text('Select Exercise'),
       ),
       body: _isLoading
-          ? const AppLoadingIndicator(
-              message: 'Loading exercises...',
+          ? const Center(
+              child: CircularProgressIndicator(),
             )
-          : _exercises.isEmpty
-              ? const AppEmptyState(
-                  title: 'No Exercises',
-                  message:
-                      'Create an exercise in the Exercise Library first.',
-                )
-              : ListView.builder(
-                  itemCount: _exercises.length,
-                  itemBuilder: (context, index) {
-                    final exercise = _exercises[index];
+          : ListView.separated(
+              itemCount: _exercises.length,
+              separatorBuilder: (_, _) =>
+                  const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final exercise =
+                    _exercises[index];
 
-                    return AppListCard(
-                      title: exercise.name,
-                      subtitle: exercise.description,
-                      onTap: () {
-                        Navigator.of(context).pop(exercise);
-                      },
+                return ListTile(
+                  title: Text(exercise.name),
+                  subtitle:
+                      exercise.description.isEmpty
+                          ? null
+                          : Text(
+                              exercise.description,
+                              maxLines: 1,
+                              overflow:
+                                  TextOverflow.ellipsis,
+                            ),
+                  onTap: () {
+                    Navigator.pop(
+                      context,
+                      exercise,
                     );
                   },
-                ),
+                );
+              },
+            ),
     );
   }
 }

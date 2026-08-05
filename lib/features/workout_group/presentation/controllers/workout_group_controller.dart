@@ -65,9 +65,7 @@ class WorkoutGroupController extends ChangeNotifier {
     }
   }
 
-  void _setLoading(
-    bool value,
-  ) {
+  void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
   }

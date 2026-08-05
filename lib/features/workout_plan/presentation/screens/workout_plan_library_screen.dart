@@ -132,7 +132,7 @@ class _WorkoutPlanLibraryScreenState
             onTap: () => _openWorkoutDays(plan),
             title: Text(plan.name),
             subtitle: Text(
-              '${plan.difficulty.name} • ${plan.estimatedDurationMinutes} mins',
+              '${plan.category.displayName} • ${plan.difficulty.displayName} • ${plan.estimatedDurationInMinutes} mins',
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,

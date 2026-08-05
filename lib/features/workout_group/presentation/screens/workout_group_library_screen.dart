@@ -47,6 +47,7 @@ class _WorkoutGroupLibraryScreenState
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => WorkoutExerciseLibraryScreen(
+          workoutGroupId: workoutGroup.id,
           workoutGroupName: workoutGroup.name,
         ),
       ),
@@ -63,13 +64,16 @@ class _WorkoutGroupLibraryScreenState
       MaterialPageRoute(
         builder: (_) => CreateWorkoutGroupScreen(
           workoutDayId: widget.workoutDayId,
-          existingNames:
-              _controller.workoutGroups.map((e) => e.name).toList(),
+          existingNames: _controller.workoutGroups
+              .map((e) => e.name)
+              .toList(),
         ),
       ),
     );
 
-    if (workoutGroup == null) return;
+    if (workoutGroup == null) {
+      return;
+    }
 
     await _controller.saveWorkoutGroup(workoutGroup);
 
@@ -87,13 +91,16 @@ class _WorkoutGroupLibraryScreenState
         builder: (_) => CreateWorkoutGroupScreen(
           workoutDayId: widget.workoutDayId,
           workoutGroup: workoutGroup,
-          existingNames:
-              _controller.workoutGroups.map((e) => e.name).toList(),
+          existingNames: _controller.workoutGroups
+              .map((e) => e.name)
+              .toList(),
         ),
       ),
     );
 
-    if (updated == null) return;
+    if (updated == null) {
+      return;
+    }
 
     await _controller.saveWorkoutGroup(updated);
 
@@ -113,7 +120,9 @@ class _WorkoutGroupLibraryScreenState
           'Are you sure you want to delete "${workoutGroup.name}"?',
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     await _controller.deleteWorkoutGroup(workoutGroup.id);
 
@@ -153,7 +162,8 @@ class _WorkoutGroupLibraryScreenState
 
                         return AppListCard(
                           title: group.name,
-                          subtitle: 'Order: ${group.groupOrder}',
+                          subtitle:
+                              'Display Order: ${group.displayOrder}',
                           onTap: () =>
                               _openWorkoutExercises(group),
                           trailing: Row(

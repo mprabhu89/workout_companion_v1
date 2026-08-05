@@ -18,10 +18,7 @@ class WorkoutExerciseMapper {
     required String notes,
   }) {
     int? repetitions;
-    int? durationSeconds;
-    double? distanceMeters;
-    int? calories;
-    String? customTarget;
+    int? durationInSeconds;
 
     switch (targetType) {
       case WorkoutTargetType.repetitions:
@@ -29,19 +26,13 @@ class WorkoutExerciseMapper {
         break;
 
       case WorkoutTargetType.duration:
-        durationSeconds = int.tryParse(targetValue);
+        durationInSeconds = int.tryParse(targetValue);
         break;
 
+      // These target types will be supported in a future release.
       case WorkoutTargetType.distance:
-        distanceMeters = double.tryParse(targetValue);
-        break;
-
       case WorkoutTargetType.calories:
-        calories = int.tryParse(targetValue);
-        break;
-
       case WorkoutTargetType.custom:
-        customTarget = targetValue.trim();
         break;
     }
 
@@ -53,18 +44,15 @@ class WorkoutExerciseMapper {
       sets: sets,
       targetType: targetType,
       repetitions: repetitions,
-      durationSeconds: durationSeconds,
-      distanceMeters: distanceMeters,
-      calories: calories,
-      customTarget: customTarget,
-      restSeconds: restSeconds,
+      durationInSeconds: durationInSeconds,
+      restInSeconds: restSeconds,
       tempoType: TempoType.normal,
       customTempo: null,
       rpe: null,
       weight: null,
       weightUnit: WeightUnit.kilograms,
       notes: notes.trim(),
-      isEnabled: true,
+      isArchived: false,
     );
   }
 }

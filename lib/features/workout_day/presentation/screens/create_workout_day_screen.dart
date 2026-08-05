@@ -27,8 +27,10 @@ class _CreateWorkoutDayScreenState
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameController;
-  late final TextEditingController _notesController;
-  late final TextEditingController _orderController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _dayNumberController;
+
+  bool _isRestDay = false;
 
   bool get _isEditing => widget.workoutDay != null;
 
@@ -40,20 +42,22 @@ class _CreateWorkoutDayScreenState
       text: widget.workoutDay?.name ?? '',
     );
 
-    _notesController = TextEditingController(
-      text: widget.workoutDay?.notes ?? '',
+    _descriptionController = TextEditingController(
+      text: widget.workoutDay?.description ?? '',
     );
 
-    _orderController = TextEditingController(
-      text: widget.workoutDay?.dayOrder.toString() ?? '1',
+    _dayNumberController = TextEditingController(
+      text: (widget.workoutDay?.dayNumber ?? 1).toString(),
     );
+
+    _isRestDay = widget.workoutDay?.isRestDay ?? false;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _notesController.dispose();
-    _orderController.dispose();
+    _descriptionController.dispose();
+    _dayNumberController.dispose();
     super.dispose();
   }
 
@@ -91,17 +95,18 @@ class _CreateWorkoutDayScreenState
       return;
     }
 
-    final order =
-        int.tryParse(_orderController.text.trim()) ?? 1;
+    final dayNumber =
+        int.tryParse(_dayNumberController.text.trim()) ?? 1;
 
     Navigator.of(context).pop(
       WorkoutDay(
         id: widget.workoutDay?.id ?? _uuid.v4(),
         workoutPlanId: widget.workoutPlanId,
+        dayNumber: dayNumber,
         name: _nameController.text.trim(),
-        dayOrder: order,
-        notes: _notesController.text.trim(),
-        isEnabled: widget.workoutDay?.isEnabled ?? true,
+        description: _descriptionController.text.trim(),
+        isRestDay: _isRestDay,
+        isArchived: widget.workoutDay?.isArchived ?? false,
       ),
     );
   }
@@ -132,20 +137,33 @@ class _CreateWorkoutDayScreenState
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _orderController,
+                  controller: _dayNumberController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Display Order',
+                    labelText: 'Day Number',
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _notesController,
+                  controller: _descriptionController,
                   minLines: 3,
                   maxLines: 5,
                   decoration: const InputDecoration(
-                    labelText: 'Notes',
+                    labelText: 'Description',
                   ),
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: const Text('Rest Day'),
+                  subtitle: const Text(
+                    'Mark this day as a recovery/rest day.',
+                  ),
+                  value: _isRestDay,
+                  onChanged: (value) {
+                    setState(() {
+                      _isRestDay = value;
+                    });
+                  },
                 ),
                 const SizedBox(height: 32),
                 FilledButton(

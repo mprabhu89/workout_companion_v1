@@ -1,70 +1,64 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class WorkoutDay {
   const WorkoutDay({
     required this.id,
     required this.workoutPlanId,
+    required this.dayNumber,
     required this.name,
-    required this.dayOrder,
-    this.notes = '',
-    this.isEnabled = true,
+    required this.description,
+    this.isRestDay = false,
+    this.isArchived = false,
   });
 
   final String id;
   final String workoutPlanId;
-
-  /// Example:
-  /// Day 1
-  /// Push
-  /// Monday
+  final int dayNumber;
   final String name;
-
-  /// Display order inside a workout plan.
-  final int dayOrder;
-
-  final String notes;
-
-  final bool isEnabled;
+  final String description;
+  final bool isRestDay;
+  final bool isArchived;
 
   WorkoutDay copyWith({
     String? id,
     String? workoutPlanId,
+    int? dayNumber,
     String? name,
-    int? dayOrder,
-    String? notes,
-    bool? isEnabled,
+    String? description,
+    bool? isRestDay,
+    bool? isArchived,
   }) {
     return WorkoutDay(
       id: id ?? this.id,
       workoutPlanId: workoutPlanId ?? this.workoutPlanId,
+      dayNumber: dayNumber ?? this.dayNumber,
       name: name ?? this.name,
-      dayOrder: dayOrder ?? this.dayOrder,
-      notes: notes ?? this.notes,
-      isEnabled: isEnabled ?? this.isEnabled,
+      description: description ?? this.description,
+      isRestDay: isRestDay ?? this.isRestDay,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 
   @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is WorkoutDay &&
-            id == other.id &&
-            workoutPlanId == other.workoutPlanId &&
-            name == other.name &&
-            dayOrder == other.dayOrder &&
-            notes == other.notes &&
-            isEnabled == other.isEnabled;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WorkoutDay &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          workoutPlanId == other.workoutPlanId &&
+          dayNumber == other.dayNumber &&
+          name == other.name &&
+          description == other.description &&
+          isRestDay == other.isRestDay &&
+          isArchived == other.isArchived;
 
   @override
   int get hashCode => Object.hash(
         id,
         workoutPlanId,
+        dayNumber,
         name,
-        dayOrder,
-        notes,
-        isEnabled,
+        description,
+        isRestDay,
+        isArchived,
       );
 
   @override
@@ -72,8 +66,8 @@ class WorkoutDay {
     return 'WorkoutDay('
         'id: $id, '
         'workoutPlanId: $workoutPlanId, '
-        'name: $name, '
-        'dayOrder: $dayOrder'
+        'dayNumber: $dayNumber, '
+        'name: $name'
         ')';
   }
 }

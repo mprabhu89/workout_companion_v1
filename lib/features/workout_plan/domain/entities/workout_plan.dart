@@ -1,74 +1,69 @@
-/// Represents a workout plan.
-///
-/// A workout plan is the root of the workout hierarchy.
-///
-/// Workout Plan
-///   └── Workout Day
-///         └── Exercise Group
-///               └── Exercise
+import '../enums/workout_plan_category.dart';
+import '../enums/workout_plan_difficulty.dart';
+
 class WorkoutPlan {
   const WorkoutPlan({
     required this.id,
     required this.name,
-    this.description = '',
-    this.difficulty = WorkoutDifficulty.beginner,
-    this.estimatedDurationMinutes = 0,
-    this.isEnabled = true,
+    required this.description,
+    required this.category,
+    required this.difficulty,
+    required this.estimatedDurationInMinutes,
+    this.isArchived = false,
   });
 
   final String id;
-
   final String name;
-
   final String description;
-
-  final WorkoutDifficulty difficulty;
-
-  final int estimatedDurationMinutes;
-
-  final bool isEnabled;
+  final WorkoutPlanCategory category;
+  final WorkoutPlanDifficulty difficulty;
+  final int estimatedDurationInMinutes;
+  final bool isArchived;
 
   WorkoutPlan copyWith({
     String? id,
     String? name,
     String? description,
-    WorkoutDifficulty? difficulty,
-    int? estimatedDurationMinutes,
-    bool? isEnabled,
+    WorkoutPlanCategory? category,
+    WorkoutPlanDifficulty? difficulty,
+    int? estimatedDurationInMinutes,
+    bool? isArchived,
   }) {
     return WorkoutPlan(
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
+      category: category ?? this.category,
       difficulty: difficulty ?? this.difficulty,
-      estimatedDurationMinutes:
-          estimatedDurationMinutes ??
-              this.estimatedDurationMinutes,
-      isEnabled: isEnabled ?? this.isEnabled,
+      estimatedDurationInMinutes:
+          estimatedDurationInMinutes ?? this.estimatedDurationInMinutes,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 
   @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is WorkoutPlan &&
-            id == other.id &&
-            name == other.name &&
-            description == other.description &&
-            difficulty == other.difficulty &&
-            estimatedDurationMinutes ==
-                other.estimatedDurationMinutes &&
-            isEnabled == other.isEnabled;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WorkoutPlan &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          description == other.description &&
+          category == other.category &&
+          difficulty == other.difficulty &&
+          estimatedDurationInMinutes ==
+              other.estimatedDurationInMinutes &&
+          isArchived == other.isArchived;
 
   @override
   int get hashCode => Object.hash(
         id,
         name,
         description,
+        category,
         difficulty,
-        estimatedDurationMinutes,
-        isEnabled,
+        estimatedDurationInMinutes,
+        isArchived,
       );
 
   @override
@@ -76,14 +71,9 @@ class WorkoutPlan {
     return 'WorkoutPlan('
         'id: $id, '
         'name: $name, '
-        'difficulty: $difficulty'
+        'category: ${category.displayName}, '
+        'difficulty: ${difficulty.displayName}, '
+        'estimatedDurationInMinutes: $estimatedDurationInMinutes'
         ')';
   }
-}
-
-/// Supported workout difficulty levels.
-enum WorkoutDifficulty {
-  beginner,
-  intermediate,
-  advanced,
 }

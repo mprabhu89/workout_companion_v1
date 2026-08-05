@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/workout_plan.dart';
+import '../../domain/enums/workout_plan_category.dart';
+import '../../domain/enums/workout_plan_difficulty.dart';
 
 class CreateWorkoutPlanScreen extends StatefulWidget {
   const CreateWorkoutPlanScreen({
@@ -11,7 +13,6 @@ class CreateWorkoutPlanScreen extends StatefulWidget {
   });
 
   final List<String> existingNames;
-
   final WorkoutPlan? workoutPlan;
 
   @override
@@ -27,11 +28,13 @@ class _CreateWorkoutPlanScreenState
 
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
+  late final TextEditingController _durationController;
 
-  WorkoutDifficulty _difficulty = WorkoutDifficulty.beginner;
+  WorkoutPlanDifficulty _difficulty =
+      WorkoutPlanDifficulty.beginner;
 
-  final TextEditingController _durationController =
-      TextEditingController();
+  WorkoutPlanCategory _category =
+      WorkoutPlanCategory.generalFitness;
 
   bool get _isEditing => widget.workoutPlan != null;
 
@@ -47,14 +50,17 @@ class _CreateWorkoutPlanScreenState
       text: widget.workoutPlan?.description ?? '',
     );
 
-    _difficulty =
-        widget.workoutPlan?.difficulty ??
-            WorkoutDifficulty.beginner;
+    _durationController = TextEditingController(
+      text: widget.workoutPlan?.estimatedDurationInMinutes
+              .toString() ??
+          '',
+    );
 
-    _durationController.text =
-        widget.workoutPlan?.estimatedDurationMinutes
-                .toString() ??
-            '';
+    _difficulty = widget.workoutPlan?.difficulty ??
+        WorkoutPlanDifficulty.beginner;
+
+    _category = widget.workoutPlan?.category ??
+        WorkoutPlanCategory.generalFitness;
   }
 
   @override
@@ -106,12 +112,12 @@ class _CreateWorkoutPlanScreenState
       WorkoutPlan(
         id: widget.workoutPlan?.id ?? _uuid.v4(),
         name: _nameController.text.trim(),
-        description:
-            _descriptionController.text.trim(),
+        description: _descriptionController.text.trim(),
+        category: _category,
         difficulty: _difficulty,
-        estimatedDurationMinutes: duration,
-        isEnabled:
-            widget.workoutPlan?.isEnabled ?? true,
+        estimatedDurationInMinutes: duration,
+        isArchived:
+            widget.workoutPlan?.isArchived ?? false,
       ),
     );
   }
@@ -150,34 +156,55 @@ class _CreateWorkoutPlanScreenState
                   maxLines: 5,
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<WorkoutDifficulty>(
+                DropdownButtonFormField<WorkoutPlanCategory>(
+                  initialValue: _category,
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                  ),
+                  items: WorkoutPlanCategory.values
+                      .map(
+                        (category) => DropdownMenuItem(
+                          value: category,
+                          child: Text(category.displayName),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+
+                    setState(() {
+                      _category = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<WorkoutPlanDifficulty>(
                   initialValue: _difficulty,
                   decoration: const InputDecoration(
                     labelText: 'Difficulty',
                   ),
-                  items: WorkoutDifficulty.values
+                  items: WorkoutPlanDifficulty.values
                       .map(
                         (difficulty) => DropdownMenuItem(
                           value: difficulty,
-                          child: Text(difficulty.name),
+                          child: Text(
+                            difficulty.displayName,
+                          ),
                         ),
                       )
                       .toList(),
-                  onChanged: (difficulty) {
-                    if (difficulty == null) {
-                      return;
-                    }
+                  onChanged: (value) {
+                    if (value == null) return;
 
                     setState(() {
-                      _difficulty = difficulty;
+                      _difficulty = value;
                     });
                   },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _durationController,
-                  keyboardType:
-                      TextInputType.number,
+                  keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText:
                         'Estimated Duration (minutes)',
@@ -187,9 +214,7 @@ class _CreateWorkoutPlanScreenState
                 FilledButton(
                   onPressed: _save,
                   child: Text(
-                    _isEditing
-                        ? 'Update'
-                        : 'Save',
+                    _isEditing ? 'Update' : 'Save',
                   ),
                 ),
               ],

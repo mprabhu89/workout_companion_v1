@@ -9,9 +9,15 @@ class InMemoryWorkoutDayRepository implements WorkoutDayRepository {
     required String workoutPlanId,
   }) async {
     final days = _workoutDays
-        .where((day) => day.workoutPlanId == workoutPlanId)
+        .where(
+          (day) =>
+              day.workoutPlanId == workoutPlanId &&
+              !day.isArchived,
+        )
         .toList()
-      ..sort((a, b) => a.dayOrder.compareTo(b.dayOrder));
+      ..sort(
+        (a, b) => a.dayNumber.compareTo(b.dayNumber),
+      );
 
     return List.unmodifiable(days);
   }
@@ -19,14 +25,18 @@ class InMemoryWorkoutDayRepository implements WorkoutDayRepository {
   @override
   Future<WorkoutDay?> getWorkoutDayById(String id) async {
     try {
-      return _workoutDays.firstWhere((day) => day.id == id);
+      return _workoutDays.firstWhere(
+        (day) => day.id == id,
+      );
     } on StateError {
       return null;
     }
   }
 
   @override
-  Future<void> saveWorkoutDay(WorkoutDay workoutDay) async {
+  Future<void> saveWorkoutDay(
+    WorkoutDay workoutDay,
+  ) async {
     final index = _workoutDays.indexWhere(
       (day) => day.id == workoutDay.id,
     );
@@ -40,7 +50,17 @@ class InMemoryWorkoutDayRepository implements WorkoutDayRepository {
 
   @override
   Future<void> deleteWorkoutDay(String id) async {
-    _workoutDays.removeWhere((day) => day.id == id);
+    final index = _workoutDays.indexWhere(
+      (day) => day.id == id,
+    );
+
+    if (index == -1) {
+      return;
+    }
+
+    _workoutDays[index] = _workoutDays[index].copyWith(
+      isArchived: true,
+    );
   }
 
   @override
@@ -53,6 +73,7 @@ class InMemoryWorkoutDayRepository implements WorkoutDayRepository {
     return _workoutDays.any(
       (day) =>
           day.workoutPlanId == workoutPlanId &&
+          !day.isArchived &&
           day.name.trim().toLowerCase() == normalized,
     );
   }

@@ -1,10 +1,7 @@
-import 'package:flutter/foundation.dart';
-
 import 'tempo_type.dart';
 import 'weight_unit.dart';
 import 'workout_target_type.dart';
 
-@immutable
 class WorkoutExercise {
   const WorkoutExercise({
     required this.id,
@@ -12,70 +9,68 @@ class WorkoutExercise {
     required this.exerciseId,
     required this.displayOrder,
 
-    this.sets = 3,
-
-    this.targetType = WorkoutTargetType.repetitions,
+    // Prescription
+    this.sets,
+    required this.targetType,
     this.repetitions,
-    this.durationSeconds,
-    this.distanceMeters,
-    this.calories,
-    this.customTarget,
+    this.durationInSeconds,
 
-    this.restSeconds = 60,
+    // Rest
+    this.restInSeconds,
 
+    // Intensity
+    this.weight,
+    this.weightUnit = WeightUnit.kilograms,
+    this.rpe,
+
+    // Tempo
     this.tempoType = TempoType.normal,
     this.customTempo,
 
-    this.rpe,
-
-    this.weight,
-    this.weightUnit = WeightUnit.kilograms,
-
+    // Notes
     this.notes = '',
-    this.isEnabled = true,
+
+    // Soft delete
+    this.isArchived = false,
   });
 
   final String id;
-
-  /// Parent Workout Group
   final String workoutGroupId;
-
-  /// Reference to Exercise Library
   final String exerciseId;
 
-  /// Display order within the Workout Group
   final int displayOrder;
 
-  /// Number of sets
-  final int sets;
+  /// Number of sets.
+  final int? sets;
 
-  /// Target configuration
+  /// Determines how the exercise target is measured.
   final WorkoutTargetType targetType;
 
+  /// Used when targetType == repetitions.
   final int? repetitions;
-  final int? durationSeconds;
-  final double? distanceMeters;
-  final int? calories;
-  final String? customTarget;
 
-  /// Rest after each set
-  final int restSeconds;
+  /// Used when targetType == duration.
+  final int? durationInSeconds;
 
-  /// Tempo
-  final TempoType tempoType;
-  final String? customTempo;
+  /// Rest after completing this exercise.
+  final int? restInSeconds;
 
-  /// Rate of Perceived Exertion (1–10)
-  final int? rpe;
-
-  /// Suggested working weight
+  /// Optional working weight.
   final double? weight;
+
   final WeightUnit weightUnit;
 
-  /// Trainer notes
+  /// Rate of perceived exertion (1–10).
+  final int? rpe;
+
+  final TempoType tempoType;
+
+  /// Used when tempoType == custom.
+  final String? customTempo;
+
   final String notes;
 
-  final bool isEnabled;
+  final bool isArchived;
 
   WorkoutExercise copyWith({
     String? id,
@@ -85,18 +80,15 @@ class WorkoutExercise {
     int? sets,
     WorkoutTargetType? targetType,
     int? repetitions,
-    int? durationSeconds,
-    double? distanceMeters,
-    int? calories,
-    String? customTarget,
-    int? restSeconds,
-    TempoType? tempoType,
-    String? customTempo,
-    int? rpe,
+    int? durationInSeconds,
+    int? restInSeconds,
     double? weight,
     WeightUnit? weightUnit,
+    int? rpe,
+    TempoType? tempoType,
+    String? customTempo,
     String? notes,
-    bool? isEnabled,
+    bool? isArchived,
   }) {
     return WorkoutExercise(
       id: id ?? this.id,
@@ -106,18 +98,16 @@ class WorkoutExercise {
       sets: sets ?? this.sets,
       targetType: targetType ?? this.targetType,
       repetitions: repetitions ?? this.repetitions,
-      durationSeconds: durationSeconds ?? this.durationSeconds,
-      distanceMeters: distanceMeters ?? this.distanceMeters,
-      calories: calories ?? this.calories,
-      customTarget: customTarget ?? this.customTarget,
-      restSeconds: restSeconds ?? this.restSeconds,
-      tempoType: tempoType ?? this.tempoType,
-      customTempo: customTempo ?? this.customTempo,
-      rpe: rpe ?? this.rpe,
+      durationInSeconds:
+          durationInSeconds ?? this.durationInSeconds,
+      restInSeconds: restInSeconds ?? this.restInSeconds,
       weight: weight ?? this.weight,
       weightUnit: weightUnit ?? this.weightUnit,
+      rpe: rpe ?? this.rpe,
+      tempoType: tempoType ?? this.tempoType,
+      customTempo: customTempo ?? this.customTempo,
       notes: notes ?? this.notes,
-      isEnabled: isEnabled ?? this.isEnabled,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 
@@ -125,7 +115,6 @@ class WorkoutExercise {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is WorkoutExercise &&
-          runtimeType == other.runtimeType &&
           id == other.id &&
           workoutGroupId == other.workoutGroupId &&
           exerciseId == other.exerciseId &&
@@ -133,18 +122,15 @@ class WorkoutExercise {
           sets == other.sets &&
           targetType == other.targetType &&
           repetitions == other.repetitions &&
-          durationSeconds == other.durationSeconds &&
-          distanceMeters == other.distanceMeters &&
-          calories == other.calories &&
-          customTarget == other.customTarget &&
-          restSeconds == other.restSeconds &&
-          tempoType == other.tempoType &&
-          customTempo == other.customTempo &&
-          rpe == other.rpe &&
+          durationInSeconds == other.durationInSeconds &&
+          restInSeconds == other.restInSeconds &&
           weight == other.weight &&
           weightUnit == other.weightUnit &&
+          rpe == other.rpe &&
+          tempoType == other.tempoType &&
+          customTempo == other.customTempo &&
           notes == other.notes &&
-          isEnabled == other.isEnabled;
+          isArchived == other.isArchived;
 
   @override
   int get hashCode => Object.hash(
@@ -155,18 +141,15 @@ class WorkoutExercise {
         sets,
         targetType,
         repetitions,
-        durationSeconds,
-        distanceMeters,
-        calories,
-        customTarget,
-        restSeconds,
-        tempoType,
-        customTempo,
-        rpe,
+        durationInSeconds,
+        restInSeconds,
         weight,
         weightUnit,
+        rpe,
+        tempoType,
+        customTempo,
         notes,
-        isEnabled,
+        isArchived,
       );
 
   @override
@@ -174,8 +157,6 @@ class WorkoutExercise {
     return 'WorkoutExercise('
         'id: $id, '
         'exerciseId: $exerciseId, '
-        'targetType: $targetType, '
-        'sets: $sets, '
         'displayOrder: $displayOrder'
         ')';
   }

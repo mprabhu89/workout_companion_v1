@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../workout_group/presentation/screens/workout_group_library_screen.dart';
+
 import '../../../../core/di/repository_registry.dart';
+import '../../../workout_group/presentation/screens/workout_group_library_screen.dart';
 import '../../domain/entities/workout_day.dart';
 import '../controllers/workout_day_library_controller.dart';
 import 'create_workout_day_screen.dart';
@@ -23,22 +24,7 @@ class WorkoutDayLibraryScreen extends StatefulWidget {
 class _WorkoutDayLibraryScreenState
     extends State<WorkoutDayLibraryScreen> {
   late final WorkoutDayLibraryController _controller;
-  Future<void> _openWorkoutGroups(
-    WorkoutDay workoutDay,
-  ) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => WorkoutGroupLibraryScreen(
-          workoutDayId: workoutDay.id,
-          workoutDayName: workoutDay.name,
-        ),
-      ),
-    );
 
-    if (mounted) {
-      setState(() {});
-    }
-  }
   @override
   void initState() {
     super.initState();
@@ -100,8 +86,27 @@ class _WorkoutDayLibraryScreenState
     }
   }
 
-  Future<void> _deleteWorkoutDay(WorkoutDay workoutDay) async {
+  Future<void> _deleteWorkoutDay(
+    WorkoutDay workoutDay,
+  ) async {
     await _controller.deleteWorkoutDay(workoutDay.id);
+  }
+
+  Future<void> _openWorkoutGroups(
+    WorkoutDay workoutDay,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WorkoutGroupLibraryScreen(
+          workoutDayId: workoutDay.id,
+          workoutDayName: workoutDay.name,
+        ),
+      ),
+    );
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -143,11 +148,13 @@ class _WorkoutDayLibraryScreenState
 
         return Card(
           child: ListTile(
+            onTap: () => _openWorkoutGroups(workoutDay),
             title: Text(workoutDay.name),
             subtitle: Text(
-              'Order: ${workoutDay.dayOrder}',
+              workoutDay.isRestDay
+                  ? 'Day ${workoutDay.dayNumber} • Rest Day'
+                  : 'Day ${workoutDay.dayNumber}',
             ),
-            onTap: () => _openWorkoutGroups(workoutDay),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

@@ -24,53 +24,62 @@ class CreateWorkoutGroupScreen extends StatefulWidget {
 
 class _CreateWorkoutGroupScreenState
     extends State<CreateWorkoutGroupScreen> {
+  static const _uuid = Uuid();
+
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameController;
-  late final TextEditingController _orderController;
-  late final TextEditingController _notesController;
+  late final TextEditingController _displayOrderController;
 
-  static const _uuid = Uuid();
+  bool get _isEditing => widget.workoutGroup != null;
 
   @override
   void initState() {
     super.initState();
 
-    final group = widget.workoutGroup;
-
     _nameController = TextEditingController(
-      text: group?.name ?? '',
+      text: widget.workoutGroup?.name ?? '',
     );
 
-    _orderController = TextEditingController(
-      text: group?.groupOrder.toString() ?? '1',
-    );
-
-    _notesController = TextEditingController(
-      text: group?.notes ?? '',
+    _displayOrderController = TextEditingController(
+      text: (widget.workoutGroup?.displayOrder ?? 1).toString(),
     );
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _orderController.dispose();
-    _notesController.dispose();
+    _displayOrderController.dispose();
     super.dispose();
   }
 
-  bool _nameExists(String value) {
-    final normalized = value.trim().toLowerCase();
+  String? _validateName(String? value) {
+    final name = value?.trim() ?? '';
 
-    return widget.existingNames.any((name) {
-      if (widget.isEditing &&
-          normalized ==
-              widget.workoutGroup!.name.trim().toLowerCase()) {
+    if (name.isEmpty) {
+      return 'Workout group name is required';
+    }
+
+    final normalized = name.toLowerCase();
+
+    final currentName =
+        widget.workoutGroup?.name.trim().toLowerCase();
+
+    final exists = widget.existingNames.any((candidate) {
+      final value = candidate.trim().toLowerCase();
+
+      if (_isEditing && value == currentName) {
         return false;
       }
 
-      return name.trim().toLowerCase() == normalized;
+      return value == normalized;
     });
+
+    if (exists) {
+      return 'A workout group with this name already exists';
+    }
+
+    return null;
   }
 
   void _save() {
@@ -78,17 +87,18 @@ class _CreateWorkoutGroupScreenState
       return;
     }
 
-    final workoutGroup = WorkoutGroup(
-      id: widget.workoutGroup?.id ?? _uuid.v4(),
-      workoutDayId: widget.workoutDayId,
-      name: _nameController.text.trim(),
-      groupOrder:
-          int.tryParse(_orderController.text.trim()) ?? 1,
-      notes: _notesController.text.trim(),
-      isEnabled: widget.workoutGroup?.isEnabled ?? true,
-    );
+    final displayOrder =
+        int.tryParse(_displayOrderController.text.trim()) ?? 1;
 
-    Navigator.of(context).pop(workoutGroup);
+    Navigator.of(context).pop(
+      WorkoutGroup(
+        id: widget.workoutGroup?.id ?? _uuid.v4(),
+        workoutDayId: widget.workoutDayId,
+        name: _nameController.text.trim(),
+        displayOrder: displayOrder,
+        isArchived: widget.workoutGroup?.isArchived ?? false,
+      ),
+    );
   }
 
   @override
@@ -96,62 +106,44 @@ class _CreateWorkoutGroupScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.isEditing
+          _isEditing
               ? 'Edit Workout Group'
               : 'Create Workout Group',
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Workout Group Name',
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Workout Group Name',
+                  ),
+                  validator: _validateName,
                 ),
-                validator: (value) {
-                  final text = value?.trim() ?? '';
-
-                  if (text.isEmpty) {
-                    return 'Please enter a name';
-                  }
-
-                  if (_nameExists(text)) {
-                    return 'A workout group with this name already exists.';
-                  }
-
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _orderController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Display Order',
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _displayOrderController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Display Order',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _notesController,
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
+                const SizedBox(height: 32),
+                FilledButton(
+                  onPressed: _save,
+                  child: Text(
+                    _isEditing
+                        ? 'Update Workout Group'
+                        : 'Create Workout Group',
+                  ),
                 ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _save,
-                child: Text(
-                  widget.isEditing
-                      ? 'Update Workout Group'
-                      : 'Create Workout Group',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

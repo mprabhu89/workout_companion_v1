@@ -10,9 +10,16 @@ class InMemoryWorkoutGroupRepository
     String workoutDayId,
   ) async {
     final workoutGroups = _workoutGroups
-        .where((group) => group.workoutDayId == workoutDayId)
+        .where(
+          (group) =>
+              group.workoutDayId == workoutDayId &&
+              !group.isArchived,
+        )
         .toList()
-      ..sort((a, b) => a.groupOrder.compareTo(b.groupOrder));
+      ..sort(
+        (a, b) =>
+            a.displayOrder.compareTo(b.displayOrder),
+      );
 
     return workoutGroups;
   }
@@ -49,8 +56,16 @@ class InMemoryWorkoutGroupRepository
   Future<void> deleteWorkoutGroup(
     String id,
   ) async {
-    _workoutGroups.removeWhere(
+    final index = _workoutGroups.indexWhere(
       (group) => group.id == id,
+    );
+
+    if (index == -1) {
+      return;
+    }
+
+    _workoutGroups[index] = _workoutGroups[index].copyWith(
+      isArchived: true,
     );
   }
 
@@ -61,6 +76,7 @@ class InMemoryWorkoutGroupRepository
   ) async {
     return _workoutGroups.any(
       (group) =>
+          !group.isArchived &&
           group.workoutDayId == workoutDayId &&
           group.name.trim().toLowerCase() ==
               name.trim().toLowerCase(),
