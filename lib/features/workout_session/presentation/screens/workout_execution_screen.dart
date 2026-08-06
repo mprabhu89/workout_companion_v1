@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-
-import '../../../workout_exercise/domain/entities/workout_exercise.dart';
-import '../../../workout_exercise/domain/entities/workout_target_type.dart';
 import '../controllers/workout_session_controller.dart';
 import '../../domain/entities/workout_session.dart';
 
 class WorkoutExecutionScreen extends StatefulWidget {
   const WorkoutExecutionScreen({
     super.key,
+    required this.session,
   });
+
+  final WorkoutSession session;
 
   @override
   State<WorkoutExecutionScreen> createState() =>
@@ -23,23 +23,8 @@ class _WorkoutExecutionScreenState
   void initState() {
     super.initState();
 
-    final session = WorkoutSession(
-      workoutExercises: const [
-        WorkoutExercise(
-          id: 'demo',
-          workoutGroupId: 'group',
-          exerciseId: 'Bench Press',
-          displayOrder: 1,
-          targetType: WorkoutTargetType.repetitions,
-          sets: 3,
-          repetitions: 10,
-          restInSeconds: 60,
-        ),
-      ],
-    );
-
     _controller = WorkoutSessionController(
-      session: session,
+      session: widget.session,
     );
 
     _controller.addListener(_refresh);

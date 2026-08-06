@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-
 import '../../../../core/di/repository_registry.dart';
+import '../../../workout_session/domain/services/workout_session_builder.dart';
+import '../../../workout_session/presentation/screens/workout_execution_screen.dart';
 import '../../../workout_group/presentation/screens/workout_group_library_screen.dart';
 import '../../domain/entities/workout_day.dart';
 import '../controllers/workout_day_library_controller.dart';
@@ -24,7 +25,32 @@ class WorkoutDayLibraryScreen extends StatefulWidget {
 class _WorkoutDayLibraryScreenState
     extends State<WorkoutDayLibraryScreen> {
   late final WorkoutDayLibraryController _controller;
+  Future<void> _startWorkout(
+    WorkoutDay workoutDay,
+  ) async {
+    final builder = WorkoutSessionBuilder(
+      workoutGroupRepository:
+          RepositoryRegistry.workoutGroupRepository,
+      workoutExerciseRepository:
+          RepositoryRegistry.workoutExerciseRepository,
+    );
 
+    final session = await builder.build(
+      workoutDayId: workoutDay.id,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WorkoutExecutionScreen(
+          session: session,
+        ),
+      ),
+    );
+  }
   @override
   void initState() {
     super.initState();
@@ -167,6 +193,11 @@ class _WorkoutDayLibraryScreenState
                   icon: const Icon(Icons.delete),
                   tooltip: 'Delete',
                   onPressed: () => _deleteWorkoutDay(workoutDay),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.play_arrow),
+                  tooltip: 'Start Workout',
+                  onPressed: () => _startWorkout(workoutDay),
                 ),
               ],
             ),

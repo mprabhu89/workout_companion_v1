@@ -9,8 +9,7 @@ import '../../domain/services/workout_statistics_service.dart';
 class WorkoutHistoryController extends ChangeNotifier {
   WorkoutHistoryController({
     required WorkoutHistoryRepository repository,
-    WorkoutStatisticsService statisticsService =
-        const WorkoutStatisticsService(),
+    required WorkoutStatisticsService statisticsService,
   })  : _repository = repository,
         _statisticsService = statisticsService;
 
