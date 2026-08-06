@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../controllers/workout_session_controller.dart';
+import 'workout_completion_screen.dart';
 import '../../domain/entities/workout_session.dart';
+import '../controllers/workout_session_controller.dart';
 
 class WorkoutExecutionScreen extends StatefulWidget {
   const WorkoutExecutionScreen({
@@ -43,9 +44,75 @@ class _WorkoutExecutionScreenState
     }
   }
 
+  void _checkWorkoutCompleted() {
+    final session = _controller.session;
+
+    if (session.status != WorkoutSessionStatus.completed) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => WorkoutCompletionScreen(
+            exerciseCount: session.workoutExercises.length,
+          ),
+        ),
+      );
+    });
+  }
   @override
   Widget build(BuildContext context) {
     final session = _controller.session;
+    _checkWorkoutCompleted();
+    if (session.workoutExercises.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Workout'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.fitness_center,
+                  size: 72,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'No exercises found',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Please add at least one exercise before starting this workout.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Back'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final currentExercise =
+        session.currentExercise;
 
     final progress =
         (session.currentExerciseIndex + 1) /
@@ -63,17 +130,18 @@ class _WorkoutExecutionScreenState
               const SizedBox(height: 20),
 
               Text(
-                session.currentExercise.exerciseId,
+                currentExercise.exerciseId,
                 style: Theme.of(context)
                     .textTheme
                     .headlineMedium,
+                textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 8),
 
               Text(
-                '${session.currentExercise.sets ?? 1} Sets • '
-                '${session.currentExercise.repetitions ?? 0} Reps',
+                '${currentExercise.sets ?? 1} Sets • '
+                '${currentExercise.repetitions ?? 0} Reps',
               ),
 
               const SizedBox(height: 40),
@@ -106,10 +174,11 @@ class _WorkoutExecutionScreenState
               if (session.status ==
                   WorkoutSessionStatus.notStarted)
                 FilledButton.icon(
-                  onPressed: () {
-                    _controller.startCountdown();
-                  },
-                  icon: const Icon(Icons.play_arrow),
+                  onPressed:
+                      _controller.startCountdown,
+                  icon: const Icon(
+                    Icons.play_arrow,
+                  ),
                   label: const Text('START'),
                 )
               else
@@ -118,14 +187,21 @@ class _WorkoutExecutionScreenState
                       MainAxisAlignment.spaceEvenly,
                   children: [
                     IconButton(
-                      onPressed: null,
+                      onPressed:
+                          _controller
+                                  .session
+                                  .hasPreviousExercise
+                              ? _controller
+                                  .previousExercise
+                              : null,
                       icon: const Icon(
                         Icons.skip_previous,
                       ),
                     ),
                     FilledButton.icon(
                       onPressed: () {
-                        if (_controller.isPaused) {
+                        if (_controller
+                            .isPaused) {
                           _controller.resume();
                         } else {
                           _controller.pause();
@@ -143,9 +219,20 @@ class _WorkoutExecutionScreenState
                       ),
                     ),
                     IconButton(
-                      onPressed: null,
-                      icon: const Icon(
-                        Icons.skip_next,
+                      onPressed:
+                          _controller
+                                  .session
+                                  .hasNextExercise
+                              ? _controller
+                                  .nextExercise
+                              : _controller
+                                  .finishWorkout,
+                      icon: Icon(
+                        _controller
+                                .session
+                                .hasNextExercise
+                            ? Icons.skip_next
+                            : Icons.check_circle,
                       ),
                     ),
                   ],

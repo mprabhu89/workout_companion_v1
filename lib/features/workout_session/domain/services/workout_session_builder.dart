@@ -18,18 +18,14 @@ class WorkoutSessionBuilder {
     required String workoutDayId,
   }) async {
     final List<WorkoutGroup> groups =
-        await _workoutGroupRepository.getWorkoutGroups(
-      workoutDayId,
-    );
+        await _workoutGroupRepository.getWorkoutGroups(workoutDayId);
 
     final List<WorkoutExercise> exercises = [];
 
     for (final group in groups) {
-      final groupExercises =
-          await _workoutExerciseRepository
-              .getWorkoutExercises(group.id);
-
-      exercises.addAll(groupExercises);
+      exercises.addAll(
+        await _workoutExerciseRepository.getWorkoutExercises(group.id),
+      );
     }
 
     return WorkoutSession(

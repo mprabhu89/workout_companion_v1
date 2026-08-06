@@ -34,6 +34,9 @@ class WorkoutSession {
   bool get hasNextExercise =>
       currentExerciseIndex < workoutExercises.length - 1;
 
+  bool get hasPreviousExercise =>
+      currentExerciseIndex > 0;
+
   WorkoutSession copyWith({
     List<WorkoutExercise>? workoutExercises,
     int? currentExerciseIndex,
@@ -47,10 +50,13 @@ class WorkoutSession {
       currentExerciseIndex:
           currentExerciseIndex ??
           this.currentExerciseIndex,
-      currentSet: currentSet ?? this.currentSet,
+      currentSet:
+          currentSet ?? this.currentSet,
       remainingSeconds:
-          remainingSeconds ?? this.remainingSeconds,
-      status: status ?? this.status,
+          remainingSeconds ??
+          this.remainingSeconds,
+      status:
+          status ?? this.status,
     );
   }
 }

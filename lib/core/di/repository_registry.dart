@@ -8,6 +8,8 @@ import '../../features/workout_exercise/data/repositories/in_memory_workout_exer
 import '../../features/workout_exercise/domain/repositories/workout_exercise_repository.dart';
 import '../../features/workout_day/data/repositories/in_memory_workout_day_repository.dart';
 import '../../features/workout_day/domain/repositories/workout_day_repository.dart';
+import '../../features/workout_history/data/repositories/in_memory_workout_history_repository.dart';
+import '../../features/workout_history/domain/repositories/workout_history_repository.dart';
 
 /// Temporary dependency container.
 ///
@@ -31,4 +33,7 @@ final class RepositoryRegistry {
 
   static final WorkoutGroupRepository workoutGroupRepository =
     InMemoryWorkoutGroupRepository();
+
+  static final WorkoutHistoryRepository workoutHistoryRepository =
+    InMemoryWorkoutHistoryRepository();
 }
