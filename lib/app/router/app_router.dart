@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/developer/presentation/screens/developer_home_screen.dart';
 import '../../features/exercise/presentation/screens/exercise_library_screen.dart';
 import '../../features/workout_plan/presentation/screens/workout_plan_library_screen.dart';
+import '../../features/workout_history/presentation/screens/workout_history_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -27,6 +28,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/workout-plans',
       builder: (context, state) => const WorkoutPlanLibraryScreen(),
+    ),
+
+    GoRoute(
+      path: '/workout-history',
+      builder: (context, state) => const WorkoutHistoryScreen(),
     ),
   ],
 );

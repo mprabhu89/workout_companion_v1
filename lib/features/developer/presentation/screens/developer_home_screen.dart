@@ -1,23 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 class DeveloperHomeScreen extends StatelessWidget {
   const DeveloperHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Workout Companion'),
-      ),
+      appBar: AppBar(title: const Text('Workout Companion')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
             'Development Menu',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
 
@@ -25,8 +21,7 @@ class DeveloperHomeScreen extends StatelessWidget {
             icon: Icons.fitness_center,
             title: 'Exercise Library',
             subtitle: 'Manage exercise templates',
-            onTap: () =>
-                context.push('/exercise-library'),
+            onTap: () => context.push('/exercise-library'),
           ),
 
           const SizedBox(height: 12),
@@ -35,8 +30,16 @@ class DeveloperHomeScreen extends StatelessWidget {
             icon: Icons.assignment,
             title: 'Workout Plans',
             subtitle: 'Manage workout plans',
-            onTap: () =>
-                context.push('/workout-plans'),
+            onTap: () => context.push('/workout-plans'),
+          ),
+
+          const SizedBox(height: 12),
+
+          _MenuTile(
+            icon: Icons.history,
+            title: 'Workout History',
+            subtitle: 'Review completed workouts',
+            onTap: () => context.push('/workout-history'),
           ),
 
           const SizedBox(height: 12),
@@ -93,10 +96,7 @@ class _MenuTile extends StatelessWidget {
 }
 
 class _DisabledTile extends StatelessWidget {
-  const _DisabledTile({
-    required this.icon,
-    required this.title,
-  });
+  const _DisabledTile({required this.icon, required this.title});
 
   final IconData icon;
   final String title;
