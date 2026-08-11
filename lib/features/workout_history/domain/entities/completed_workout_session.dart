@@ -9,6 +9,8 @@ class CompletedWorkoutSession {
     required this.completedExercises,
     required this.totalExercises,
     required this.wasCompleted,
+    this.workoutDayId,
+    this.workoutDayName,
     this.notes = '',
   });
 
@@ -29,6 +31,8 @@ class CompletedWorkoutSession {
   final int totalExercises;
 
   final bool wasCompleted;
+  final String? workoutDayId;
+  final String? workoutDayName;
 
   final String notes;
 

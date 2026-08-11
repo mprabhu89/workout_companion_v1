@@ -40,6 +40,10 @@ class WorkoutEngine {
     );
   }
 
+  void updateStartedAt(DateTime startedAt) {
+    _session = _session.copyWith(startedAt: startedAt);
+  }
+
   void nextExercise() {
     if (!hasNextExercise) {
       finishWorkout();
@@ -79,10 +83,11 @@ class WorkoutEngine {
     );
   }
 
-  void finishWorkout() {
+  void finishWorkout({DateTime? completedAt}) {
     _session = _session.copyWith(
       status: WorkoutSessionStatus.completed,
       remainingSeconds: 0,
+      completedAt: completedAt ?? DateTime.now(),
     );
   }
 

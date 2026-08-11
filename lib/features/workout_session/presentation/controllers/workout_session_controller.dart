@@ -31,6 +31,8 @@ class WorkoutSessionController extends ChangeNotifier {
   void startCountdown({
     int seconds = 3,
   }) {
+    final startedAt = _session.startedAt ?? DateTime.now();
+    _engine.updateStartedAt(startedAt);
     _engine.updateStatus(
       WorkoutSessionStatus.countdown,
     );
@@ -107,7 +109,7 @@ class WorkoutSessionController extends ChangeNotifier {
   void finishWorkout() {
     _timerService.stop();
 
-    _engine.finishWorkout();
+    _engine.finishWorkout(completedAt: DateTime.now());
 
     _syncSession();
   }

@@ -37,6 +37,9 @@ class _WorkoutDayLibraryScreenState
 
     final session = await builder.build(
       workoutDayId: workoutDay.id,
+      workoutPlanId: widget.workoutPlanId,
+      workoutPlanName: widget.workoutPlanName,
+      workoutDayName: workoutDay.name,
     );
 
     if (!mounted) {

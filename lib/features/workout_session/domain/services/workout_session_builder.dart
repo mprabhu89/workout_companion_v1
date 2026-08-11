@@ -6,16 +6,18 @@ import '../entities/workout_session.dart';
 
 class WorkoutSessionBuilder {
   WorkoutSessionBuilder({
-    required WorkoutGroupRepository workoutGroupRepository,
-    required WorkoutExerciseRepository workoutExerciseRepository,
-  })  : _workoutGroupRepository = workoutGroupRepository,
-        _workoutExerciseRepository = workoutExerciseRepository;
+    required this._workoutGroupRepository,
+    required this._workoutExerciseRepository,
+  });
 
   final WorkoutGroupRepository _workoutGroupRepository;
   final WorkoutExerciseRepository _workoutExerciseRepository;
 
   Future<WorkoutSession> build({
     required String workoutDayId,
+    String? workoutPlanId,
+    String? workoutPlanName,
+    String? workoutDayName,
   }) async {
     final List<WorkoutGroup> groups =
         await _workoutGroupRepository.getWorkoutGroups(workoutDayId);
@@ -30,6 +32,10 @@ class WorkoutSessionBuilder {
 
     return WorkoutSession(
       workoutExercises: List.unmodifiable(exercises),
+      workoutPlanId: workoutPlanId,
+      workoutPlanName: workoutPlanName,
+      workoutDayId: workoutDayId,
+      workoutDayName: workoutDayName,
     );
   }
 }

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../../../core/di/repository_registry.dart';
+import '../../../workout_history/domain/entities/completed_workout_session.dart';
 import 'workout_completion_screen.dart';
 import '../../domain/entities/workout_session.dart';
 import '../controllers/workout_session_controller.dart';
@@ -19,6 +23,7 @@ class WorkoutExecutionScreen extends StatefulWidget {
 class _WorkoutExecutionScreenState
     extends State<WorkoutExecutionScreen> {
   late final WorkoutSessionController _controller;
+  bool _completionHandled = false;
 
   @override
   void initState() {
@@ -51,7 +56,41 @@ class _WorkoutExecutionScreenState
       return;
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_completionHandled) {
+      return;
+    }
+    _completionHandled = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
+
+      final completedAt =
+          session.completedAt ?? DateTime.now();
+      final startedAt = session.startedAt ?? completedAt;
+      final completedExercises = (session.currentExerciseIndex + 1)
+          .clamp(0, session.workoutExercises.length)
+          .toInt();
+      final completedSession = CompletedWorkoutSession(
+        id: const Uuid().v4(),
+        workoutPlanId: session.workoutPlanId ?? '',
+        workoutPlanName:
+            session.workoutPlanName ?? 'Workout',
+        workoutDayId: session.workoutDayId,
+        workoutDayName: session.workoutDayName,
+        startedAt: startedAt,
+        completedAt: completedAt,
+        durationInSeconds:
+            completedAt.difference(startedAt).inSeconds,
+        completedExercises: completedExercises,
+        totalExercises: session.workoutExercises.length,
+        wasCompleted: true,
+      );
+
+      await RepositoryRegistry.workoutHistoryRepository
+          .saveSession(completedSession);
+
       if (!mounted) {
         return;
       }
@@ -59,7 +98,7 @@ class _WorkoutExecutionScreenState
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => WorkoutCompletionScreen(
-            exerciseCount: session.workoutExercises.length,
+            session: completedSession,
           ),
         ),
       );
