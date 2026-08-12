@@ -12,38 +12,45 @@ class WorkoutSequenceEvent {
     this.countValue,
     this.durationInSeconds,
     this.iterationNumber,
+    this.iterationTotal,
   });
 
   factory WorkoutSequenceEvent.guide({
     required String text,
     int? iterationNumber,
+    int? iterationTotal,
   }) {
     return WorkoutSequenceEvent._(
       type: WorkoutSequenceEventType.guide,
       guideText: text,
       iterationNumber: iterationNumber,
+      iterationTotal: iterationTotal,
     );
   }
 
   factory WorkoutSequenceEvent.count({
     required int value,
     int? iterationNumber,
+    int? iterationTotal,
   }) {
     return WorkoutSequenceEvent._(
       type: WorkoutSequenceEventType.count,
       countValue: value,
       iterationNumber: iterationNumber,
+      iterationTotal: iterationTotal,
     );
   }
 
   factory WorkoutSequenceEvent.relax({
     required int durationInSeconds,
     int? iterationNumber,
+    int? iterationTotal,
   }) {
     return WorkoutSequenceEvent._(
       type: WorkoutSequenceEventType.relax,
       durationInSeconds: durationInSeconds,
       iterationNumber: iterationNumber,
+      iterationTotal: iterationTotal,
     );
   }
 
@@ -58,6 +65,7 @@ class WorkoutSequenceEvent {
   final int? countValue;
   final int? durationInSeconds;
   final int? iterationNumber;
+  final int? iterationTotal;
 
   bool get shouldSpeak =>
       type == WorkoutSequenceEventType.guide ||
@@ -71,7 +79,8 @@ class WorkoutSequenceEvent {
           guideText == other.guideText &&
           countValue == other.countValue &&
           durationInSeconds == other.durationInSeconds &&
-          iterationNumber == other.iterationNumber;
+          iterationNumber == other.iterationNumber &&
+          iterationTotal == other.iterationTotal;
 
   @override
   int get hashCode => Object.hash(
@@ -80,5 +89,6 @@ class WorkoutSequenceEvent {
         countValue,
         durationInSeconds,
         iterationNumber,
+        iterationTotal,
       );
 }

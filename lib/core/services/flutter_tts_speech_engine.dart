@@ -5,6 +5,7 @@ import 'speech_engine.dart';
 class FlutterTtsSpeechEngine implements SpeechEngine {
   FlutterTtsSpeechEngine()
       : _tts = FlutterTts() {
+    _tts.awaitSpeakCompletion(true);
     _tts.setSpeechRate(0.45);
     _tts.setPitch(1.0);
     _tts.setVolume(1.0);

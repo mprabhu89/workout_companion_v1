@@ -43,7 +43,7 @@ class WorkoutSequenceExecutor {
           final blockEvents = _emitSteps(
             repeatedSteps,
             iterationNumber: iterationNumber,
-            workoutExercise: workoutExercise,
+            iterationTotal: repetitionCount,
           );
           events.addAll(blockEvents.events);
 
@@ -65,7 +65,6 @@ class WorkoutSequenceExecutor {
       events.addAll(
         _emitEventsForStep(
           step,
-          workoutExercise: workoutExercise,
         ),
       );
       index += 1;
@@ -77,7 +76,7 @@ class WorkoutSequenceExecutor {
   _BlockEmissionResult _emitSteps(
     List<WorkoutSequenceStep> steps, {
     required int iterationNumber,
-    required WorkoutExercise workoutExercise,
+    required int iterationTotal,
   }) {
     final events = <WorkoutSequenceEvent>[];
 
@@ -100,7 +99,7 @@ class WorkoutSequenceExecutor {
       final emitted = _emitEventsForStep(
         step,
         iterationNumber: iterationNumber,
-        workoutExercise: workoutExercise,
+        iterationTotal: iterationTotal,
       );
       events.addAll(emitted);
     }
@@ -114,7 +113,7 @@ class WorkoutSequenceExecutor {
   List<WorkoutSequenceEvent> _emitEventsForStep(
     WorkoutSequenceStep step, {
     int? iterationNumber,
-    WorkoutExercise? workoutExercise,
+    int? iterationTotal,
   }) {
     switch (step.type) {
       case WorkoutSequenceStepType.guide:
@@ -122,6 +121,7 @@ class WorkoutSequenceExecutor {
           WorkoutSequenceEvent.guide(
             text: step.text ?? '',
             iterationNumber: iterationNumber,
+            iterationTotal: iterationTotal,
           ),
         ];
       case WorkoutSequenceStepType.count:
@@ -140,6 +140,7 @@ class WorkoutSequenceExecutor {
               (value) => WorkoutSequenceEvent.count(
                 value: value,
                 iterationNumber: iterationNumber,
+                iterationTotal: iterationTotal,
               ),
             )
             .toList(growable: false);
@@ -151,6 +152,7 @@ class WorkoutSequenceExecutor {
             durationInSeconds:
                 step.durationInSeconds ?? 0,
             iterationNumber: iterationNumber,
+            iterationTotal: iterationTotal,
           ),
         ];
       case WorkoutSequenceStepType.sequenceBreak:

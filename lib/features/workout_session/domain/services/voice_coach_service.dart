@@ -79,6 +79,27 @@ class VoiceCoachService {
     await _safeResume();
   }
 
+  Future<void> speakText(String text) async {
+    if (!_isEnabled || _isDisposed) {
+      return;
+    }
+
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+
+    await _safeSpeak(trimmed);
+  }
+
+  Future<void> stop() async {
+    if (_isDisposed) {
+      return;
+    }
+
+    await _safeStop();
+  }
+
   Future<void> dispose() async {
     _isDisposed = true;
     await _safeStop();

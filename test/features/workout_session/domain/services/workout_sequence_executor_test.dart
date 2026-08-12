@@ -268,19 +268,60 @@ void main() {
       expect(
         firstIterationEvents,
         [
-          WorkoutSequenceEvent.guide(text: 'Up', iterationNumber: 1),
-          WorkoutSequenceEvent.guide(text: 'Hold', iterationNumber: 1),
-          WorkoutSequenceEvent.count(value: 1, iterationNumber: 1),
-          WorkoutSequenceEvent.count(value: 2, iterationNumber: 1),
-          WorkoutSequenceEvent.guide(text: 'Squeeze', iterationNumber: 1),
-          WorkoutSequenceEvent.guide(text: 'Release', iterationNumber: 1),
-          WorkoutSequenceEvent.guide(text: 'Hold', iterationNumber: 1),
-          WorkoutSequenceEvent.count(value: 1, iterationNumber: 1),
-          WorkoutSequenceEvent.count(value: 2, iterationNumber: 1),
-          WorkoutSequenceEvent.guide(text: 'Release', iterationNumber: 1),
+          WorkoutSequenceEvent.guide(
+            text: 'Up',
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
+          WorkoutSequenceEvent.guide(
+            text: 'Hold',
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
+          WorkoutSequenceEvent.count(
+            value: 1,
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
+          WorkoutSequenceEvent.count(
+            value: 2,
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
+          WorkoutSequenceEvent.guide(
+            text: 'Squeeze',
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
+          WorkoutSequenceEvent.guide(
+            text: 'Release',
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
+          WorkoutSequenceEvent.guide(
+            text: 'Hold',
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
+          WorkoutSequenceEvent.count(
+            value: 1,
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
+          WorkoutSequenceEvent.count(
+            value: 2,
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
+          WorkoutSequenceEvent.guide(
+            text: 'Release',
+            iterationNumber: 1,
+            iterationTotal: 10,
+          ),
           WorkoutSequenceEvent.relax(
             durationInSeconds: 2,
             iterationNumber: 1,
+            iterationTotal: 10,
           ),
         ],
       );
