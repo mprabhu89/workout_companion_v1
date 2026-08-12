@@ -1,5 +1,6 @@
 import 'tempo_type.dart';
 import 'weight_unit.dart';
+import 'workout_sequence_definition.dart';
 import 'workout_target_type.dart';
 
 class WorkoutExercise {
@@ -29,6 +30,7 @@ class WorkoutExercise {
 
     // Notes
     this.notes = '',
+    this.sequenceDefinition,
 
     // Soft delete
     this.isArchived = false,
@@ -70,6 +72,8 @@ class WorkoutExercise {
 
   final String notes;
 
+  final WorkoutSequenceDefinition? sequenceDefinition;
+
   final bool isArchived;
 
   WorkoutExercise copyWith({
@@ -88,6 +92,7 @@ class WorkoutExercise {
     TempoType? tempoType,
     String? customTempo,
     String? notes,
+    WorkoutSequenceDefinition? sequenceDefinition,
     bool? isArchived,
   }) {
     return WorkoutExercise(
@@ -107,6 +112,8 @@ class WorkoutExercise {
       tempoType: tempoType ?? this.tempoType,
       customTempo: customTempo ?? this.customTempo,
       notes: notes ?? this.notes,
+      sequenceDefinition:
+          sequenceDefinition ?? this.sequenceDefinition,
       isArchived: isArchived ?? this.isArchived,
     );
   }
@@ -130,6 +137,7 @@ class WorkoutExercise {
           tempoType == other.tempoType &&
           customTempo == other.customTempo &&
           notes == other.notes &&
+          sequenceDefinition == other.sequenceDefinition &&
           isArchived == other.isArchived;
 
   @override
@@ -149,6 +157,7 @@ class WorkoutExercise {
         tempoType,
         customTempo,
         notes,
+        sequenceDefinition,
         isArchived,
       );
 

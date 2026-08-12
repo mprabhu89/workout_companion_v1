@@ -107,12 +107,12 @@ void main() {
       );
     });
 
-    test('counter repeats its contained block exactly by workout repetitions', () {
+    test('counter repeats its contained block exactly by its own repetition count', () {
       final events = executor.execute(
         workoutExercise: _workoutExercise(repetitions: 3),
         sequenceDefinition: WorkoutSequenceDefinition(
           steps: [
-            WorkoutSequenceStep.counter(),
+            WorkoutSequenceStep.counter(repetitionCount: 3),
             WorkoutSequenceStep.guide(text: 'Up'),
             WorkoutSequenceStep.count(
               count: 2,
@@ -134,7 +134,7 @@ void main() {
         sequenceDefinition: WorkoutSequenceDefinition(
           steps: [
             WorkoutSequenceStep.guide(text: 'Intro'),
-            WorkoutSequenceStep.counter(),
+            WorkoutSequenceStep.counter(repetitionCount: 3),
             WorkoutSequenceStep.guide(text: 'Repeat'),
             WorkoutSequenceStep.sequenceBreak(),
             WorkoutSequenceStep.end(),
@@ -150,7 +150,7 @@ void main() {
         workoutExercise: _workoutExercise(repetitions: 2),
         sequenceDefinition: WorkoutSequenceDefinition(
           steps: [
-            WorkoutSequenceStep.counter(),
+            WorkoutSequenceStep.counter(repetitionCount: 2),
             WorkoutSequenceStep.guide(text: 'Repeat'),
             WorkoutSequenceStep.sequenceBreak(),
             WorkoutSequenceStep.guide(text: 'After break'),
@@ -170,7 +170,7 @@ void main() {
         workoutExercise: _workoutExercise(repetitions: 3),
         sequenceDefinition: WorkoutSequenceDefinition(
           steps: [
-            WorkoutSequenceStep.counter(),
+            WorkoutSequenceStep.counter(repetitionCount: 3),
             WorkoutSequenceStep.guide(text: 'Up'),
             WorkoutSequenceStep.count(
               count: 2,
@@ -208,7 +208,7 @@ void main() {
               count: 5,
               direction: WorkoutCountDirection.descending,
             ),
-            WorkoutSequenceStep.counter(),
+            WorkoutSequenceStep.counter(repetitionCount: 10),
             WorkoutSequenceStep.guide(text: 'Up'),
             WorkoutSequenceStep.guide(text: 'Hold'),
             WorkoutSequenceStep.count(
@@ -288,11 +288,55 @@ void main() {
       expect(events.last.type, WorkoutSequenceEventType.end);
     });
 
+    test('two counters can execute independently with different repetition counts', () {
+      final events = executor.execute(
+        workoutExercise: _workoutExercise(repetitions: 99),
+        sequenceDefinition: WorkoutSequenceDefinition(
+          steps: [
+            WorkoutSequenceStep.counter(repetitionCount: 2),
+            WorkoutSequenceStep.guide(text: 'First block'),
+            WorkoutSequenceStep.sequenceBreak(),
+            WorkoutSequenceStep.counter(repetitionCount: 3),
+            WorkoutSequenceStep.guide(text: 'Second block'),
+            WorkoutSequenceStep.sequenceBreak(),
+            WorkoutSequenceStep.end(),
+          ],
+        ),
+      );
+
+      expect(
+        _guideTexts(events),
+        [
+          'First block',
+          'First block',
+          'Second block',
+          'Second block',
+          'Second block',
+        ],
+      );
+      expect(
+        events
+            .where((event) => event.type == WorkoutSequenceEventType.guide)
+            .map((event) => event.iterationNumber)
+            .toList(),
+        [1, 2, 1, 2, 3],
+      );
+    });
+
     test('invalid counts are rejected consistently', () {
       expect(
         () => WorkoutSequenceStep.count(
           count: 0,
           direction: WorkoutCountDirection.ascending,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('invalid counter and break structures are rejected consistently', () {
+      expect(
+        () => WorkoutSequenceStep.counter(
+          repetitionCount: 0,
         ),
         throwsArgumentError,
       );
@@ -317,8 +361,26 @@ void main() {
           workoutExercise: _workoutExercise(repetitions: 3),
           sequenceDefinition: WorkoutSequenceDefinition(
             steps: [
-              WorkoutSequenceStep.counter(),
+              WorkoutSequenceStep.counter(repetitionCount: 3),
               WorkoutSequenceStep.guide(text: 'Repeat'),
+              WorkoutSequenceStep.end(),
+            ],
+          ),
+        ),
+        throwsStateError,
+      );
+
+      expect(
+        () => executor.execute(
+          workoutExercise: _workoutExercise(repetitions: 3),
+          sequenceDefinition: WorkoutSequenceDefinition(
+            steps: [
+              WorkoutSequenceStep.counter(repetitionCount: 2),
+              WorkoutSequenceStep.guide(text: 'First'),
+              WorkoutSequenceStep.counter(repetitionCount: 3),
+              WorkoutSequenceStep.guide(text: 'Nested'),
+              WorkoutSequenceStep.sequenceBreak(),
+              WorkoutSequenceStep.sequenceBreak(),
               WorkoutSequenceStep.end(),
             ],
           ),

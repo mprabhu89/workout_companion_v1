@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'create_workout_exercise_screen.dart';
 import 'edit_workout_exercise_screen.dart';
 import '../../../../core/di/repository_registry.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -113,6 +114,10 @@ class _WorkoutExerciseLibraryScreenState
     final displayOrder =
         await _controller.getNextDisplayOrder();
 
+    if (!mounted) {
+      return;
+    }
+
     final workoutExercise = WorkoutExercise(
       id: _uuid.v4(),
       workoutGroupId: widget.workoutGroupId,
@@ -128,8 +133,22 @@ class _WorkoutExerciseLibraryScreenState
       restInSeconds: 60,
     );
 
+    final created =
+        await Navigator.of(context).push<WorkoutExercise>(
+      MaterialPageRoute(
+        builder: (_) => CreateWorkoutExerciseScreen(
+          exerciseName: exercise.name,
+          workoutExercise: workoutExercise,
+        ),
+      ),
+    );
+
+    if (created == null) {
+      return;
+    }
+
     await _controller.saveWorkoutExercise(
-      workoutExercise,
+      created,
     );
   }
 
@@ -144,11 +163,20 @@ class _WorkoutExerciseLibraryScreenState
   Future<void> _editExercise(
     WorkoutExercise workoutExercise,
   ) async {
+    final exerciseName = await _getExerciseName(
+      workoutExercise.exerciseId,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
     final updated =
         await Navigator.of(context).push<WorkoutExercise>(
       MaterialPageRoute(
         builder: (_) => EditWorkoutExerciseScreen(
           workoutExercise: workoutExercise,
+          exerciseName: exerciseName,
         ),
       ),
     );

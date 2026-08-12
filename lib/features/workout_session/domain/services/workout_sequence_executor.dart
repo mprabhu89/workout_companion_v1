@@ -14,15 +14,6 @@ class WorkoutSequenceExecutor {
 
     final events = <WorkoutSequenceEvent>[];
     final steps = sequenceDefinition.steps;
-    final counterIndex = _findFirstIndex(
-      steps,
-      WorkoutSequenceStepType.counter,
-    );
-    final breakIndex = _findFirstIndex(
-      steps,
-      WorkoutSequenceStepType.sequenceBreak,
-    );
-
     var index = 0;
     while (index < steps.length) {
       final step = steps[index];
@@ -32,12 +23,15 @@ class WorkoutSequenceExecutor {
         break;
       }
 
-      if (index == counterIndex) {
-        final repetitionCount = _resolveRepetitionCount(
-          workoutExercise,
+      if (step.type == WorkoutSequenceStepType.counter) {
+        final breakIndex = _findMatchingBreakIndex(
+          steps,
+          counterIndex: index,
         );
+        final repetitionCount =
+            step.repetitionCount!;
         final repeatedSteps = steps.sublist(
-          counterIndex + 1,
+          index + 1,
           breakIndex,
         );
 
@@ -49,6 +43,7 @@ class WorkoutSequenceExecutor {
           final blockEvents = _emitSteps(
             repeatedSteps,
             iterationNumber: iterationNumber,
+            workoutExercise: workoutExercise,
           );
           events.addAll(blockEvents.events);
 
@@ -67,7 +62,12 @@ class WorkoutSequenceExecutor {
         );
       }
 
-      events.addAll(_emitEventsForStep(step));
+      events.addAll(
+        _emitEventsForStep(
+          step,
+          workoutExercise: workoutExercise,
+        ),
+      );
       index += 1;
     }
 
@@ -77,6 +77,7 @@ class WorkoutSequenceExecutor {
   _BlockEmissionResult _emitSteps(
     List<WorkoutSequenceStep> steps, {
     required int iterationNumber,
+    required WorkoutExercise workoutExercise,
   }) {
     final events = <WorkoutSequenceEvent>[];
 
@@ -99,6 +100,7 @@ class WorkoutSequenceExecutor {
       final emitted = _emitEventsForStep(
         step,
         iterationNumber: iterationNumber,
+        workoutExercise: workoutExercise,
       );
       events.addAll(emitted);
     }
@@ -112,6 +114,7 @@ class WorkoutSequenceExecutor {
   List<WorkoutSequenceEvent> _emitEventsForStep(
     WorkoutSequenceStep step, {
     int? iterationNumber,
+    WorkoutExercise? workoutExercise,
   }) {
     switch (step.type) {
       case WorkoutSequenceStepType.guide:
@@ -161,10 +164,7 @@ class WorkoutSequenceExecutor {
     WorkoutSequenceDefinition sequenceDefinition,
   ) {
     final steps = sequenceDefinition.steps;
-    var counterCount = 0;
-    var breakCount = 0;
-    int? counterIndex;
-    int? breakIndex;
+    int? activeCounterIndex;
 
     for (var index = 0; index < steps.length; index += 1) {
       final step = steps[index];
@@ -185,60 +185,67 @@ class WorkoutSequenceExecutor {
       }
 
       if (step.type == WorkoutSequenceStepType.counter) {
-        counterCount += 1;
-        counterIndex ??= index;
+        if (step.repetitionCount == null ||
+            step.repetitionCount! <= 0) {
+          throw StateError(
+            'Counter steps must have a positive repetition count.',
+          );
+        }
+
+        if (activeCounterIndex != null) {
+          throw StateError(
+            'Nested Counter blocks are not supported.',
+          );
+        }
+
+        activeCounterIndex = index;
       }
 
       if (step.type == WorkoutSequenceStepType.sequenceBreak) {
-        breakCount += 1;
-        breakIndex ??= index;
+        if (activeCounterIndex == null) {
+          throw StateError(
+            'Break step must close an active Counter block.',
+          );
+        }
+
+        activeCounterIndex = null;
       }
     }
 
-    if (counterCount == 0 && breakCount == 0) {
-      return;
-    }
-
-    if (counterCount != 1 || breakCount != 1) {
+    if (activeCounterIndex != null) {
       throw StateError(
-        'Sequence must contain exactly one Counter and one Break when using repetition blocks.',
-      );
-    }
-
-    if (counterIndex == null ||
-        breakIndex == null ||
-        breakIndex <= counterIndex) {
-      throw StateError(
-        'Break must appear after Counter.',
+        'Counter must be followed by Break.',
       );
     }
   }
 
-  int _resolveRepetitionCount(
-    WorkoutExercise workoutExercise,
-  ) {
-    final repetitionCount = workoutExercise.repetitions;
-
-    if (repetitionCount == null || repetitionCount <= 0) {
-      throw StateError(
-        'WorkoutExercise.repetitions must be greater than zero when a Counter block is present.',
-      );
-    }
-
-    return repetitionCount;
-  }
-
-  int _findFirstIndex(
+  int _findMatchingBreakIndex(
     List<WorkoutSequenceStep> steps,
-    WorkoutSequenceStepType type,
+    {
+    required int counterIndex,
+  }
   ) {
-    for (var index = 0; index < steps.length; index += 1) {
-      if (steps[index].type == type) {
+    for (
+      var index = counterIndex + 1;
+      index < steps.length;
+      index += 1
+    ) {
+      final step = steps[index];
+
+      if (step.type == WorkoutSequenceStepType.counter) {
+        throw StateError(
+          'Nested Counter blocks are not supported.',
+        );
+      }
+
+      if (step.type == WorkoutSequenceStepType.sequenceBreak) {
         return index;
       }
     }
 
-    return -1;
+    throw StateError(
+      'Counter must be followed by Break.',
+    );
   }
 }
 

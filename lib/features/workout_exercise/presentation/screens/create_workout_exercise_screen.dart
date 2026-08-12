@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/entities/workout_exercise.dart';
+import '../../domain/entities/workout_sequence_definition.dart';
 import '../../domain/entities/workout_target_type.dart';
 import '../widgets/workout_exercise_form.dart';
+import '../widgets/workout_sequence_editor.dart';
 
 class CreateWorkoutExerciseScreen extends StatefulWidget {
   const CreateWorkoutExerciseScreen({
     super.key,
     required this.exerciseName,
+    required this.workoutExercise,
   });
 
   final String exerciseName;
+  final WorkoutExercise workoutExercise;
 
   @override
   State<CreateWorkoutExerciseScreen> createState() =>
@@ -18,30 +23,64 @@ class CreateWorkoutExerciseScreen extends StatefulWidget {
 
 class _CreateWorkoutExerciseScreenState
     extends State<CreateWorkoutExerciseScreen> {
-  final _targetValueController = TextEditingController();
-  final _notesController = TextEditingController();
+  late final TextEditingController _targetValueController;
+  late final TextEditingController _notesController;
+  late int _sets;
+  late int _restSeconds;
+  late WorkoutTargetType _targetType;
+  WorkoutSequenceDefinition? _sequenceDefinition;
 
-  int _sets = 3;
-  int _restSeconds = 60;
+  @override
+  void initState() {
+    super.initState();
+    final workoutExercise = widget.workoutExercise;
 
-  WorkoutTargetType _targetType =
-      WorkoutTargetType.repetitions;
+    _sets = workoutExercise.sets ?? 3;
+    _restSeconds = workoutExercise.restInSeconds ?? 60;
+    _targetType = workoutExercise.targetType;
+    _sequenceDefinition = workoutExercise.sequenceDefinition;
+    _targetValueController = TextEditingController(
+      text: _initialTargetValue(workoutExercise),
+    )..addListener(_refreshCounterSummary);
+    _notesController = TextEditingController(
+      text: workoutExercise.notes,
+    );
+  }
 
   @override
   void dispose() {
+    _targetValueController.removeListener(
+      _refreshCounterSummary,
+    );
     _targetValueController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
+  void _refreshCounterSummary() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _saveWorkoutExercise() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Workout Exercise save will be implemented in the next step.',
-        ),
-      ),
+    final updated = _buildWorkoutExercise();
+    final validationMessage =
+        validateWorkoutSequenceDefinitionForEditor(
+      workoutExercise: updated,
+      sequenceDefinition: updated.sequenceDefinition,
     );
+
+    if (validationMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(validationMessage),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).pop(updated);
   }
 
   @override
@@ -52,12 +91,14 @@ class _CreateWorkoutExerciseScreenState
       ),
       body: SafeArea(
         child: WorkoutExerciseForm(
+          workoutExercise: _buildWorkoutExercise(),
           exerciseName: widget.exerciseName,
           sets: _sets,
           restSeconds: _restSeconds,
           targetType: _targetType,
           targetValueController: _targetValueController,
           notesController: _notesController,
+          sequenceDefinition: _sequenceDefinition,
           onSetsChanged: (value) {
             setState(() {
               _sets = value;
@@ -72,6 +113,11 @@ class _CreateWorkoutExerciseScreenState
             setState(() {
               _targetType = value;
               _targetValueController.clear();
+            });
+          },
+          onSequenceChanged: (value) {
+            setState(() {
+              _sequenceDefinition = value;
             });
           },
           onChangeExercise: () {
@@ -94,5 +140,57 @@ class _CreateWorkoutExerciseScreenState
         ),
       ),
     );
+  }
+
+  WorkoutExercise _buildWorkoutExercise() {
+    return WorkoutExercise(
+      id: widget.workoutExercise.id,
+      workoutGroupId: widget.workoutExercise.workoutGroupId,
+      exerciseId: widget.workoutExercise.exerciseId,
+      displayOrder: widget.workoutExercise.displayOrder,
+      sets: _sets,
+      targetType: _targetType,
+      repetitions: _targetType == WorkoutTargetType.repetitions
+          ? int.tryParse(
+              _targetValueController.text.trim(),
+            )
+          : null,
+      durationInSeconds:
+          _targetType == WorkoutTargetType.duration
+              ? int.tryParse(
+                  _targetValueController.text.trim(),
+                )
+              : null,
+      restInSeconds: _restSeconds,
+      weight: widget.workoutExercise.weight,
+      weightUnit: widget.workoutExercise.weightUnit,
+      rpe: widget.workoutExercise.rpe,
+      tempoType: widget.workoutExercise.tempoType,
+      customTempo: widget.workoutExercise.customTempo,
+      notes: _notesController.text.trim(),
+      sequenceDefinition: _normalizedSequenceDefinition,
+      isArchived: widget.workoutExercise.isArchived,
+    );
+  }
+
+  WorkoutSequenceDefinition? get _normalizedSequenceDefinition {
+    if (_sequenceDefinition == null ||
+        _sequenceDefinition!.steps.isEmpty) {
+      return null;
+    }
+
+    return _sequenceDefinition;
+  }
+
+  String _initialTargetValue(WorkoutExercise workoutExercise) {
+    switch (workoutExercise.targetType) {
+      case WorkoutTargetType.repetitions:
+        return workoutExercise.repetitions?.toString() ?? '';
+      case WorkoutTargetType.duration:
+        return workoutExercise.durationInSeconds?.toString() ??
+            '';
+      default:
+        return '';
+    }
   }
 }

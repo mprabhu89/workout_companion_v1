@@ -17,6 +17,7 @@ class WorkoutSequenceStep {
     required this.type,
     this.text,
     this.count,
+    this.repetitionCount,
     this.countDirection,
     this.durationInSeconds,
   });
@@ -49,9 +50,20 @@ class WorkoutSequenceStep {
     );
   }
 
-  factory WorkoutSequenceStep.counter() {
-    return const WorkoutSequenceStep._(
+  factory WorkoutSequenceStep.counter({
+    required int repetitionCount,
+  }) {
+    if (repetitionCount <= 0) {
+      throw ArgumentError.value(
+        repetitionCount,
+        'repetitionCount',
+        'Counter repetition count must be greater than zero.',
+      );
+    }
+
+    return WorkoutSequenceStep._(
       type: WorkoutSequenceStepType.counter,
+      repetitionCount: repetitionCount,
     );
   }
 
@@ -87,6 +99,7 @@ class WorkoutSequenceStep {
   final WorkoutSequenceStepType type;
   final String? text;
   final int? count;
+  final int? repetitionCount;
   final WorkoutCountDirection? countDirection;
   final int? durationInSeconds;
 
@@ -97,6 +110,7 @@ class WorkoutSequenceStep {
           type == other.type &&
           text == other.text &&
           count == other.count &&
+          repetitionCount == other.repetitionCount &&
           countDirection == other.countDirection &&
           durationInSeconds == other.durationInSeconds;
 
@@ -105,6 +119,7 @@ class WorkoutSequenceStep {
         type,
         text,
         count,
+        repetitionCount,
         countDirection,
         durationInSeconds,
       );
