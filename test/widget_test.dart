@@ -35,4 +35,22 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('Dashboard Workout Plans card opens Workout Plan Library', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const WorkoutCompanionApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Workout Plans'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Workout Plans'), findsWidgets);
+    expect(
+      find.text(
+        'No workout plans yet.\nTap + to create your first workout plan.',
+      ),
+      findsOneWidget,
+    );
+  });
 }

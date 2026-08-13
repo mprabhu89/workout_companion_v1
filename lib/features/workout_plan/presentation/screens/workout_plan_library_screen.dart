@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:workout_companion_v1/core/di/repository_registry.dart';
 import '../../domain/entities/workout_plan.dart';
+import '../../domain/repositories/workout_plan_repository.dart';
 import '../controllers/workout_plan_library_controller.dart';
 import 'create_workout_plan_screen.dart';
 import '../../../workout_day/presentation/screens/workout_day_library_screen.dart';
 
 class WorkoutPlanLibraryScreen extends StatefulWidget {
-  const WorkoutPlanLibraryScreen({super.key});
+  const WorkoutPlanLibraryScreen({
+    super.key,
+    this.repository,
+    this.workoutDayScreenBuilder,
+  });
+
+  final WorkoutPlanRepository? repository;
+  final Widget Function(WorkoutPlan plan)?
+      workoutDayScreenBuilder;
 
   @override
  State<WorkoutPlanLibraryScreen> createState() =>
@@ -22,7 +31,9 @@ class _WorkoutPlanLibraryScreenState
     super.initState();
 
     _controller = WorkoutPlanLibraryController(
-      repository: RepositoryRegistry.workoutPlanRepository,
+      repository:
+          widget.repository ??
+          RepositoryRegistry.workoutPlanRepository,
     );
 
     _controller.addListener(_refresh);
@@ -76,15 +87,19 @@ class _WorkoutPlanLibraryScreenState
   }
   
   Future<void> _openWorkoutDays(WorkoutPlan plan) async {
-  await Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => WorkoutDayLibraryScreen(
-        workoutPlanId: plan.id,
-        workoutPlanName: plan.name,
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            widget.workoutDayScreenBuilder?.call(plan) ??
+            WorkoutDayLibraryScreen(
+              workoutPlanId: plan.id,
+              workoutPlanName: plan.name,
+              workoutPlanDescription:
+                  plan.description,
+            ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Future<void> _deleteWorkoutPlan(WorkoutPlan plan) async {
     await _controller.deleteWorkoutPlan(plan.id);

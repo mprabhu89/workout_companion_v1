@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/di/repository_registry.dart';
-import '../../../workout_session/domain/services/workout_session_builder.dart';
-import '../../../workout_session/presentation/screens/workout_execution_screen.dart';
 import '../../../workout_group/presentation/screens/workout_group_library_screen.dart';
 import '../../domain/entities/workout_day.dart';
+import '../../domain/repositories/workout_day_repository.dart';
 import '../controllers/workout_day_library_controller.dart';
 import 'create_workout_day_screen.dart';
+import 'workout_day_overview_screen.dart';
 
 class WorkoutDayLibraryScreen extends StatefulWidget {
   const WorkoutDayLibraryScreen({
     super.key,
     required this.workoutPlanId,
     required this.workoutPlanName,
+    this.workoutPlanDescription = '',
+    this.repository,
+    this.workoutDayOverviewScreenBuilder,
   });
 
   final String workoutPlanId;
   final String workoutPlanName;
+  final String workoutPlanDescription;
+  final WorkoutDayRepository? repository;
+  final Widget Function(WorkoutDay workoutDay)?
+      workoutDayOverviewScreenBuilder;
 
   @override
   State<WorkoutDayLibraryScreen> createState() =>
@@ -25,41 +33,15 @@ class WorkoutDayLibraryScreen extends StatefulWidget {
 class _WorkoutDayLibraryScreenState
     extends State<WorkoutDayLibraryScreen> {
   late final WorkoutDayLibraryController _controller;
-  Future<void> _startWorkout(
-    WorkoutDay workoutDay,
-  ) async {
-    final builder = WorkoutSessionBuilder(
-      workoutGroupRepository:
-          RepositoryRegistry.workoutGroupRepository,
-      workoutExerciseRepository:
-          RepositoryRegistry.workoutExerciseRepository,
-    );
 
-    final session = await builder.build(
-      workoutDayId: workoutDay.id,
-      workoutPlanId: widget.workoutPlanId,
-      workoutPlanName: widget.workoutPlanName,
-      workoutDayName: workoutDay.name,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => WorkoutExecutionScreen(
-          session: session,
-        ),
-      ),
-    );
-  }
   @override
   void initState() {
     super.initState();
 
     _controller = WorkoutDayLibraryController(
-      repository: RepositoryRegistry.workoutDayRepository,
+      repository:
+          widget.repository ??
+          RepositoryRegistry.workoutDayRepository,
       workoutPlanId: widget.workoutPlanId,
     );
 
@@ -138,6 +120,23 @@ class _WorkoutDayLibraryScreenState
     }
   }
 
+  Future<void> _openWorkoutDayOverview(
+    WorkoutDay workoutDay,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            widget.workoutDayOverviewScreenBuilder
+                ?.call(workoutDay) ??
+            WorkoutDayOverviewScreen(
+              workoutPlanId: widget.workoutPlanId,
+              workoutPlanName: widget.workoutPlanName,
+              workoutDay: workoutDay,
+            ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,21 +167,64 @@ class _WorkoutDayLibraryScreenState
       );
     }
 
+    final description =
+        widget.workoutPlanDescription.trim();
+
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: _controller.workoutDays.length,
+      itemCount:
+          _controller.workoutDays.length +
+          (description.isEmpty ? 0 : 1),
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final workoutDay = _controller.workoutDays[index];
+        if (description.isNotEmpty && index == 0) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.workoutPlanName,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(description),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final dayIndex =
+            description.isEmpty ? index : index - 1;
+        final workoutDay =
+            _controller.workoutDays[dayIndex];
+
+        final subtitleParts = <String>[
+          'Day ${workoutDay.dayNumber}',
+        ];
+
+        if (workoutDay.isRestDay) {
+          subtitleParts.add('Rest Day');
+        }
+
+        final dayDescription =
+            workoutDay.description.trim();
+        if (dayDescription.isNotEmpty) {
+          subtitleParts.add(dayDescription);
+        }
 
         return Card(
           child: ListTile(
-            onTap: () => _openWorkoutGroups(workoutDay),
+            onTap: () =>
+                _openWorkoutDayOverview(workoutDay),
             title: Text(workoutDay.name),
             subtitle: Text(
-              workoutDay.isRestDay
-                  ? 'Day ${workoutDay.dayNumber} • Rest Day'
-                  : 'Day ${workoutDay.dayNumber}',
+              subtitleParts.join(' • '),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -190,17 +232,22 @@ class _WorkoutDayLibraryScreenState
                 IconButton(
                   icon: const Icon(Icons.edit),
                   tooltip: 'Edit',
-                  onPressed: () => _editWorkoutDay(workoutDay),
+                  onPressed: () =>
+                      _editWorkoutDay(workoutDay),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete),
                   tooltip: 'Delete',
-                  onPressed: () => _deleteWorkoutDay(workoutDay),
+                  onPressed: () =>
+                      _deleteWorkoutDay(workoutDay),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.play_arrow),
-                  tooltip: 'Start Workout',
-                  onPressed: () => _startWorkout(workoutDay),
+                  icon: const Icon(
+                    Icons.view_list_outlined,
+                  ),
+                  tooltip: 'Manage Contents',
+                  onPressed: () =>
+                      _openWorkoutGroups(workoutDay),
                 ),
               ],
             ),
