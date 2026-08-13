@@ -40,6 +40,14 @@ class WorkoutSessionController extends ChangeNotifier {
 
   WorkoutSession get session => _session;
 
+  int get totalExerciseCount => _session.totalExercises;
+
+  int get currentExerciseNumber =>
+      _session.currentExerciseNumber;
+
+  int get completedExerciseCount =>
+      _session.completedExerciseCount;
+
   bool get isPaused =>
       _session.status == WorkoutSessionStatus.paused;
 
@@ -64,6 +72,10 @@ class WorkoutSessionController extends ChangeNotifier {
   void startCountdown({
     int seconds = 3,
   }) {
+    if (_session.workoutExercises.isEmpty) {
+      return;
+    }
+
     final startedAt = _session.startedAt ?? DateTime.now();
     _engine.updateStartedAt(startedAt);
 

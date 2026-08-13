@@ -25,8 +25,15 @@ class WorkoutSessionBuilder {
     final List<WorkoutExercise> exercises = [];
 
     for (final group in groups) {
+      final groupExercises =
+          await _workoutExerciseRepository.getWorkoutExercises(
+        group.id,
+      );
+
       exercises.addAll(
-        await _workoutExerciseRepository.getWorkoutExercises(group.id),
+        groupExercises.where(
+          (exercise) => !exercise.isArchived,
+        ),
       );
     }
 

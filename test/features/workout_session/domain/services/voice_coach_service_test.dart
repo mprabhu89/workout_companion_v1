@@ -66,6 +66,20 @@ void main() {
 
       expect(speechEngine.spokenMessages, isEmpty);
     });
+
+    test('announces workout completion once', () async {
+      final speechEngine = _FakeSpeechEngine();
+      final service = VoiceCoachService(speechEngine: speechEngine);
+      final session = _session(status: WorkoutSessionStatus.completed);
+
+      await service.announceSessionState(session: session);
+      await service.announceSessionState(session: session);
+
+      expect(
+        speechEngine.spokenMessages,
+        ['Workout complete. Great work.'],
+      );
+    });
   });
 }
 

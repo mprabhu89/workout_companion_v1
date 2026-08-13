@@ -8,6 +8,7 @@ import '../../../../core/services/flutter_tts_speech_engine.dart';
 import '../../../exercise/domain/entities/exercise.dart';
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
 import '../../../workout_history/domain/entities/completed_workout_session.dart';
+import '../../../workout_history/domain/repositories/workout_history_repository.dart';
 import '../../domain/entities/workout_sequence_event.dart';
 import '../../domain/entities/workout_session.dart';
 import '../../domain/services/voice_coach_service.dart';
@@ -18,9 +19,15 @@ class WorkoutExecutionScreen extends StatefulWidget {
   const WorkoutExecutionScreen({
     super.key,
     required this.session,
+    this.controller,
+    this.voiceCoach,
+    this.workoutHistoryRepository,
   });
 
   final WorkoutSession session;
+  final WorkoutSessionController? controller;
+  final VoiceCoachService? voiceCoach;
+  final WorkoutHistoryRepository? workoutHistoryRepository;
 
   @override
   State<WorkoutExecutionScreen> createState() =>
@@ -31,22 +38,34 @@ class _WorkoutExecutionScreenState
     extends State<WorkoutExecutionScreen> {
   late final WorkoutSessionController _controller;
   late final VoiceCoachService _voiceCoach;
+  late final WorkoutHistoryRepository _workoutHistoryRepository;
   final Map<String, Exercise> _exercisesById = {};
 
   bool _completionHandled = false;
   bool _voiceEnabled = true;
+  late final bool _ownsController;
+  late final bool _ownsVoiceCoach;
 
   @override
   void initState() {
     super.initState();
 
-    _voiceCoach = VoiceCoachService(
-      speechEngine: FlutterTtsSpeechEngine(),
-    );
-    _controller = WorkoutSessionController(
-      session: widget.session,
-      voiceCoach: _voiceCoach,
-    );
+    _ownsVoiceCoach = widget.voiceCoach == null;
+    _voiceCoach =
+        widget.voiceCoach ??
+        VoiceCoachService(
+          speechEngine: FlutterTtsSpeechEngine(),
+        );
+    _ownsController = widget.controller == null;
+    _controller =
+        widget.controller ??
+        WorkoutSessionController(
+          session: widget.session,
+          voiceCoach: _voiceCoach,
+        );
+    _workoutHistoryRepository =
+        widget.workoutHistoryRepository ??
+        RepositoryRegistry.workoutHistoryRepository;
 
     _controller.addListener(_refresh);
     _loadExercises();
@@ -55,8 +74,12 @@ class _WorkoutExecutionScreenState
   @override
   void dispose() {
     _controller.removeListener(_refresh);
-    _controller.dispose();
-    unawaited(_voiceCoach.dispose());
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    if (_ownsVoiceCoach) {
+      unawaited(_voiceCoach.dispose());
+    }
     super.dispose();
   }
 
@@ -159,13 +182,6 @@ class _WorkoutExecutionScreenState
           session.completedAt ?? DateTime.now();
       final startedAt =
           session.startedAt ?? completedAt;
-      final completedExercises =
-          (session.currentExerciseIndex + 1)
-              .clamp(
-                0,
-                session.workoutExercises.length,
-              )
-              .toInt();
       final completedSession =
           CompletedWorkoutSession(
         id: const Uuid().v4(),
@@ -179,14 +195,13 @@ class _WorkoutExecutionScreenState
         durationInSeconds: completedAt
             .difference(startedAt)
             .inSeconds,
-        completedExercises: completedExercises,
-        totalExercises: session.workoutExercises.length,
+        completedExercises:
+            session.completedExerciseCount,
+        totalExercises: session.totalExercises,
         wasCompleted: true,
       );
 
-      await RepositoryRegistry
-          .workoutHistoryRepository
-          .saveSession(
+      await _workoutHistoryRepository.saveSession(
         completedSession,
       );
 
@@ -262,8 +277,8 @@ class _WorkoutExecutionScreenState
             .isNotEmpty;
 
     final progress =
-        (session.currentExerciseIndex + 1) /
-            session.workoutExercises.length;
+        session.currentExerciseNumber /
+            session.totalExercises;
 
     return Scaffold(
       appBar: AppBar(
@@ -303,6 +318,11 @@ class _WorkoutExecutionScreenState
                         currentExercise,
                       ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                'Completed ${session.completedExerciseCount}'
+                ' of ${session.totalExercises}',
+              ),
               const SizedBox(height: 40),
               if (_controller.isSequenceExerciseInProgress)
                 _SequenceExecutionPanel(
@@ -328,8 +348,8 @@ class _WorkoutExecutionScreenState
               LinearProgressIndicator(value: progress),
               const SizedBox(height: 12),
               Text(
-                'Exercise ${session.currentExerciseIndex + 1}'
-                ' of ${session.workoutExercises.length}',
+                'Exercise ${session.currentExerciseNumber}'
+                ' of ${session.totalExercises}',
               ),
               const Spacer(),
               if (session.status ==
@@ -416,7 +436,7 @@ class _WorkoutExecutionScreenState
 
     return parts.isEmpty
         ? 'Workout exercise'
-        : parts.join(' • ');
+        : parts.join(' - ');
   }
 }
 

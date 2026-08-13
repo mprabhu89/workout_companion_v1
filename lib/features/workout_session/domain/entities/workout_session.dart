@@ -40,6 +40,30 @@ class WorkoutSession {
 
   final WorkoutSessionStatus status;
 
+  bool get hasExercises => workoutExercises.isNotEmpty;
+
+  int get totalExercises => workoutExercises.length;
+
+  int get currentExerciseNumber =>
+      hasExercises ? currentExerciseIndex + 1 : 0;
+
+  int get completedExerciseCount {
+    if (!hasExercises) {
+      return 0;
+    }
+
+    if (status == WorkoutSessionStatus.completed) {
+      return workoutExercises.length;
+    }
+
+    return currentExerciseIndex
+        .clamp(
+          0,
+          workoutExercises.length,
+        )
+        .toInt();
+  }
+
   WorkoutExercise get currentExercise =>
       workoutExercises[currentExerciseIndex];
 

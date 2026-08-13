@@ -554,6 +554,448 @@ void main() {
       );
     });
   });
+
+  group('WorkoutSessionController workout orchestration', () {
+    test('workout with multiple exercises starts exercise 1', () {
+      final timerService = _FakeWorkoutTimerService();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _legacyExercise(durationInSeconds: 5),
+            _legacyExercise(
+              id: 'legacy-exercise-2',
+              durationInSeconds: 7,
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: _FakeSpeechEngine(),
+        ),
+        timerService: timerService,
+      );
+
+      controller.startCountdown(seconds: 3);
+
+      expect(controller.currentExerciseNumber, 1);
+      expect(controller.totalExerciseCount, 2);
+      expect(controller.completedExerciseCount, 0);
+      expect(
+        controller.session.status,
+        WorkoutSessionStatus.countdown,
+      );
+      expect(controller.session.remainingSeconds, 3);
+    });
+
+    test('completing exercise 1 automatically starts exercise 2 and updates progress', () async {
+      final timerService = _FakeWorkoutTimerService();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _legacyExercise(
+              id: 'legacy-exercise-1',
+              durationInSeconds: 5,
+            ),
+            _legacyExercise(
+              id: 'legacy-exercise-2',
+              durationInSeconds: 7,
+            ),
+            _legacyExercise(
+              id: 'legacy-exercise-3',
+              durationInSeconds: 9,
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: _FakeSpeechEngine(),
+        ),
+        timerService: timerService,
+      );
+
+      controller.startCountdown(seconds: 1);
+      timerService.finish();
+      await _flushAsyncWork();
+
+      expect(controller.currentExerciseNumber, 1);
+      expect(controller.completedExerciseCount, 0);
+
+      timerService.finish();
+      await _flushAsyncWork();
+
+      expect(controller.currentExerciseNumber, 2);
+      expect(controller.completedExerciseCount, 1);
+      expect(controller.session.currentExercise.id, 'legacy-exercise-2');
+      expect(
+        controller.session.status,
+        WorkoutSessionStatus.exercising,
+      );
+      expect(controller.session.remainingSeconds, 7);
+
+      timerService.finish();
+      await _flushAsyncWork();
+
+      expect(controller.currentExerciseNumber, 3);
+      expect(controller.completedExerciseCount, 2);
+      expect(controller.session.currentExercise.id, 'legacy-exercise-3');
+    });
+
+    test('completing final exercise completes workout exactly once', () async {
+      final timerService = _FakeWorkoutTimerService();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _legacyExercise(durationInSeconds: 5),
+            _legacyExercise(
+              id: 'legacy-exercise-2',
+              durationInSeconds: 7,
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: _FakeSpeechEngine(),
+        ),
+        timerService: timerService,
+      );
+
+      var completedNotifications = 0;
+      controller.addListener(() {
+        if (controller.session.status ==
+            WorkoutSessionStatus.completed) {
+          completedNotifications += 1;
+        }
+      });
+
+      controller.startCountdown(seconds: 1);
+      timerService.finish();
+      await _flushAsyncWork();
+      timerService.finish();
+      await _flushAsyncWork();
+      timerService.finish();
+      await _flushAsyncWork();
+
+      expect(
+        controller.session.status,
+        WorkoutSessionStatus.completed,
+      );
+      expect(controller.completedExerciseCount, 2);
+      expect(completedNotifications, 1);
+    });
+
+    test('sequence to sequence transition works', () async {
+      final speechEngine = _FakeSpeechEngine();
+      final timerService = _FakeWorkoutTimerService();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _sequenceExercise(
+              id: 'sequence-1',
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.guide(text: 'First'),
+                  WorkoutSequenceStep.end(),
+                ],
+              ),
+            ),
+            _sequenceExercise(
+              id: 'sequence-2',
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.guide(text: 'Second'),
+                  WorkoutSequenceStep.relax(durationInSeconds: 2),
+                  WorkoutSequenceStep.end(),
+                ],
+              ),
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: speechEngine,
+        ),
+        timerService: timerService,
+      );
+
+      controller.startCountdown();
+      await _flushAsyncWork();
+
+      expect(controller.session.currentExercise.id, 'sequence-2');
+      expect(controller.currentExerciseNumber, 2);
+      expect(controller.completedExerciseCount, 1);
+      expect(
+        controller.activeSequenceEvent?.type,
+        WorkoutSequenceEventType.relax,
+      );
+      expect(
+        speechEngine.spokenMessages,
+        ['First', 'End of exercise.', 'Second'],
+      );
+    });
+
+    test('legacy to legacy transition works', () async {
+      final timerService = _FakeWorkoutTimerService();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _legacyExercise(
+              id: 'legacy-1',
+              durationInSeconds: 4,
+            ),
+            _legacyExercise(
+              id: 'legacy-2',
+              durationInSeconds: 6,
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: _FakeSpeechEngine(),
+        ),
+        timerService: timerService,
+      );
+
+      controller.startCountdown(seconds: 1);
+      timerService.finish();
+      await _flushAsyncWork();
+      timerService.finish();
+      await _flushAsyncWork();
+
+      expect(controller.session.currentExercise.id, 'legacy-2');
+      expect(controller.currentExerciseNumber, 2);
+      expect(controller.completedExerciseCount, 1);
+      expect(controller.session.remainingSeconds, 6);
+    });
+
+    test('sequence to legacy transition works', () async {
+      final timerService = _FakeWorkoutTimerService();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _sequenceExercise(
+              id: 'sequence-1',
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.guide(text: 'Sequence'),
+                  WorkoutSequenceStep.end(),
+                ],
+              ),
+            ),
+            _legacyExercise(
+              id: 'legacy-2',
+              durationInSeconds: 6,
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: _FakeSpeechEngine(),
+        ),
+        timerService: timerService,
+      );
+
+      controller.startCountdown();
+      await _flushAsyncWork();
+
+      expect(controller.session.currentExercise.id, 'legacy-2');
+      expect(controller.currentExerciseNumber, 2);
+      expect(controller.completedExerciseCount, 1);
+      expect(controller.session.remainingSeconds, 6);
+      expect(
+        controller.session.status,
+        WorkoutSessionStatus.exercising,
+      );
+    });
+
+    test('legacy to sequence transition works', () async {
+      final timerService = _FakeWorkoutTimerService();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _legacyExercise(
+              id: 'legacy-1',
+              durationInSeconds: 4,
+            ),
+            _sequenceExercise(
+              id: 'sequence-2',
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.guide(text: 'Second'),
+                  WorkoutSequenceStep.relax(durationInSeconds: 2),
+                  WorkoutSequenceStep.end(),
+                ],
+              ),
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: _FakeSpeechEngine(),
+        ),
+        timerService: timerService,
+      );
+
+      controller.startCountdown(seconds: 1);
+      timerService.finish();
+      await _flushAsyncWork();
+      timerService.finish();
+      await _flushAsyncWork();
+
+      expect(controller.session.currentExercise.id, 'sequence-2');
+      expect(controller.currentExerciseNumber, 2);
+      expect(controller.completedExerciseCount, 1);
+      expect(
+        controller.activeSequenceEvent?.type,
+        WorkoutSequenceEventType.relax,
+      );
+    });
+
+    test('counter values remain independent across multiple sequence exercises', () async {
+      final speechEngine = _FakeSpeechEngine();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _sequenceExercise(
+              id: 'sequence-1',
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.counter(repetitionCount: 2),
+                  WorkoutSequenceStep.guide(text: 'A'),
+                  WorkoutSequenceStep.sequenceBreak(),
+                  WorkoutSequenceStep.end(),
+                ],
+              ),
+            ),
+            _sequenceExercise(
+              id: 'sequence-2',
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.counter(repetitionCount: 3),
+                  WorkoutSequenceStep.guide(text: 'B'),
+                  WorkoutSequenceStep.sequenceBreak(),
+                  WorkoutSequenceStep.end(),
+                ],
+              ),
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: speechEngine,
+        ),
+        timerService: _FakeWorkoutTimerService(),
+      );
+
+      controller.startCountdown();
+      await _flushAsyncWork();
+
+      expect(
+        speechEngine.spokenMessages,
+        [
+          '1',
+          'A',
+          '2',
+          'A',
+          'End of exercise.',
+          '1',
+          'B',
+          '2',
+          'B',
+          '3',
+          'B',
+          'End of exercise.',
+        ],
+      );
+    });
+
+    test('pause and resume do not cause duplicate progression across exercises', () async {
+      final timerService = _FakeWorkoutTimerService();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _legacyExercise(
+              id: 'legacy-1',
+              durationInSeconds: 4,
+            ),
+            _legacyExercise(
+              id: 'legacy-2',
+              durationInSeconds: 6,
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: _FakeSpeechEngine(),
+        ),
+        timerService: timerService,
+      );
+
+      controller.startCountdown(seconds: 1);
+      timerService.finish();
+      await _flushAsyncWork();
+
+      controller.pause();
+      timerService.tick();
+      await _flushAsyncWork();
+      expect(controller.currentExerciseNumber, 1);
+      expect(controller.completedExerciseCount, 0);
+
+      controller.resume();
+      timerService.finish();
+      await _flushAsyncWork();
+
+      expect(controller.session.currentExercise.id, 'legacy-2');
+      expect(controller.currentExerciseNumber, 2);
+      expect(controller.completedExerciseCount, 1);
+
+      timerService.finish();
+      await _flushAsyncWork();
+
+      expect(
+        controller.session.status,
+        WorkoutSessionStatus.completed,
+      );
+      expect(controller.completedExerciseCount, 2);
+    });
+
+    test('voice-disabled session still progresses through all exercises', () async {
+      final speechEngine = _FakeSpeechEngine();
+      final timerService = _FakeWorkoutTimerService();
+      final voiceCoach = VoiceCoachService(
+        speechEngine: speechEngine,
+      );
+      await voiceCoach.setEnabled(false);
+
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _sequenceExercise(
+              id: 'sequence-1',
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.guide(text: 'First'),
+                  WorkoutSequenceStep.end(),
+                ],
+              ),
+            ),
+            _legacyExercise(
+              id: 'legacy-2',
+              durationInSeconds: 6,
+            ),
+          ],
+        ),
+        voiceCoach: voiceCoach,
+        timerService: timerService,
+      );
+
+      controller.startCountdown();
+      await _flushAsyncWork();
+
+      expect(controller.session.currentExercise.id, 'legacy-2');
+      expect(controller.completedExerciseCount, 1);
+      expect(speechEngine.spokenMessages, isEmpty);
+
+      timerService.finish();
+      await _flushAsyncWork();
+
+      expect(
+        controller.session.status,
+        WorkoutSessionStatus.completed,
+      );
+      expect(controller.completedExerciseCount, 2);
+    });
+  });
 }
 
 WorkoutSessionController _controller({
@@ -573,10 +1015,11 @@ WorkoutSessionController _controller({
 }
 
 WorkoutExercise _sequenceExercise({
+  String id = 'sequence-exercise',
   required WorkoutSequenceDefinition sequenceDefinition,
 }) {
   return WorkoutExercise(
-    id: 'sequence-exercise',
+    id: id,
     workoutGroupId: 'group-1',
     exerciseId: 'exercise-1',
     displayOrder: 1,
@@ -588,15 +1031,18 @@ WorkoutExercise _sequenceExercise({
   );
 }
 
-WorkoutExercise _legacyExercise() {
-  return const WorkoutExercise(
-    id: 'legacy-exercise',
+WorkoutExercise _legacyExercise({
+  String id = 'legacy-exercise',
+  int durationInSeconds = 5,
+}) {
+  return WorkoutExercise(
+    id: id,
     workoutGroupId: 'group-1',
     exerciseId: 'exercise-1',
     displayOrder: 1,
     sets: 1,
     targetType: WorkoutTargetType.duration,
-    durationInSeconds: 5,
+    durationInSeconds: durationInSeconds,
     restInSeconds: 0,
   );
 }
