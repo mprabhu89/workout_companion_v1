@@ -20,6 +20,7 @@ class WorkoutExerciseForm extends StatelessWidget {
     required this.restSeconds,
     required this.targetType,
     required this.targetValueController,
+    required this.sessionRepetitionsController,
     required this.notesController,
     required this.sequenceDefinition,
     required this.onSetsChanged,
@@ -39,6 +40,8 @@ class WorkoutExerciseForm extends StatelessWidget {
   final WorkoutTargetType targetType;
 
   final TextEditingController targetValueController;
+
+  final TextEditingController sessionRepetitionsController;
 
   final TextEditingController notesController;
 
@@ -83,6 +86,25 @@ class WorkoutExerciseForm extends StatelessWidget {
         TargetValueEditor(
           targetType: targetType,
           controller: targetValueController,
+        ),
+
+        const SizedBox(height: 16),
+
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: sessionRepetitionsController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Session Rounds',
+                hintText: 'e.g. 1',
+                border: OutlineInputBorder(),
+                helperText:
+                    'Number of complete exercise executions in this workout.',
+              ),
+            ),
+          ),
         ),
 
         const SizedBox(height: 16),

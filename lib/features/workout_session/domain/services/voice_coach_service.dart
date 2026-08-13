@@ -125,7 +125,8 @@ class VoiceCoachService {
 
       case WorkoutSessionStatus.exercising:
         return _VoiceAnnouncement(
-          key: 'exercise-${session.currentExerciseIndex}',
+          key:
+              'exercise-${session.currentExerciseIndex}-${session.currentExerciseRound}',
           message: _buildExerciseStartMessage(
             workoutExercise: session.currentExercise,
             exercise: currentExercise,
@@ -134,7 +135,8 @@ class VoiceCoachService {
 
       case WorkoutSessionStatus.resting:
         return _VoiceAnnouncement(
-          key: 'rest-${session.currentExerciseIndex}',
+          key:
+              'rest-${session.currentExerciseIndex}-${session.currentExerciseRound}',
           message: _buildRestMessage(
             workoutExercise: session.currentExercise,
             nextExercise: nextExercise,

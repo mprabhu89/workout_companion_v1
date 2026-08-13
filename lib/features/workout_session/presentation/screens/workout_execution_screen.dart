@@ -323,6 +323,13 @@ class _WorkoutExecutionScreenState
                 'Completed ${session.completedExerciseCount}'
                 ' of ${session.totalExercises}',
               ),
+              if (session.totalRoundsForCurrentExercise > 1) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Round ${session.currentExerciseRound}'
+                  ' of ${session.totalRoundsForCurrentExercise}',
+                ),
+              ],
               const SizedBox(height: 40),
               if (_controller.isSequenceExerciseInProgress)
                 _SequenceExecutionPanel(

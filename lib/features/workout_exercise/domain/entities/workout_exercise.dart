@@ -19,6 +19,9 @@ class WorkoutExercise {
     // Rest
     this.restInSeconds,
 
+    // Session-level repetition
+    this.sessionRepetitions = 1,
+
     // Intensity
     this.weight,
     this.weightUnit = WeightUnit.kilograms,
@@ -34,7 +37,10 @@ class WorkoutExercise {
 
     // Soft delete
     this.isArchived = false,
-  });
+  }) : assert(
+         sessionRepetitions > 0,
+         'sessionRepetitions must be greater than 0',
+       );
 
   final String id;
   final String workoutGroupId;
@@ -56,6 +62,9 @@ class WorkoutExercise {
 
   /// Rest after completing this exercise.
   final int? restInSeconds;
+
+  /// Number of times this workout exercise repeats inside a session.
+  final int sessionRepetitions;
 
   /// Optional working weight.
   final double? weight;
@@ -86,6 +95,7 @@ class WorkoutExercise {
     int? repetitions,
     int? durationInSeconds,
     int? restInSeconds,
+    int? sessionRepetitions,
     double? weight,
     WeightUnit? weightUnit,
     int? rpe,
@@ -106,6 +116,8 @@ class WorkoutExercise {
       durationInSeconds:
           durationInSeconds ?? this.durationInSeconds,
       restInSeconds: restInSeconds ?? this.restInSeconds,
+      sessionRepetitions:
+          sessionRepetitions ?? this.sessionRepetitions,
       weight: weight ?? this.weight,
       weightUnit: weightUnit ?? this.weightUnit,
       rpe: rpe ?? this.rpe,
@@ -131,6 +143,7 @@ class WorkoutExercise {
           repetitions == other.repetitions &&
           durationInSeconds == other.durationInSeconds &&
           restInSeconds == other.restInSeconds &&
+          sessionRepetitions == other.sessionRepetitions &&
           weight == other.weight &&
           weightUnit == other.weightUnit &&
           rpe == other.rpe &&
@@ -151,6 +164,7 @@ class WorkoutExercise {
         repetitions,
         durationInSeconds,
         restInSeconds,
+        sessionRepetitions,
         weight,
         weightUnit,
         rpe,

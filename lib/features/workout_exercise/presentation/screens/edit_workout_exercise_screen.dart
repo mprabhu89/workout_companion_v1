@@ -24,6 +24,7 @@ class EditWorkoutExerciseScreen extends StatefulWidget {
 class _EditWorkoutExerciseScreenState
     extends State<EditWorkoutExerciseScreen> {
   late final TextEditingController _targetValueController;
+  late final TextEditingController _sessionRepetitionsController;
   late final TextEditingController _notesController;
   late int _sets;
   late int _restSeconds;
@@ -42,6 +43,10 @@ class _EditWorkoutExerciseScreenState
     _targetValueController = TextEditingController(
       text: _initialTargetValue(workoutExercise),
     )..addListener(_refreshCounterSummary);
+    _sessionRepetitionsController = TextEditingController(
+      text:
+          workoutExercise.sessionRepetitions.toString(),
+    );
     _notesController = TextEditingController(
       text: workoutExercise.notes,
     );
@@ -53,6 +58,7 @@ class _EditWorkoutExerciseScreenState
       _refreshCounterSummary,
     );
     _targetValueController.dispose();
+    _sessionRepetitionsController.dispose();
     _notesController.dispose();
 
     super.dispose();
@@ -65,6 +71,21 @@ class _EditWorkoutExerciseScreenState
   }
 
   void _save() {
+    final sessionRepetitions = int.tryParse(
+      _sessionRepetitionsController.text.trim(),
+    );
+    if (sessionRepetitions == null ||
+        sessionRepetitions <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Session rounds must be 1 or greater.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final updated = _buildWorkoutExercise();
     final validationMessage =
         validateWorkoutSequenceDefinitionForEditor(
@@ -100,6 +121,8 @@ class _EditWorkoutExerciseScreenState
           restSeconds: _restSeconds,
           targetType: _targetType,
           targetValueController: _targetValueController,
+          sessionRepetitionsController:
+              _sessionRepetitionsController,
           notesController: _notesController,
           sequenceDefinition: _sequenceDefinition,
           onSetsChanged: (value) {
@@ -155,6 +178,8 @@ class _EditWorkoutExerciseScreenState
                 )
               : null,
       restInSeconds: _restSeconds,
+      sessionRepetitions:
+          _parsedSessionRepetitions,
       weight: widget.workoutExercise.weight,
       weightUnit: widget.workoutExercise.weightUnit,
       rpe: widget.workoutExercise.rpe,
@@ -173,6 +198,17 @@ class _EditWorkoutExerciseScreenState
     }
 
     return _sequenceDefinition;
+  }
+
+  int get _parsedSessionRepetitions {
+    final value = int.tryParse(
+      _sessionRepetitionsController.text.trim(),
+    );
+    if (value == null || value <= 0) {
+      return 1;
+    }
+
+    return value;
   }
 
   String _initialTargetValue(WorkoutExercise workoutExercise) {

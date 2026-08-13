@@ -12,6 +12,41 @@ import 'package:workout_companion_v1/features/workout_session/presentation/scree
 
 void main() {
   testWidgets(
+    'shows round progress when session repetition is greater than 1',
+    (tester) async {
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _exercise(sessionRepetitions: 3),
+          ],
+          currentExerciseRound: 2,
+        ),
+        voiceCoach: VoiceCoachService(
+          speechEngine: _FakeSpeechEngine(),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkoutExecutionScreen(
+            session: controller.session,
+            controller: controller,
+            voiceCoach: VoiceCoachService(
+              speechEngine: _FakeSpeechEngine(),
+            ),
+            workoutHistoryRepository:
+                _FakeWorkoutHistoryRepository(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(find.text('Round 2 of 3'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'history repository receives exactly one completed workout session',
     (tester) async {
       final historyRepository = _FakeWorkoutHistoryRepository();
@@ -20,7 +55,9 @@ void main() {
       );
       final controller = WorkoutSessionController(
         session: WorkoutSession(
-          workoutExercises: [_exercise()],
+          workoutExercises: [
+            _exercise(sessionRepetitions: 3),
+          ],
           workoutPlanId: 'plan-1',
           workoutPlanName: 'Plan',
           workoutDayId: 'day-1',
@@ -28,6 +65,7 @@ void main() {
           startedAt: DateTime(2026, 8, 13, 10, 0, 0),
           completedAt: DateTime(2026, 8, 13, 10, 5, 0),
           currentExerciseIndex: 0,
+          currentExerciseRound: 3,
           status: WorkoutSessionStatus.completed,
         ),
         voiceCoach: voiceCoach,
@@ -52,6 +90,10 @@ void main() {
         historyRepository.savedSessions.single.completedExercises,
         1,
       );
+      expect(
+        historyRepository.savedSessions.single.totalExercises,
+        1,
+      );
 
       await tester.pump();
       expect(historyRepository.savedSessions, hasLength(1));
@@ -59,8 +101,10 @@ void main() {
   );
 }
 
-WorkoutExercise _exercise() {
-  return const WorkoutExercise(
+WorkoutExercise _exercise({
+  int sessionRepetitions = 1,
+}) {
+  return WorkoutExercise(
     id: 'workout-exercise-1',
     workoutGroupId: 'group-1',
     exerciseId: 'exercise-1',
@@ -69,6 +113,7 @@ WorkoutExercise _exercise() {
     targetType: WorkoutTargetType.duration,
     durationInSeconds: 30,
     restInSeconds: 0,
+    sessionRepetitions: sessionRepetitions,
   );
 }
 

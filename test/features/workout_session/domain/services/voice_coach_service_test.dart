@@ -80,6 +80,29 @@ void main() {
         ['Workout complete. Great work.'],
       );
     });
+
+    test('announces repeated exercise rounds independently', () async {
+      final speechEngine = _FakeSpeechEngine();
+      final service = VoiceCoachService(speechEngine: speechEngine);
+
+      await service.announceSessionState(
+        session: _session(
+          status: WorkoutSessionStatus.exercising,
+        ),
+        currentExercise: _exercise(),
+      );
+      await service.announceSessionState(
+        session: WorkoutSession(
+          workoutExercises: [_workoutExercise(sessionRepetitions: 3)],
+          currentExerciseRound: 2,
+          remainingSeconds: 3,
+          status: WorkoutSessionStatus.exercising,
+        ),
+        currentExercise: _exercise(),
+      );
+
+      expect(speechEngine.spokenMessages, hasLength(2));
+    });
   });
 }
 
@@ -91,8 +114,10 @@ WorkoutSession _session({required WorkoutSessionStatus status}) {
   );
 }
 
-WorkoutExercise _workoutExercise() {
-  return const WorkoutExercise(
+WorkoutExercise _workoutExercise({
+  int sessionRepetitions = 1,
+}) {
+  return WorkoutExercise(
     id: 'workout-exercise-1',
     workoutGroupId: 'group-1',
     exerciseId: 'exercise-1',
@@ -101,6 +126,7 @@ WorkoutExercise _workoutExercise() {
     targetType: WorkoutTargetType.repetitions,
     repetitions: 12,
     restInSeconds: 30,
+    sessionRepetitions: sessionRepetitions,
   );
 }
 

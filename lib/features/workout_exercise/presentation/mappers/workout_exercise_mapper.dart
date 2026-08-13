@@ -46,6 +46,7 @@ class WorkoutExerciseMapper {
       repetitions: repetitions,
       durationInSeconds: durationInSeconds,
       restInSeconds: restSeconds,
+      sessionRepetitions: 1,
       tempoType: TempoType.normal,
       customTempo: null,
       rpe: null,

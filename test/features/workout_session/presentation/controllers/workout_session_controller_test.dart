@@ -1016,6 +1016,7 @@ WorkoutSessionController _controller({
 
 WorkoutExercise _sequenceExercise({
   String id = 'sequence-exercise',
+  int sessionRepetitions = 1,
   required WorkoutSequenceDefinition sequenceDefinition,
 }) {
   return WorkoutExercise(
@@ -1027,6 +1028,7 @@ WorkoutExercise _sequenceExercise({
     targetType: WorkoutTargetType.repetitions,
     repetitions: 12,
     restInSeconds: 0,
+    sessionRepetitions: sessionRepetitions,
     sequenceDefinition: sequenceDefinition,
   );
 }
@@ -1034,6 +1036,7 @@ WorkoutExercise _sequenceExercise({
 WorkoutExercise _legacyExercise({
   String id = 'legacy-exercise',
   int durationInSeconds = 5,
+  int sessionRepetitions = 1,
 }) {
   return WorkoutExercise(
     id: id,
@@ -1044,6 +1047,7 @@ WorkoutExercise _legacyExercise({
     targetType: WorkoutTargetType.duration,
     durationInSeconds: durationInSeconds,
     restInSeconds: 0,
+    sessionRepetitions: sessionRepetitions,
   );
 }
 

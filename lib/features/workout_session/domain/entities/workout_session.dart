@@ -19,6 +19,7 @@ class WorkoutSession {
     this.startedAt,
     this.completedAt,
     this.currentExerciseIndex = 0,
+    this.currentExerciseRound = 1,
     this.currentSet = 1,
     this.remainingSeconds = 0,
     this.status = WorkoutSessionStatus.notStarted,
@@ -34,6 +35,8 @@ class WorkoutSession {
 
   final int currentExerciseIndex;
 
+  final int currentExerciseRound;
+
   final int currentSet;
 
   final int remainingSeconds;
@@ -46,6 +49,11 @@ class WorkoutSession {
 
   int get currentExerciseNumber =>
       hasExercises ? currentExerciseIndex + 1 : 0;
+
+  int get totalRoundsForCurrentExercise =>
+      hasExercises
+          ? currentExercise.sessionRepetitions
+          : 0;
 
   int get completedExerciseCount {
     if (!hasExercises) {
@@ -82,6 +90,7 @@ class WorkoutSession {
     DateTime? startedAt,
     DateTime? completedAt,
     int? currentExerciseIndex,
+    int? currentExerciseRound,
     int? currentSet,
     int? remainingSeconds,
     WorkoutSessionStatus? status,
@@ -98,6 +107,9 @@ class WorkoutSession {
       currentExerciseIndex:
           currentExerciseIndex ??
           this.currentExerciseIndex,
+      currentExerciseRound:
+          currentExerciseRound ??
+          this.currentExerciseRound,
       currentSet:
           currentSet ?? this.currentSet,
       remainingSeconds:

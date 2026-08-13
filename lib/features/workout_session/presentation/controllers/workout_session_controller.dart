@@ -48,6 +48,12 @@ class WorkoutSessionController extends ChangeNotifier {
   int get completedExerciseCount =>
       _session.completedExerciseCount;
 
+  int get currentExerciseRound =>
+      _session.currentExerciseRound;
+
+  int get totalRoundsForCurrentExercise =>
+      _session.totalRoundsForCurrentExercise;
+
   bool get isPaused =>
       _session.status == WorkoutSessionStatus.paused;
 
@@ -424,7 +430,7 @@ class WorkoutSessionController extends ChangeNotifier {
     _syncSession();
 
     if (rest <= 0) {
-      nextExercise();
+      _advanceAfterCurrentExecution();
       return;
     }
 
@@ -437,8 +443,28 @@ class WorkoutSessionController extends ChangeNotifier {
 
         _syncSession();
       },
-      onFinished: nextExercise,
+      onFinished: _advanceAfterCurrentExecution,
     );
+  }
+
+  void _advanceAfterCurrentExecution() {
+    _cancelSequenceExecution();
+    _timerService.stop();
+
+    if (_session.currentExerciseRound <
+        _session.totalRoundsForCurrentExercise) {
+      _engine.repeatCurrentExercise();
+      _syncSession();
+      _startExercise();
+      return;
+    }
+
+    _engine.nextExercise();
+    _syncSession();
+
+    if (!_engine.isCompleted) {
+      _startExercise();
+    }
   }
 
   @override

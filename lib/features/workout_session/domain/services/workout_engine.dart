@@ -53,6 +53,7 @@ class WorkoutEngine {
     _session = _session.copyWith(
       currentExerciseIndex:
           _session.currentExerciseIndex + 1,
+      currentExerciseRound: 1,
       remainingSeconds: 0,
     );
   }
@@ -65,6 +66,15 @@ class WorkoutEngine {
     _session = _session.copyWith(
       currentExerciseIndex:
           _session.currentExerciseIndex - 1,
+      currentExerciseRound: 1,
+      remainingSeconds: 0,
+    );
+  }
+
+  void repeatCurrentExercise() {
+    _session = _session.copyWith(
+      currentExerciseRound:
+          _session.currentExerciseRound + 1,
       remainingSeconds: 0,
     );
   }

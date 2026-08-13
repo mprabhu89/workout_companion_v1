@@ -25,6 +25,10 @@ void main() {
         expect(updated.sequenceDefinition, sequenceDefinition);
         expect(updated.notes, 'Controlled curl');
         expect(updated.repetitions, original.repetitions);
+        expect(
+          updated.sessionRepetitions,
+          original.sessionRepetitions,
+        );
       },
     );
 
@@ -35,9 +39,30 @@ void main() {
 
         expect(workoutExercise.sequenceDefinition, isNull);
         expect(workoutExercise.repetitions, 10);
+        expect(workoutExercise.sessionRepetitions, 1);
         expect(
           workoutExercise.targetType,
           WorkoutTargetType.repetitions,
+        );
+      },
+    );
+
+    test(
+      'rejects invalid session repetition values',
+      () {
+        expect(
+          () => WorkoutExercise(
+            id: 'workout-exercise-1',
+            workoutGroupId: 'group-1',
+            exerciseId: 'exercise-1',
+            displayOrder: 1,
+            sets: 3,
+            targetType: WorkoutTargetType.repetitions,
+            repetitions: 10,
+            restInSeconds: 60,
+            sessionRepetitions: 0,
+          ),
+          throwsA(isA<AssertionError>()),
         );
       },
     );

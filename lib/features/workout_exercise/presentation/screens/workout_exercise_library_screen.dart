@@ -73,6 +73,10 @@ class _WorkoutExerciseLibraryScreenState
       parts.add('Rest ${exercise.restInSeconds}s');
     }
 
+    if (exercise.sessionRepetitions > 1) {
+      parts.add('${exercise.sessionRepetitions} Rounds');
+    }
+
     return parts.join(' • ');
   }
 
@@ -131,6 +135,7 @@ class _WorkoutExerciseLibraryScreenState
       repetitions: 10,
 
       restInSeconds: 60,
+      sessionRepetitions: 1,
     );
 
     final created =
