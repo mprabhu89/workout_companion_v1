@@ -1,5 +1,6 @@
 import '../../../../core/services/speech_engine.dart';
 import '../../../exercise/domain/entities/exercise.dart';
+import '../../../settings/domain/entities/voice_preferences.dart';
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
 import '../entities/workout_session.dart';
 
@@ -14,10 +15,7 @@ class VoiceCoachService {
     );
   }
 
-  VoiceCoachService._({
-    required this._speechEngine,
-    this._isEnabled = true,
-  });
+  VoiceCoachService._({required this._speechEngine, this._isEnabled = true});
 
   final SpeechEngine _speechEngine;
   final Set<String> _announcedKeys = {};
@@ -35,14 +33,25 @@ class VoiceCoachService {
     }
   }
 
+  Future<void> applyPreferences(VoicePreferences preferences) async {
+    if (_isDisposed) {
+      return;
+    }
+
+    _isEnabled = preferences.isEnabled;
+    await _safeConfigure(preferences);
+
+    if (!_isEnabled) {
+      await _safeStop();
+    }
+  }
+
   Future<void> announceSessionState({
     required WorkoutSession session,
     Exercise? currentExercise,
     Exercise? nextExercise,
   }) async {
-    if (!_isEnabled ||
-        _isDisposed ||
-        session.workoutExercises.isEmpty) {
+    if (!_isEnabled || _isDisposed || session.workoutExercises.isEmpty) {
       return;
     }
 
@@ -81,6 +90,19 @@ class VoiceCoachService {
 
   Future<void> speakText(String text) async {
     if (!_isEnabled || _isDisposed) {
+      return;
+    }
+
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+
+    await _safeSpeak(trimmed);
+  }
+
+  Future<void> previewText(String text) async {
+    if (_isDisposed) {
       return;
     }
 
@@ -159,9 +181,7 @@ class VoiceCoachService {
       'Start ${exercise?.name ?? workoutExercise.exerciseId}',
     ];
 
-    final prescription = _buildPrescription(
-      workoutExercise,
-    );
+    final prescription = _buildPrescription(workoutExercise);
 
     if (prescription.isNotEmpty) {
       parts.add(prescription);
@@ -169,8 +189,7 @@ class VoiceCoachService {
 
     final instructions = exercise?.instructions.trim();
 
-    if (instructions != null &&
-        instructions.isNotEmpty) {
+    if (instructions != null && instructions.isNotEmpty) {
       parts.add(instructions);
     }
 
@@ -183,50 +202,34 @@ class VoiceCoachService {
   }) {
     final rest = workoutExercise.restInSeconds ?? 0;
 
-    final parts = <String>[
-      rest > 0
-          ? 'Rest for $rest seconds'
-          : 'Rest',
-    ];
+    final parts = <String>[rest > 0 ? 'Rest for $rest seconds' : 'Rest'];
 
     if (nextExercise != null) {
-      parts.add(
-        'Next exercise, ${nextExercise.name}',
-      );
+      parts.add('Next exercise, ${nextExercise.name}');
     }
 
     return parts.join('. ');
   }
 
-  String _buildPrescription(
-    WorkoutExercise workoutExercise,
-  ) {
+  String _buildPrescription(WorkoutExercise workoutExercise) {
     final parts = <String>[];
 
     if (workoutExercise.sets != null) {
-      parts.add(
-        '${workoutExercise.sets} sets',
-      );
+      parts.add('${workoutExercise.sets} sets');
     }
 
     if (workoutExercise.repetitions != null) {
-      parts.add(
-        '${workoutExercise.repetitions} reps',
-      );
+      parts.add('${workoutExercise.repetitions} reps');
     }
 
     if (workoutExercise.durationInSeconds != null) {
-      parts.add(
-        '${workoutExercise.durationInSeconds} seconds',
-      );
+      parts.add('${workoutExercise.durationInSeconds} seconds');
     }
 
     return parts.join(', ');
   }
 
-  Future<void> _safeSpeak(
-    String message,
-  ) async {
+  Future<void> _safeSpeak(String message) async {
     try {
       await _speechEngine.speak(message);
     } catch (_) {
@@ -257,13 +260,20 @@ class VoiceCoachService {
       // Voice coach must never block workout execution.
     }
   }
+
+  Future<void> _safeConfigure(VoicePreferences preferences) async {
+    try {
+      await _speechEngine.setSpeechRate(preferences.speechRate);
+      await _speechEngine.setPitch(preferences.pitch);
+      await _speechEngine.setVolume(preferences.volume);
+    } catch (_) {
+      // Voice coach must never block workout execution.
+    }
+  }
 }
 
 class _VoiceAnnouncement {
-  const _VoiceAnnouncement({
-    required this.key,
-    required this.message,
-  });
+  const _VoiceAnnouncement({required this.key, required this.message});
 
   final String key;
   final String message;

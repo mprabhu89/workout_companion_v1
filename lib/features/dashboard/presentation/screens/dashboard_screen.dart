@@ -95,6 +95,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   'Compare your planned workout days with completed sessions.',
               onTap: () => context.push('/progress'),
             ),
+            _DashboardLinkCard(
+              icon: Icons.settings_outlined,
+              title: 'Settings',
+              subtitle: 'Manage Voice Coach preferences.',
+              onTap: () => context.push('/settings'),
+            ),
             const SizedBox(height: 16),
             _StatisticsSummary(
               controller: _historyController,

@@ -5,6 +5,7 @@ import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/developer/presentation/screens/developer_home_screen.dart';
 import '../../features/exercise/presentation/screens/exercise_library_screen.dart';
 import '../../features/progress/presentation/screens/progress_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/workout_history/presentation/screens/workout_history_screen.dart';
 import '../../features/workout_plan/presentation/screens/workout_plan_library_screen.dart';
 
@@ -37,6 +38,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/progress',
       builder: (context, state) => const ProgressScreen(),
+    ),
+
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
     ),
   ],
 );

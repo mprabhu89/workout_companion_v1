@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/di/repository_registry.dart';
-import '../../../../core/services/flutter_tts_speech_engine.dart';
 import '../../../exercise/domain/entities/exercise.dart';
+import '../../../settings/domain/services/voice_preferences_store.dart';
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
 import '../../../workout_history/domain/entities/completed_workout_session.dart';
 import '../../../workout_history/domain/repositories/workout_history_repository.dart';
@@ -30,15 +30,14 @@ class WorkoutExecutionScreen extends StatefulWidget {
   final WorkoutHistoryRepository? workoutHistoryRepository;
 
   @override
-  State<WorkoutExecutionScreen> createState() =>
-      _WorkoutExecutionScreenState();
+  State<WorkoutExecutionScreen> createState() => _WorkoutExecutionScreenState();
 }
 
-class _WorkoutExecutionScreenState
-    extends State<WorkoutExecutionScreen> {
+class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   late final WorkoutSessionController _controller;
   late final VoiceCoachService _voiceCoach;
   late final WorkoutHistoryRepository _workoutHistoryRepository;
+  late final VoicePreferencesStore _voicePreferencesStore;
   final Map<String, Exercise> _exercisesById = {};
 
   bool _completionHandled = false;
@@ -51,11 +50,11 @@ class _WorkoutExecutionScreenState
     super.initState();
 
     _ownsVoiceCoach = widget.voiceCoach == null;
-    _voiceCoach =
-        widget.voiceCoach ??
-        VoiceCoachService(
-          speechEngine: FlutterTtsSpeechEngine(),
-        );
+    _voiceCoach = widget.voiceCoach ?? RepositoryRegistry.createVoiceCoach();
+    _voicePreferencesStore = RepositoryRegistry.voicePreferencesStore;
+    _voiceEnabled = _voicePreferencesStore.preferences.isEnabled;
+    _voicePreferencesStore.addListener(_onVoicePreferencesChanged);
+    unawaited(_voiceCoach.applyPreferences(_voicePreferencesStore.preferences));
     _ownsController = widget.controller == null;
     _controller =
         widget.controller ??
@@ -74,6 +73,7 @@ class _WorkoutExecutionScreenState
   @override
   void dispose() {
     _controller.removeListener(_refresh);
+    _voicePreferencesStore.removeListener(_onVoicePreferencesChanged);
     if (_ownsController) {
       _controller.dispose();
     }
@@ -102,12 +102,7 @@ class _WorkoutExecutionScreenState
       _exercisesById
         ..clear()
         ..addEntries(
-          exercises.map(
-            (exercise) => MapEntry(
-              exercise.id,
-              exercise,
-            ),
-          ),
+          exercises.map((exercise) => MapEntry(exercise.id, exercise)),
         );
     });
   }
@@ -122,43 +117,43 @@ class _WorkoutExecutionScreenState
     final currentWorkoutExercise = session.currentExercise;
     final hasSequenceDefinition =
         currentWorkoutExercise.sequenceDefinition != null &&
-        currentWorkoutExercise
-            .sequenceDefinition!
-            .steps
-            .isNotEmpty;
+        currentWorkoutExercise.sequenceDefinition!.steps.isNotEmpty;
 
     if (hasSequenceDefinition &&
         (session.status == WorkoutSessionStatus.countdown ||
-            session.status ==
-                WorkoutSessionStatus.exercising)) {
+            session.status == WorkoutSessionStatus.exercising)) {
       return;
     }
 
     final nextWorkoutExercise = session.hasNextExercise
-        ? session.workoutExercises[
-            session.currentExerciseIndex + 1
-          ]
+        ? session.workoutExercises[session.currentExerciseIndex + 1]
         : null;
 
     await _voiceCoach.announceSessionState(
       session: session,
-      currentExercise: _exercisesById[
-        currentWorkoutExercise.exerciseId
-      ],
+      currentExercise: _exercisesById[currentWorkoutExercise.exerciseId],
       nextExercise: nextWorkoutExercise == null
           ? null
-          : _exercisesById[
-              nextWorkoutExercise.exerciseId
-            ],
+          : _exercisesById[nextWorkoutExercise.exerciseId],
     );
   }
 
   Future<void> _toggleVoice() async {
-    setState(() {
-      _voiceEnabled = !_voiceEnabled;
-    });
+    await _voicePreferencesStore.update(
+      _voicePreferencesStore.preferences.copyWith(
+        isEnabled: !_voicePreferencesStore.preferences.isEnabled,
+      ),
+    );
+  }
 
-    await _voiceCoach.setEnabled(_voiceEnabled);
+  void _onVoicePreferencesChanged() {
+    final preferences = _voicePreferencesStore.preferences;
+    if (mounted) {
+      setState(() {
+        _voiceEnabled = preferences.isEnabled;
+      });
+    }
+    unawaited(_voiceCoach.applyPreferences(preferences));
   }
 
   void _checkWorkoutCompleted() {
@@ -178,32 +173,23 @@ class _WorkoutExecutionScreenState
         return;
       }
 
-      final completedAt =
-          session.completedAt ?? DateTime.now();
-      final startedAt =
-          session.startedAt ?? completedAt;
-      final completedSession =
-          CompletedWorkoutSession(
+      final completedAt = session.completedAt ?? DateTime.now();
+      final startedAt = session.startedAt ?? completedAt;
+      final completedSession = CompletedWorkoutSession(
         id: const Uuid().v4(),
         workoutPlanId: session.workoutPlanId ?? '',
-        workoutPlanName:
-            session.workoutPlanName ?? 'Workout',
+        workoutPlanName: session.workoutPlanName ?? 'Workout',
         workoutDayId: session.workoutDayId,
         workoutDayName: session.workoutDayName,
         startedAt: startedAt,
         completedAt: completedAt,
-        durationInSeconds: completedAt
-            .difference(startedAt)
-            .inSeconds,
-        completedExercises:
-            session.completedExerciseCount,
+        durationInSeconds: completedAt.difference(startedAt).inSeconds,
+        completedExercises: session.completedExerciseCount,
         totalExercises: session.totalExercises,
         wasCompleted: true,
       );
 
-      await _workoutHistoryRepository.saveSession(
-        completedSession,
-      );
+      await _workoutHistoryRepository.saveSession(completedSession);
 
       if (!mounted) {
         return;
@@ -211,9 +197,7 @@ class _WorkoutExecutionScreenState
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => WorkoutCompletionScreen(
-            session: completedSession,
-          ),
+          builder: (_) => WorkoutCompletionScreen(session: completedSession),
         ),
       );
     });
@@ -231,19 +215,13 @@ class _WorkoutExecutionScreenState
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.fitness_center,
-                  size: 72,
-                ),
+                const Icon(Icons.fitness_center, size: 72),
                 const SizedBox(height: 24),
                 Text(
                   'No exercises found',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall,
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -265,20 +243,13 @@ class _WorkoutExecutionScreenState
     }
 
     final currentExercise = session.currentExercise;
-    final exercise =
-        _exercisesById[currentExercise.exerciseId];
-    final exerciseName =
-        exercise?.name ?? currentExercise.exerciseId;
+    final exercise = _exercisesById[currentExercise.exerciseId];
+    final exerciseName = exercise?.name ?? currentExercise.exerciseId;
     final hasSequenceDefinition =
         currentExercise.sequenceDefinition != null &&
-        currentExercise
-            .sequenceDefinition!
-            .steps
-            .isNotEmpty;
+        currentExercise.sequenceDefinition!.steps.isNotEmpty;
 
-    final progress =
-        session.currentExerciseNumber /
-            session.totalExercises;
+    final progress = session.currentExerciseNumber / session.totalExercises;
 
     return Scaffold(
       appBar: AppBar(
@@ -305,18 +276,14 @@ class _WorkoutExecutionScreenState
               const SizedBox(height: 20),
               Text(
                 exerciseName,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium,
+                style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 hasSequenceDefinition
                     ? 'Guided sequence exercise'
-                    : _buildLegacyExerciseSummary(
-                        currentExercise,
-                      ),
+                    : _buildLegacyExerciseSummary(currentExercise),
               ),
               const SizedBox(height: 8),
               Text(
@@ -334,18 +301,13 @@ class _WorkoutExecutionScreenState
               if (_controller.isSequenceExerciseInProgress)
                 _SequenceExecutionPanel(
                   event: _controller.activeSequenceEvent,
-                  iterationNumber:
-                      _controller.activeSequenceIteration,
-                  iterationTotal: _controller
-                      .activeSequenceIterationTotal,
-                  remainingSeconds:
-                      session.remainingSeconds,
+                  iterationNumber: _controller.activeSequenceIteration,
+                  iterationTotal: _controller.activeSequenceIterationTotal,
+                  remainingSeconds: session.remainingSeconds,
                 )
               else
                 Text(
-                  session.remainingSeconds
-                      .toString()
-                      .padLeft(2, '0'),
+                  session.remainingSeconds.toString().padLeft(2, '0'),
                   style: const TextStyle(
                     fontSize: 64,
                     fontWeight: FontWeight.bold,
@@ -359,8 +321,7 @@ class _WorkoutExecutionScreenState
                 ' of ${session.totalExercises}',
               ),
               const Spacer(),
-              if (session.status ==
-                  WorkoutSessionStatus.notStarted)
+              if (session.status == WorkoutSessionStatus.notStarted)
                 FilledButton.icon(
                   onPressed: _controller.startCountdown,
                   icon: const Icon(Icons.play_arrow),
@@ -368,17 +329,13 @@ class _WorkoutExecutionScreenState
                 )
               else
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     IconButton(
-                      onPressed:
-                          _controller.session.hasPreviousExercise
-                              ? _controller.previousExercise
-                              : null,
-                      icon: const Icon(
-                        Icons.skip_previous,
-                      ),
+                      onPressed: _controller.session.hasPreviousExercise
+                          ? _controller.previousExercise
+                          : null,
+                      icon: const Icon(Icons.skip_previous),
                     ),
                     FilledButton.icon(
                       onPressed: () {
@@ -391,20 +348,12 @@ class _WorkoutExecutionScreenState
                         }
                       },
                       icon: Icon(
-                        _controller.isPaused
-                            ? Icons.play_arrow
-                            : Icons.pause,
+                        _controller.isPaused ? Icons.play_arrow : Icons.pause,
                       ),
-                      label: Text(
-                        _controller.isPaused
-                            ? 'Resume'
-                            : 'Pause',
-                      ),
+                      label: Text(_controller.isPaused ? 'Resume' : 'Pause'),
                     ),
                     IconButton(
-                      onPressed: _controller
-                              .session
-                              .hasNextExercise
+                      onPressed: _controller.session.hasNextExercise
                           ? _controller.nextExercise
                           : _controller.finishWorkout,
                       icon: Icon(
@@ -422,9 +371,7 @@ class _WorkoutExecutionScreenState
     );
   }
 
-  String _buildLegacyExerciseSummary(
-    WorkoutExercise workoutExercise,
-  ) {
+  String _buildLegacyExerciseSummary(WorkoutExercise workoutExercise) {
     final parts = <String>[];
 
     if (workoutExercise.sets != null) {
@@ -436,14 +383,10 @@ class _WorkoutExecutionScreenState
     }
 
     if (workoutExercise.durationInSeconds != null) {
-      parts.add(
-        '${workoutExercise.durationInSeconds} sec',
-      );
+      parts.add('${workoutExercise.durationInSeconds} sec');
     }
 
-    return parts.isEmpty
-        ? 'Workout exercise'
-        : parts.join(' - ');
+    return parts.isEmpty ? 'Workout exercise' : parts.join(' - ');
   }
 }
 
@@ -466,11 +409,9 @@ class _SequenceExecutionPanel extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final repetitionText =
-        iterationNumber != null &&
-                iterationTotal != null
-            ? 'Repetition $iterationNumber of $iterationTotal'
-            : null;
+    final repetitionText = iterationNumber != null && iterationTotal != null
+        ? 'Repetition $iterationNumber of $iterationTotal'
+        : null;
 
     String label;
     Widget primaryContent;
@@ -481,28 +422,21 @@ class _SequenceExecutionPanel extends StatelessWidget {
         primaryContent = Text(
           event!.guideText ?? '',
           textAlign: TextAlign.center,
-          style:
-              Theme.of(context).textTheme.headlineSmall,
+          style: Theme.of(context).textTheme.headlineSmall,
         );
         break;
       case WorkoutSequenceEventType.count:
         label = 'Count';
         primaryContent = Text(
           '${event!.countValue ?? 0}',
-          style: const TextStyle(
-            fontSize: 64,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold),
         );
         break;
       case WorkoutSequenceEventType.relax:
         label = 'Relax';
         primaryContent = Text(
           remainingSeconds.toString().padLeft(2, '0'),
-          style: const TextStyle(
-            fontSize: 64,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold),
         );
         break;
       case WorkoutSequenceEventType.end:
@@ -513,10 +447,7 @@ class _SequenceExecutionPanel extends StatelessWidget {
 
     return Column(
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text(label, style: Theme.of(context).textTheme.titleMedium),
         if (repetitionText != null) ...[
           const SizedBox(height: 8),
           Text(repetitionText),

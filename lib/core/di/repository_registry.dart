@@ -1,4 +1,6 @@
 import '../database/isar_database.dart';
+import '../services/flutter_tts_speech_engine.dart';
+import '../services/speech_engine.dart';
 import '../../features/exercise/data/repositories/in_memory_exercise_repository.dart';
 import '../../features/exercise/data/repositories/isar_exercise_repository.dart';
 import '../../features/exercise/domain/repositories/exercise_repository.dart';
@@ -17,6 +19,9 @@ import '../../features/workout_day/domain/repositories/workout_day_repository.da
 import '../../features/workout_history/data/repositories/in_memory_workout_history_repository.dart';
 import '../../features/workout_history/data/repositories/isar_workout_history_repository.dart';
 import '../../features/workout_history/domain/repositories/workout_history_repository.dart';
+import '../../features/settings/data/repositories/shared_preferences_voice_preferences_repository.dart';
+import '../../features/settings/domain/services/voice_preferences_store.dart';
+import '../../features/workout_session/domain/services/voice_coach_service.dart';
 
 /// Temporary dependency container.
 ///
@@ -27,10 +32,9 @@ import '../../features/workout_history/domain/repositories/workout_history_repos
 final class RepositoryRegistry {
   RepositoryRegistry._();
 
-  static ExerciseRepository exerciseRepository =
-      InMemoryExerciseRepository();
+  static ExerciseRepository exerciseRepository = InMemoryExerciseRepository();
   static WorkoutExerciseRepository workoutExerciseRepository =
-    InMemoryWorkoutExerciseRepository();
+      InMemoryWorkoutExerciseRepository();
 
   static WorkoutPlanRepository workoutPlanRepository =
       InMemoryWorkoutPlanRepository();
@@ -39,10 +43,17 @@ final class RepositoryRegistry {
       InMemoryWorkoutDayRepository();
 
   static WorkoutGroupRepository workoutGroupRepository =
-    InMemoryWorkoutGroupRepository();
+      InMemoryWorkoutGroupRepository();
 
   static WorkoutHistoryRepository workoutHistoryRepository =
-    InMemoryWorkoutHistoryRepository();
+      InMemoryWorkoutHistoryRepository();
+
+  static VoicePreferencesStore voicePreferencesStore = VoicePreferencesStore(
+    repository: SharedPreferencesVoicePreferencesRepository(),
+  );
+
+  static SpeechEngine Function() speechEngineFactory =
+      FlutterTtsSpeechEngine.new;
 
   static bool _isInitialized = false;
 
@@ -54,19 +65,16 @@ final class RepositoryRegistry {
     final database = await IsarDatabase.initialize();
     final isar = database.isar;
 
+    await voicePreferencesStore.load();
+
     await IsarExerciseRepository.seedIfEmpty(isar);
 
     exerciseRepository = IsarExerciseRepository(isar);
-    workoutExerciseRepository =
-        IsarWorkoutExerciseRepository(isar);
-    workoutPlanRepository =
-        IsarWorkoutPlanRepository(isar);
-    workoutDayRepository =
-        IsarWorkoutDayRepository(isar);
-    workoutGroupRepository =
-        IsarWorkoutGroupRepository(isar);
-    workoutHistoryRepository =
-        IsarWorkoutHistoryRepository(isar);
+    workoutExerciseRepository = IsarWorkoutExerciseRepository(isar);
+    workoutPlanRepository = IsarWorkoutPlanRepository(isar);
+    workoutDayRepository = IsarWorkoutDayRepository(isar);
+    workoutGroupRepository = IsarWorkoutGroupRepository(isar);
+    workoutHistoryRepository = IsarWorkoutHistoryRepository(isar);
 
     _isInitialized = true;
   }
@@ -75,17 +83,22 @@ final class RepositoryRegistry {
     _isInitialized = false;
 
     exerciseRepository = InMemoryExerciseRepository();
-    workoutExerciseRepository =
-        InMemoryWorkoutExerciseRepository();
-    workoutPlanRepository =
-        InMemoryWorkoutPlanRepository();
-    workoutDayRepository =
-        InMemoryWorkoutDayRepository();
-    workoutGroupRepository =
-        InMemoryWorkoutGroupRepository();
-    workoutHistoryRepository =
-        InMemoryWorkoutHistoryRepository();
+    workoutExerciseRepository = InMemoryWorkoutExerciseRepository();
+    workoutPlanRepository = InMemoryWorkoutPlanRepository();
+    workoutDayRepository = InMemoryWorkoutDayRepository();
+    workoutGroupRepository = InMemoryWorkoutGroupRepository();
+    workoutHistoryRepository = InMemoryWorkoutHistoryRepository();
+
+    voicePreferencesStore.dispose();
+    voicePreferencesStore = VoicePreferencesStore(
+      repository: SharedPreferencesVoicePreferencesRepository(),
+    );
+    speechEngineFactory = FlutterTtsSpeechEngine.new;
 
     await IsarDatabase.closeInstance();
+  }
+
+  static VoiceCoachService createVoiceCoach() {
+    return VoiceCoachService(speechEngine: speechEngineFactory());
   }
 }
