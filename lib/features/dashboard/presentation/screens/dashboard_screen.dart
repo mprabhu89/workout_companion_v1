@@ -88,6 +88,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               subtitle: 'Review completed workouts and session details.',
               onTap: () => context.push('/workout-history'),
             ),
+            _DashboardLinkCard(
+              icon: Icons.insights_outlined,
+              title: 'Progress',
+              subtitle:
+                  'Compare your planned workout days with completed sessions.',
+              onTap: () => context.push('/progress'),
+            ),
             const SizedBox(height: 16),
             _StatisticsSummary(
               controller: _historyController,
