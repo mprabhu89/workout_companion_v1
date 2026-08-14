@@ -9,8 +9,7 @@ String? validateWorkoutSequenceDefinitionForEditor({
   required WorkoutExercise workoutExercise,
   required WorkoutSequenceDefinition? sequenceDefinition,
 }) {
-  if (sequenceDefinition == null ||
-      sequenceDefinition.steps.isEmpty) {
+  if (sequenceDefinition == null || sequenceDefinition.steps.isEmpty) {
     return null;
   }
 
@@ -26,15 +25,13 @@ String? validateWorkoutSequenceDefinitionForEditor({
     }
 
     if (step.type == WorkoutSequenceStepType.relax &&
-        (step.durationInSeconds == null ||
-            step.durationInSeconds! < 0)) {
+        (step.durationInSeconds == null || step.durationInSeconds! < 0)) {
       return 'Relax duration must be zero or greater.';
     }
 
     if (step.type == WorkoutSequenceStepType.counter &&
-        (step.repetitionCount == null ||
-            step.repetitionCount! <= 0)) {
-      return 'Counter repetition count must be greater than zero.';
+        (step.repetitionCount == null || step.repetitionCount! <= 0)) {
+      return 'Reps must be greater than zero.';
     }
   }
 
@@ -63,9 +60,7 @@ class WorkoutSequenceEditor extends StatelessWidget {
   final ValueChanged<WorkoutSequenceDefinition?> onChanged;
 
   List<WorkoutSequenceStep> get _steps =>
-      List<WorkoutSequenceStep>.of(
-        sequenceDefinition?.steps ?? const [],
-      );
+      List<WorkoutSequenceStep>.of(sequenceDefinition?.steps ?? const []);
 
   @override
   Widget build(BuildContext context) {
@@ -82,15 +77,11 @@ class WorkoutSequenceEditor extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Sequence Definition',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 FilledButton.icon(
-                  key: const Key(
-                    'sequence_editor_add_step_button',
-                  ),
+                  key: const Key('sequence_editor_add_step_button'),
                   onPressed: () => _addStep(context),
                   icon: const Icon(Icons.add),
                   label: const Text('Add Step'),
@@ -110,14 +101,11 @@ class WorkoutSequenceEditor extends StatelessWidget {
               )
             else
               ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxHeight: 360,
-                ),
+                constraints: const BoxConstraints(maxHeight: 360),
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: steps.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: 12),
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     return _SequenceStepTile(
                       index: index,
@@ -129,10 +117,7 @@ class WorkoutSequenceEditor extends StatelessWidget {
                       onMoveDown: index < steps.length - 1
                           ? () => _moveStep(index, index + 1)
                           : null,
-                      onEdit: () => _editStep(
-                        context,
-                        index,
-                      ),
+                      onEdit: () => _editStep(context, index),
                       onDelete: () => _deleteStep(index),
                     );
                   },
@@ -147,8 +132,7 @@ class WorkoutSequenceEditor extends StatelessWidget {
   Future<void> _addStep(BuildContext context) async {
     final step = await showDialog<WorkoutSequenceStep>(
       context: context,
-      builder: (context) => WorkoutSequenceStepDialog(
-      ),
+      builder: (context) => WorkoutSequenceStepDialog(),
     );
 
     if (step == null) {
@@ -159,15 +143,11 @@ class WorkoutSequenceEditor extends StatelessWidget {
     _updateSequence(steps);
   }
 
-  Future<void> _editStep(
-    BuildContext context,
-    int index,
-  ) async {
+  Future<void> _editStep(BuildContext context, int index) async {
     final step = await showDialog<WorkoutSequenceStep>(
       context: context,
-      builder: (context) => WorkoutSequenceStepDialog(
-        initialStep: _steps[index],
-      ),
+      builder: (context) =>
+          WorkoutSequenceStepDialog(initialStep: _steps[index]),
     );
 
     if (step == null) {
@@ -193,19 +173,12 @@ class WorkoutSequenceEditor extends StatelessWidget {
   }
 
   void _updateSequence(List<WorkoutSequenceStep> steps) {
-    onChanged(
-      steps.isEmpty
-          ? null
-          : WorkoutSequenceDefinition(steps: steps),
-    );
+    onChanged(steps.isEmpty ? null : WorkoutSequenceDefinition(steps: steps));
   }
 }
 
 class WorkoutSequenceStepDialog extends StatefulWidget {
-  const WorkoutSequenceStepDialog({
-    super.key,
-    this.initialStep,
-  });
+  const WorkoutSequenceStepDialog({super.key, this.initialStep});
 
   final WorkoutSequenceStep? initialStep;
 
@@ -214,8 +187,7 @@ class WorkoutSequenceStepDialog extends StatefulWidget {
       _WorkoutSequenceStepDialogState();
 }
 
-class _WorkoutSequenceStepDialogState
-    extends State<WorkoutSequenceStepDialog> {
+class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
   late WorkoutSequenceStepType _stepType;
   late final TextEditingController _guideController;
   late final TextEditingController _countController;
@@ -229,11 +201,8 @@ class _WorkoutSequenceStepDialogState
     super.initState();
     final initialStep = widget.initialStep;
 
-    _stepType = initialStep?.type ??
-        WorkoutSequenceStepType.guide;
-    _guideController = TextEditingController(
-      text: initialStep?.text ?? '',
-    );
+    _stepType = initialStep?.type ?? WorkoutSequenceStepType.guide;
+    _guideController = TextEditingController(text: initialStep?.text ?? '');
     _countController = TextEditingController(
       text: initialStep?.count?.toString() ?? '',
     );
@@ -241,13 +210,10 @@ class _WorkoutSequenceStepDialogState
       text: initialStep?.repetitionCount?.toString() ?? '',
     );
     _relaxController = TextEditingController(
-      text:
-          initialStep?.durationInSeconds?.toString() ??
-          '',
+      text: initialStep?.durationInSeconds?.toString() ?? '',
     );
     _countDirection =
-        initialStep?.countDirection ??
-            WorkoutCountDirection.ascending;
+        initialStep?.countDirection ?? WorkoutCountDirection.ascending;
   }
 
   @override
@@ -264,21 +230,16 @@ class _WorkoutSequenceStepDialogState
     final isEditing = widget.initialStep != null;
 
     return AlertDialog(
-      title: Text(
-        isEditing ? 'Edit Sequence Step' : 'Add Sequence Step',
-      ),
+      title: Text(isEditing ? 'Edit Sequence Step' : 'Add Sequence Step'),
       content: SingleChildScrollView(
         child: SizedBox(
           width: 360,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DropdownButtonFormField<WorkoutSequenceStepType>(
-                key: const Key(
-                  'sequence_step_type_dropdown',
-                ),
+                key: const Key('sequence_step_type_dropdown'),
                 initialValue: _stepType,
                 decoration: const InputDecoration(
                   labelText: 'Step Type',
@@ -286,8 +247,7 @@ class _WorkoutSequenceStepDialogState
                 ),
                 items: WorkoutSequenceStepType.values
                     .map(
-                      (type) =>
-                          DropdownMenuItem<WorkoutSequenceStepType>(
+                      (type) => DropdownMenuItem<WorkoutSequenceStepType>(
                         value: type,
                         child: Text(_stepTypeLabel(type)),
                       ),
@@ -310,9 +270,7 @@ class _WorkoutSequenceStepDialogState
                 const SizedBox(height: 12),
                 Text(
                   _errorText!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
             ],
@@ -325,9 +283,7 @@ class _WorkoutSequenceStepDialogState
           child: const Text('Cancel'),
         ),
         FilledButton(
-          key: const Key(
-            'sequence_step_save_button',
-          ),
+          key: const Key('sequence_step_save_button'),
           onPressed: _save,
           child: const Text('Save'),
         ),
@@ -340,14 +296,11 @@ class _WorkoutSequenceStepDialogState
       case WorkoutSequenceStepType.guide:
         return [
           TextField(
-            key: const Key(
-              'sequence_step_guide_text_field',
-            ),
+            key: const Key('sequence_step_guide_text_field'),
             controller: _guideController,
             minLines: 2,
             maxLines: 4,
-            textCapitalization:
-                TextCapitalization.sentences,
+            textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
               labelText: 'Guide Text',
               border: OutlineInputBorder(),
@@ -358,9 +311,7 @@ class _WorkoutSequenceStepDialogState
       case WorkoutSequenceStepType.count:
         return [
           TextField(
-            key: const Key(
-              'sequence_step_count_field',
-            ),
+            key: const Key('sequence_step_count_field'),
             controller: _countController,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
@@ -370,9 +321,7 @@ class _WorkoutSequenceStepDialogState
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<WorkoutCountDirection>(
-            key: const Key(
-              'sequence_step_count_direction_dropdown',
-            ),
+            key: const Key('sequence_step_count_direction_dropdown'),
             initialValue: _countDirection,
             decoration: const InputDecoration(
               labelText: 'Direction',
@@ -380,8 +329,7 @@ class _WorkoutSequenceStepDialogState
             ),
             items: WorkoutCountDirection.values
                 .map(
-                  (direction) =>
-                      DropdownMenuItem<WorkoutCountDirection>(
+                  (direction) => DropdownMenuItem<WorkoutCountDirection>(
                     value: direction,
                     child: Text(direction.name),
                   ),
@@ -401,13 +349,11 @@ class _WorkoutSequenceStepDialogState
       case WorkoutSequenceStepType.counter:
         return [
           TextField(
-            key: const Key(
-              'sequence_step_counter_field',
-            ),
+            key: const Key('sequence_step_counter_field'),
             controller: _counterController,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
-              labelText: 'Counter Repetitions',
+              labelText: 'Reps',
               border: OutlineInputBorder(),
             ),
           ),
@@ -415,9 +361,7 @@ class _WorkoutSequenceStepDialogState
       case WorkoutSequenceStepType.relax:
         return [
           TextField(
-            key: const Key(
-              'sequence_step_relax_field',
-            ),
+            key: const Key('sequence_step_relax_field'),
             controller: _relaxController,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
@@ -432,26 +376,17 @@ class _WorkoutSequenceStepDialogState
           ),
         ];
       case WorkoutSequenceStepType.sequenceBreak:
-        return const [
-          Text('Break exits the active Counter block.'),
-        ];
+        return const [Text('Break exits the active Reps - Counter block.')];
       case WorkoutSequenceStepType.end:
-        return const [
-          Text('End terminates the sequence.'),
-        ];
+        return const [Text('End terminates the sequence.')];
     }
   }
 
   void _save() {
     final guideText = _guideController.text.trim();
-    final count =
-        int.tryParse(_countController.text.trim());
-    final repetitionCount = int.tryParse(
-      _counterController.text.trim(),
-    );
-    final relaxDuration = int.tryParse(
-      _relaxController.text.trim(),
-    );
+    final count = int.tryParse(_countController.text.trim());
+    final repetitionCount = int.tryParse(_counterController.text.trim());
+    final relaxDuration = int.tryParse(_relaxController.text.trim());
 
     WorkoutSequenceStep? step;
     String? errorText;
@@ -476,22 +411,16 @@ class _WorkoutSequenceStepDialogState
         break;
       case WorkoutSequenceStepType.counter:
         if (repetitionCount == null || repetitionCount <= 0) {
-          errorText =
-              'Counter repetition count must be greater than zero.';
+          errorText = 'Reps must be greater than zero.';
         } else {
-          step = WorkoutSequenceStep.counter(
-            repetitionCount: repetitionCount,
-          );
+          step = WorkoutSequenceStep.counter(repetitionCount: repetitionCount);
         }
         break;
       case WorkoutSequenceStepType.relax:
         if (relaxDuration == null || relaxDuration < 0) {
-          errorText =
-              'Relax duration must be zero or greater.';
+          errorText = 'Relax duration must be zero or greater.';
         } else {
-          step = WorkoutSequenceStep.relax(
-            durationInSeconds: relaxDuration,
-          );
+          step = WorkoutSequenceStep.relax(durationInSeconds: relaxDuration);
         }
         break;
       case WorkoutSequenceStepType.sequenceBreak:
@@ -519,7 +448,7 @@ class _WorkoutSequenceStepDialogState
       case WorkoutSequenceStepType.count:
         return 'Count';
       case WorkoutSequenceStepType.counter:
-        return 'Counter';
+        return 'Reps - Counter';
       case WorkoutSequenceStepType.relax:
         return 'Relax';
       case WorkoutSequenceStepType.sequenceBreak:
@@ -553,23 +482,13 @@ class _SequenceStepTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).dividerColor,
-        ),
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 8,
-        ),
-        leading: CircleAvatar(
-          child: Text('${index + 1}'),
-        ),
-        title: Text(
-          _summaryText(),
-          key: Key('sequence_step_summary_$index'),
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        leading: CircleAvatar(child: Text('${index + 1}')),
+        title: Text(_summaryText(), key: Key('sequence_step_summary_$index')),
         subtitle: Text('${index + 1} of $stepCount'),
         trailing: Wrap(
           spacing: 4,
@@ -607,7 +526,7 @@ class _SequenceStepTile extends StatelessWidget {
       case WorkoutSequenceStepType.count:
         return 'Count - ${step.count} ${step.countDirection?.name ?? WorkoutCountDirection.ascending.name}';
       case WorkoutSequenceStepType.counter:
-        return 'Counter - ${step.repetitionCount} repetitions';
+        return 'Reps - Counter - Reps: ${step.repetitionCount}';
       case WorkoutSequenceStepType.relax:
         return 'Relax - ${step.durationInSeconds} sec';
       case WorkoutSequenceStepType.sequenceBreak:

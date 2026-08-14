@@ -20,7 +20,6 @@ class WorkoutExerciseForm extends StatelessWidget {
     required this.restSeconds,
     required this.targetType,
     required this.targetValueController,
-    required this.sessionRepetitionsController,
     required this.notesController,
     required this.sequenceDefinition,
     required this.onSetsChanged,
@@ -40,8 +39,6 @@ class WorkoutExerciseForm extends StatelessWidget {
   final WorkoutTargetType targetType;
 
   final TextEditingController targetValueController;
-
-  final TextEditingController sessionRepetitionsController;
 
   final TextEditingController notesController;
 
@@ -69,50 +66,23 @@ class WorkoutExerciseForm extends StatelessWidget {
 
         const SizedBox(height: 16),
 
-        SetsSelector(
-          value: sets,
-          onChanged: onSetsChanged,
-        ),
+        SetsSelector(value: sets, onChanged: onSetsChanged),
 
         const SizedBox(height: 16),
 
-        TargetTypeSelector(
-          value: targetType,
-          onChanged: onTargetTypeChanged,
-        ),
+        TargetTypeSelector(value: targetType, onChanged: onTargetTypeChanged),
 
-        const SizedBox(height: 16),
-
-        TargetValueEditor(
-          targetType: targetType,
-          controller: targetValueController,
-        ),
-
-        const SizedBox(height: 16),
-
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: sessionRepetitionsController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Session Rounds',
-                hintText: 'e.g. 1',
-                border: OutlineInputBorder(),
-                helperText:
-                    'Number of complete exercise executions in this workout.',
-              ),
-            ),
+        if (targetType != WorkoutTargetType.repetitions) ...[
+          const SizedBox(height: 16),
+          TargetValueEditor(
+            targetType: targetType,
+            controller: targetValueController,
           ),
-        ),
+        ],
 
         const SizedBox(height: 16),
 
-        RestSelector(
-          value: restSeconds,
-          onChanged: onRestChanged,
-        ),
+        RestSelector(value: restSeconds, onChanged: onRestChanged),
 
         const SizedBox(height: 16),
 
@@ -124,9 +94,7 @@ class WorkoutExerciseForm extends StatelessWidget {
 
         const SizedBox(height: 16),
 
-        NotesEditor(
-          controller: notesController,
-        ),
+        NotesEditor(controller: notesController),
       ],
     );
   }

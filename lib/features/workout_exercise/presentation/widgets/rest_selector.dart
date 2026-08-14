@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 
 class RestSelector extends StatelessWidget {
-  const RestSelector({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
+  const RestSelector({super.key, required this.value, required this.onChanged});
 
   final int value;
   final ValueChanged<int> onChanged;
 
   static const List<int> _restOptions = <int>[
+    5,
+    10,
     15,
     30,
     45,
@@ -18,7 +16,7 @@ class RestSelector extends StatelessWidget {
     90,
     120,
     180,
-        300,
+    300,
   ];
 
   @override
@@ -36,9 +34,7 @@ class RestSelector extends StatelessWidget {
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(
               initialValue: value,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(border: OutlineInputBorder()),
               items: _restOptions
                   .map(
                     (seconds) => DropdownMenuItem<int>(

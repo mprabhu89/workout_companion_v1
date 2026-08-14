@@ -1,12 +1,18 @@
-/* import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
-class IsarDatabase {
-  IsarDatabase._();
+import 'isar_models.dart';
 
-  static Isar? _instance;
+final class IsarDatabase {
+  IsarDatabase._(this.isar);
 
-  static Future<Isar> instance() async {
+  static const String defaultName = 'workout_companion_v1';
+
+  static IsarDatabase? _instance;
+
+  final Isar isar;
+
+  static Future<IsarDatabase> initialize() async {
     if (_instance != null) {
       return _instance!;
     }
@@ -14,20 +20,51 @@ class IsarDatabase {
     final directory =
         await getApplicationDocumentsDirectory();
 
-    _instance = await Isar.open(
-      [
-        // Schemas will be added here
-      ],
+    final isar = await Isar.open(
+      _schemas,
       directory: directory.path,
-      inspector: true,
+      name: defaultName,
+      inspector: false,
     );
 
+    _instance = IsarDatabase._(isar);
     return _instance!;
   }
 
-  static Future<void> close() async {
-    await _instance?.close();
-    _instance = null;
+  static Future<IsarDatabase> instance() async {
+    return _instance ?? initialize();
   }
+
+  static Future<IsarDatabase> open({
+    required String directoryPath,
+    required String name,
+  }) async {
+    final isar = await Isar.open(
+      _schemas,
+      directory: directoryPath,
+      name: name,
+      inspector: false,
+    );
+
+    return IsarDatabase._(isar);
+  }
+
+  Future<void> close() async {
+    await isar.close();
+  }
+
+  static Future<void> closeInstance() async {
+    final database = _instance;
+    _instance = null;
+    await database?.close();
+  }
+
+  static const List<CollectionSchema<dynamic>> _schemas = [
+    IsarExerciseRecordSchema,
+    IsarWorkoutPlanRecordSchema,
+    IsarWorkoutDayRecordSchema,
+    IsarWorkoutGroupRecordSchema,
+    IsarWorkoutExerciseRecordSchema,
+    IsarCompletedWorkoutSessionRecordSchema,
+  ];
 }
-*/

@@ -8,117 +8,156 @@ import 'package:workout_companion_v1/features/workout_exercise/presentation/widg
 
 void main() {
   group('WorkoutSequenceEditor', () {
-    testWidgets(
-      'can represent the bicep curl reference sequence',
-      (tester) async {
-        await tester.pumpWidget(
-          _testApp(
-            WorkoutSequenceEditor(
-              workoutExercise: _workoutExercise(),
-              sequenceDefinition: _bicepCurlSequence(),
-              onChanged: (_) {},
+    testWidgets('can represent the bicep curl reference sequence', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _testApp(
+          WorkoutSequenceEditor(
+            workoutExercise: _workoutExercise(),
+            sequenceDefinition: _bicepCurlSequence(),
+            onChanged: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text('Guide - One stop bicep curl'), findsOneWidget);
+      expect(
+        find.text('Guide - Be in position. Hold the dumbbell in position.'),
+        findsOneWidget,
+      );
+      expect(find.text('Guide - Workout begins in 5 seconds'), findsOneWidget);
+      expect(find.text('Count - 5 descending'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Reps - Counter - Reps: 10'),
+        300,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reps - Counter - Reps: 10'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Relax - 2 sec'),
+        300,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Relax - 2 sec'), findsOneWidget);
+      expect(find.text('Break'), findsOneWidget);
+      expect(find.text('End'), findsOneWidget);
+    });
+
+    testWidgets('preserves the configured step order', (tester) async {
+      await tester.pumpWidget(
+        _testApp(
+          WorkoutSequenceEditor(
+            workoutExercise: _workoutExercise(),
+            sequenceDefinition: WorkoutSequenceDefinition(
+              steps: [
+                WorkoutSequenceStep.guide(text: 'First'),
+                WorkoutSequenceStep.count(
+                  count: 2,
+                  direction: WorkoutCountDirection.ascending,
+                ),
+                WorkoutSequenceStep.relax(durationInSeconds: 3),
+              ],
             ),
+            onChanged: (_) {},
           ),
-        );
+        ),
+      );
 
-        expect(
-          find.text('Guide - One stop bicep curl'),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            'Guide - Be in position. Hold the dumbbell in position.',
+      final firstY = tester.getTopLeft(find.text('Guide - First')).dy;
+      final secondY = tester.getTopLeft(find.text('Count - 2 ascending')).dy;
+      final thirdY = tester.getTopLeft(find.text('Relax - 3 sec')).dy;
+
+      expect(firstY, lessThan(secondY));
+      expect(secondY, lessThan(thirdY));
+    });
+
+    testWidgets('invalid guide values cannot be saved from the editor', (
+      tester,
+    ) async {
+      WorkoutSequenceDefinition? savedSequence;
+
+      await tester.pumpWidget(
+        _testApp(
+          WorkoutSequenceEditor(
+            workoutExercise: _workoutExercise(),
+            sequenceDefinition: null,
+            onChanged: (value) {
+              savedSequence = value;
+            },
           ),
-          findsOneWidget,
-        );
-        expect(
-          find.text('Guide - Workout begins in 5 seconds'),
-          findsOneWidget,
-        );
-        expect(
-          find.text('Count - 5 descending'),
-          findsOneWidget,
-        );
+        ),
+      );
 
-        await tester.scrollUntilVisible(
-          find.text(
-            'Counter - 10 repetitions',
+      await tester.tap(
+        find.byKey(const Key('sequence_editor_add_step_button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('sequence_step_save_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Guide text is required.'), findsOneWidget);
+      expect(savedSequence, isNull);
+    });
+
+    testWidgets('invalid counter values cannot be saved from the editor', (
+      tester,
+    ) async {
+      WorkoutSequenceDefinition? savedSequence;
+
+      await tester.pumpWidget(
+        _testApp(
+          WorkoutSequenceEditor(
+            workoutExercise: _workoutExercise(),
+            sequenceDefinition: null,
+            onChanged: (value) {
+              savedSequence = value;
+            },
           ),
-          300,
-          scrollable: find.byType(Scrollable),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
 
-        expect(
-          find.text(
-            'Counter - 10 repetitions',
-          ),
-          findsOneWidget,
-        );
+      await tester.tap(
+        find.byKey(const Key('sequence_editor_add_step_button')),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.scrollUntilVisible(
-          find.text('Relax - 2 sec'),
-          300,
-          scrollable: find.byType(Scrollable),
-        );
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('sequence_step_type_dropdown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reps - Counter').last);
+      await tester.pumpAndSettle();
 
-        expect(find.text('Relax - 2 sec'), findsOneWidget);
-        expect(find.text('Break'), findsOneWidget);
-        expect(find.text('End'), findsOneWidget);
-      },
-    );
+      await tester.enterText(
+        find.byKey(const Key('sequence_step_counter_field')),
+        '0',
+      );
+      await tester.tap(find.byKey(const Key('sequence_step_save_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reps must be greater than zero.'), findsOneWidget);
+      expect(savedSequence, isNull);
+    });
 
     testWidgets(
-      'preserves the configured step order',
-      (tester) async {
-        await tester.pumpWidget(
-          _testApp(
-            WorkoutSequenceEditor(
-              workoutExercise: _workoutExercise(),
-              sequenceDefinition: WorkoutSequenceDefinition(
-                steps: [
-                  WorkoutSequenceStep.guide(text: 'First'),
-                  WorkoutSequenceStep.count(
-                    count: 2,
-                    direction:
-                        WorkoutCountDirection.ascending,
-                  ),
-                  WorkoutSequenceStep.relax(
-                    durationInSeconds: 3,
-                  ),
-                ],
-              ),
-              onChanged: (_) {},
-            ),
-          ),
-        );
-
-        final firstY = tester
-            .getTopLeft(find.text('Guide - First'))
-            .dy;
-        final secondY = tester
-            .getTopLeft(find.text('Count - 2 ascending'))
-            .dy;
-        final thirdY = tester
-            .getTopLeft(find.text('Relax - 3 sec'))
-            .dy;
-
-        expect(firstY, lessThan(secondY));
-        expect(secondY, lessThan(thirdY));
-      },
-    );
-
-    testWidgets(
-      'invalid guide values cannot be saved from the editor',
+      'edits a Reps - Counter without changing its internal step type',
       (tester) async {
         WorkoutSequenceDefinition? savedSequence;
+        final sequenceDefinition = WorkoutSequenceDefinition(
+          steps: [WorkoutSequenceStep.counter(repetitionCount: 10)],
+        );
 
         await tester.pumpWidget(
           _testApp(
             WorkoutSequenceEditor(
               workoutExercise: _workoutExercise(),
-              sequenceDefinition: null,
+              sequenceDefinition: sequenceDefinition,
               onChanged: (value) {
                 savedSequence = value;
               },
@@ -126,113 +165,54 @@ void main() {
           ),
         );
 
-        await tester.tap(
-          find.byKey(
-            const Key('sequence_editor_add_step_button'),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        await tester.tap(
-          find.byKey(
-            const Key('sequence_step_save_button'),
-          ),
-        );
-        await tester.pumpAndSettle();
-
         expect(
-          find.text('Guide text is required.'),
-          findsOneWidget,
+          sequenceDefinition.steps.single.type,
+          WorkoutSequenceStepType.counter,
         );
-        expect(savedSequence, isNull);
-      },
-    );
+        expect(find.text('Reps - Counter - Reps: 10'), findsOneWidget);
 
-    testWidgets(
-      'invalid counter values cannot be saved from the editor',
-      (tester) async {
-        WorkoutSequenceDefinition? savedSequence;
-
-        await tester.pumpWidget(
-          _testApp(
-            WorkoutSequenceEditor(
-              workoutExercise: _workoutExercise(),
-              sequenceDefinition: null,
-              onChanged: (value) {
-                savedSequence = value;
-              },
-            ),
-          ),
-        );
-
-        await tester.tap(
-          find.byKey(
-            const Key('sequence_editor_add_step_button'),
-          ),
-        );
+        await tester.tap(find.byTooltip('Edit Step'));
         await tester.pumpAndSettle();
-
-        await tester.tap(
-          find.byKey(
-            const Key('sequence_step_type_dropdown'),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Counter').last);
-        await tester.pumpAndSettle();
+        expect(find.text('Reps - Counter'), findsOneWidget);
+        expect(find.text('Reps'), findsOneWidget);
 
         await tester.enterText(
-          find.byKey(
-            const Key('sequence_step_counter_field'),
-          ),
-          '0',
+          find.byKey(const Key('sequence_step_counter_field')),
+          '12',
         );
-        await tester.tap(
-          find.byKey(
-            const Key('sequence_step_save_button'),
-          ),
-        );
+        await tester.tap(find.byKey(const Key('sequence_step_save_button')));
         await tester.pumpAndSettle();
 
+        expect(savedSequence, isNotNull);
         expect(
-          find.text(
-            'Counter repetition count must be greater than zero.',
-          ),
-          findsOneWidget,
+          savedSequence!.steps.single.type,
+          WorkoutSequenceStepType.counter,
         );
-        expect(savedSequence, isNull);
+        expect(savedSequence!.steps.single.repetitionCount, 12);
       },
     );
 
-    test(
-      'save validation rejects invalid counter break structure',
-      () {
-        final workoutExercise = _workoutExercise();
-        final message =
-            validateWorkoutSequenceDefinitionForEditor(
-          workoutExercise: workoutExercise,
-          sequenceDefinition: WorkoutSequenceDefinition(
-            steps: [
-              WorkoutSequenceStep.counter(repetitionCount: 2),
-              WorkoutSequenceStep.guide(text: 'Up'),
-              WorkoutSequenceStep.end(),
-            ],
-          ),
-        );
+    test('save validation rejects invalid counter break structure', () {
+      final workoutExercise = _workoutExercise();
+      final message = validateWorkoutSequenceDefinitionForEditor(
+        workoutExercise: workoutExercise,
+        sequenceDefinition: WorkoutSequenceDefinition(
+          steps: [
+            WorkoutSequenceStep.counter(repetitionCount: 2),
+            WorkoutSequenceStep.guide(text: 'Up'),
+            WorkoutSequenceStep.end(),
+          ],
+        ),
+      );
 
-        expect(message, isNotNull);
-        expect(message, contains('Counter'));
-      },
-    );
+      expect(message, isNotNull);
+      expect(message, contains('Counter'));
+    });
   });
 }
 
 Widget _testApp(Widget child) {
-  return MaterialApp(
-    home: Scaffold(
-      body: child,
-    ),
-  );
+  return MaterialApp(home: Scaffold(body: child));
 }
 
 WorkoutExercise _workoutExercise() {
@@ -255,9 +235,7 @@ WorkoutSequenceDefinition _bicepCurlSequence() {
       WorkoutSequenceStep.guide(
         text: 'Be in position. Hold the dumbbell in position.',
       ),
-      WorkoutSequenceStep.guide(
-        text: 'Workout begins in 5 seconds',
-      ),
+      WorkoutSequenceStep.guide(text: 'Workout begins in 5 seconds'),
       WorkoutSequenceStep.count(
         count: 5,
         direction: WorkoutCountDirection.descending,
