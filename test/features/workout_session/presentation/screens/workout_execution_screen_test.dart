@@ -16,14 +16,10 @@ void main() {
     (tester) async {
       final controller = WorkoutSessionController(
         session: WorkoutSession(
-          workoutExercises: [
-            _exercise(sessionRepetitions: 3),
-          ],
+          workoutExercises: [_exercise(sessionRepetitions: 3)],
           currentExerciseRound: 2,
         ),
-        voiceCoach: VoiceCoachService(
-          speechEngine: _FakeSpeechEngine(),
-        ),
+        voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
       );
 
       await tester.pumpWidget(
@@ -31,11 +27,8 @@ void main() {
           home: WorkoutExecutionScreen(
             session: controller.session,
             controller: controller,
-            voiceCoach: VoiceCoachService(
-              speechEngine: _FakeSpeechEngine(),
-            ),
-            workoutHistoryRepository:
-                _FakeWorkoutHistoryRepository(),
+            voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+            workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
           ),
         ),
       );
@@ -50,14 +43,10 @@ void main() {
     'history repository receives exactly one completed workout session',
     (tester) async {
       final historyRepository = _FakeWorkoutHistoryRepository();
-      final voiceCoach = VoiceCoachService(
-        speechEngine: _FakeSpeechEngine(),
-      );
+      final voiceCoach = VoiceCoachService(speechEngine: _FakeSpeechEngine());
       final controller = WorkoutSessionController(
         session: WorkoutSession(
-          workoutExercises: [
-            _exercise(sessionRepetitions: 3),
-          ],
+          workoutExercises: [_exercise(sessionRepetitions: 3)],
           workoutPlanId: 'plan-1',
           workoutPlanName: 'Plan',
           workoutDayId: 'day-1',
@@ -86,24 +75,71 @@ void main() {
       await tester.pump();
 
       expect(historyRepository.savedSessions, hasLength(1));
-      expect(
-        historyRepository.savedSessions.single.completedExercises,
-        1,
-      );
-      expect(
-        historyRepository.savedSessions.single.totalExercises,
-        1,
-      );
+      expect(historyRepository.savedSessions.single.completedExercises, 1);
+      expect(historyRepository.savedSessions.single.totalExercises, 1);
 
       await tester.pump();
       expect(historyRepository.savedSessions, hasLength(1));
     },
   );
+
+  testWidgets('active workout requires confirmation before leaving', (
+    tester,
+  ) async {
+    final controller = WorkoutSessionController(
+      session: WorkoutSession(
+        workoutExercises: [_exercise()],
+        status: WorkoutSessionStatus.exercising,
+      ),
+      voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => WorkoutExecutionScreen(
+                      session: controller.session,
+                      controller: controller,
+                      voiceCoach: VoiceCoachService(
+                        speechEngine: _FakeSpeechEngine(),
+                      ),
+                      workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+                    ),
+                  ),
+                ),
+                child: const Text('Open Workout'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open Workout'));
+    await tester.pumpAndSettle();
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Leave workout?'), findsOneWidget);
+
+    await tester.tap(find.text('Keep Workout'));
+    await tester.pumpAndSettle();
+    expect(find.text('Workout'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Leave Workout'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open Workout'), findsOneWidget);
+  });
 }
 
-WorkoutExercise _exercise({
-  int sessionRepetitions = 1,
-}) {
+WorkoutExercise _exercise({int sessionRepetitions = 1}) {
   return WorkoutExercise(
     id: 'workout-exercise-1',
     workoutGroupId: 'group-1',
@@ -140,36 +176,28 @@ class _FakeSpeechEngine implements SpeechEngine {
   Future<void> stop() async {}
 }
 
-class _FakeWorkoutHistoryRepository
-    implements WorkoutHistoryRepository {
+class _FakeWorkoutHistoryRepository implements WorkoutHistoryRepository {
   final List<CompletedWorkoutSession> savedSessions = [];
 
   @override
   Future<void> deleteSession(String sessionId) async {}
 
   @override
-  Future<List<CompletedWorkoutSession>>
-      getCompletedSessions() async {
+  Future<List<CompletedWorkoutSession>> getCompletedSessions() async {
     return List.unmodifiable(savedSessions);
   }
 
   @override
-  Future<CompletedWorkoutSession?> getSessionById(
-    String sessionId,
-  ) async {
+  Future<CompletedWorkoutSession?> getSessionById(String sessionId) async {
     try {
-      return savedSessions.firstWhere(
-        (session) => session.id == sessionId,
-      );
+      return savedSessions.firstWhere((session) => session.id == sessionId);
     } catch (_) {
       return null;
     }
   }
 
   @override
-  Future<void> saveSession(
-    CompletedWorkoutSession session,
-  ) async {
+  Future<void> saveSession(CompletedWorkoutSession session) async {
     savedSessions.add(session);
   }
 }

@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../workout_history/domain/entities/completed_workout_session.dart';
 
 class WorkoutCompletionScreen extends StatelessWidget {
-  const WorkoutCompletionScreen({
-    super.key,
-    required this.session,
-  });
+  const WorkoutCompletionScreen({super.key, required this.session});
 
   final CompletedWorkoutSession session;
 
@@ -33,7 +30,8 @@ class WorkoutCompletionScreen extends StatelessWidget {
             const SizedBox(height: 32),
             _SummaryRow(
               label: 'Exercises completed',
-              value: '${session.completedExercises} of ${session.totalExercises}',
+              value:
+                  '${session.completedExercises} of ${session.totalExercises}',
             ),
             _SummaryRow(
               label: 'Duration',
@@ -42,7 +40,7 @@ class WorkoutCompletionScreen extends StatelessWidget {
             const Spacer(),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Finish'),
+              child: const Text('Back to Day Overview'),
             ),
           ],
         ),

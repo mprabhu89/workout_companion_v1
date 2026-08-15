@@ -49,10 +49,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Workout Companion'),
         actions: [
-          IconButton(
-            onPressed: () => context.push('/developer'),
-            tooltip: 'Developer tools',
-            icon: const Icon(Icons.developer_mode_outlined),
+          PopupMenuButton<_DashboardMenuAction>(
+            tooltip: 'More options',
+            onSelected: (action) {
+              if (action == _DashboardMenuAction.developerTools) {
+                context.push('/developer');
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: _DashboardMenuAction.developerTools,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.developer_mode_outlined),
+                  title: Text('Developer tools'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -112,6 +125,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
+
+enum _DashboardMenuAction { developerTools }
 
 class _DashboardLinkCard extends StatelessWidget {
   const _DashboardLinkCard({

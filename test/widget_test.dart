@@ -17,8 +17,39 @@ void main() {
     expect(find.text('Start Workout'), findsOneWidget);
     expect(find.text('Workout Plans'), findsOneWidget);
     expect(find.text('Workout History'), findsOneWidget);
+    expect(find.text('Progress'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.byTooltip('More options'), findsOneWidget);
     expect(find.text('No workout history yet'), findsOneWidget);
   });
+
+  testWidgets(
+    'Dashboard opens Workout History and keeps developer tools secondary',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const WorkoutCompanionApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Workout History'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No workout history yet'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More options'));
+      await tester.pumpAndSettle();
+      expect(find.text('Developer tools'), findsOneWidget);
+
+      await tester.tap(find.text('Developer tools'));
+      await tester.pumpAndSettle();
+      expect(find.text('Development Menu'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Dashboard'), findsOneWidget);
+    },
+  );
 
   testWidgets('Dashboard opens Workout Plans', (WidgetTester tester) async {
     await tester.pumpWidget(const WorkoutCompanionApp());
