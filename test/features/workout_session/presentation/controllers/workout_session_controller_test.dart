@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:workout_companion_v1/core/services/speech_engine.dart';
+import 'package:workout_companion_v1/features/settings/domain/entities/voice_preferences.dart';
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_exercise.dart';
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_sequence_definition.dart';
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_sequence_step.dart';
@@ -10,6 +11,7 @@ import 'package:workout_companion_v1/features/workout_session/domain/entities/wo
 import 'package:workout_companion_v1/features/workout_session/domain/entities/workout_session.dart';
 import 'package:workout_companion_v1/features/workout_session/domain/services/voice_coach_service.dart';
 import 'package:workout_companion_v1/features/workout_session/domain/services/workout_timer_service.dart';
+import 'package:workout_companion_v1/features/workout_session/domain/services/workout_sequence_executor.dart';
 import 'package:workout_companion_v1/features/workout_session/presentation/controllers/workout_session_controller.dart';
 
 void main() {
@@ -91,6 +93,242 @@ void main() {
       expect(
         speechEngine.spokenMessages,
         ['1', '2', 'End of exercise.'],
+      );
+    });
+
+    test('natural Count remains speech-paced and does not start a timer', () async {
+      final speechEngine = _FakeSpeechEngine();
+      final timerService = _FakeWorkoutTimerService();
+      final controller = _controller(
+        speechEngine: speechEngine,
+        timerService: timerService,
+        workoutExercise: _sequenceExercise(
+          sequenceDefinition: WorkoutSequenceDefinition(
+            steps: [
+              WorkoutSequenceStep.count(
+                count: 3,
+                direction: WorkoutCountDirection.ascending,
+              ),
+              WorkoutSequenceStep.end(),
+            ],
+          ),
+        ),
+      );
+
+      controller.startCountdown();
+      await _flushAsyncWork();
+
+      expect(speechEngine.spokenMessages, ['1', '2', '3', 'End of exercise.']);
+      expect(timerService.startCount, 0);
+      expect(controller.session.status, WorkoutSessionStatus.completed);
+    });
+
+    test('Count Seconds ascending speaks immediately then once per timer tick', () async {
+      final speechEngine = _FakeSpeechEngine();
+      final timerService = _FakeWorkoutTimerService();
+      final controller = _controller(
+        speechEngine: speechEngine,
+        timerService: timerService,
+        workoutExercise: _sequenceExercise(
+          sequenceDefinition: WorkoutSequenceDefinition(
+            steps: [
+              WorkoutSequenceStep.countSeconds(
+                count: 3,
+                direction: WorkoutCountDirection.ascending,
+              ),
+              WorkoutSequenceStep.end(),
+            ],
+          ),
+        ),
+      );
+
+      controller.startCountdown();
+      await _flushAsyncWork();
+      expect(speechEngine.spokenMessages, ['1']);
+      expect(timerService.startCount, 1);
+      expect(controller.activeSequenceEvent?.type, WorkoutSequenceEventType.countSeconds);
+
+      timerService.tick();
+      await _flushAsyncWork();
+      expect(speechEngine.spokenMessages, ['1', '2']);
+      expect(timerService.startCount, 2);
+
+      timerService.tick();
+      await _flushAsyncWork();
+      expect(speechEngine.spokenMessages, ['1', '2', '3']);
+      expect(timerService.startCount, 3);
+
+      timerService.tick();
+      await _flushAsyncWork();
+      expect(
+        speechEngine.spokenMessages,
+        ['1', '2', '3', 'End of exercise.'],
+      );
+      expect(controller.session.status, WorkoutSessionStatus.completed);
+    });
+
+    test('Count Seconds descending preserves its configured direction', () async {
+      final speechEngine = _FakeSpeechEngine();
+      final timerService = _FakeWorkoutTimerService();
+      final controller = _controller(
+        speechEngine: speechEngine,
+        timerService: timerService,
+        workoutExercise: _sequenceExercise(
+          sequenceDefinition: WorkoutSequenceDefinition(
+            steps: [
+              WorkoutSequenceStep.countSeconds(
+                count: 3,
+                direction: WorkoutCountDirection.descending,
+              ),
+              WorkoutSequenceStep.end(),
+            ],
+          ),
+        ),
+      );
+
+      controller.startCountdown();
+      await _flushAsyncWork();
+      timerService.tick();
+      await _flushAsyncWork();
+      timerService.tick();
+      await _flushAsyncWork();
+      timerService.tick();
+      await _flushAsyncWork();
+
+      expect(
+        speechEngine.spokenMessages,
+        ['3', '2', '1', 'End of exercise.'],
+      );
+      expect(controller.session.status, WorkoutSessionStatus.completed);
+    });
+
+    test('Count Seconds cadence ignores slow speech and Voice Pace', () async {
+      for (final speechRate in [0.2, 0.8]) {
+        final speechEngine = _FakeSpeechEngine(blockSpeaks: true);
+        final timerService = _FakeWorkoutTimerService();
+        final voiceCoach = VoiceCoachService(speechEngine: speechEngine);
+        await voiceCoach.applyPreferences(
+          VoicePreferences(speechRate: speechRate),
+        );
+        final controller = _controller(
+          timerService: timerService,
+          voiceCoach: voiceCoach,
+          workoutExercise: _sequenceExercise(
+            sequenceDefinition: WorkoutSequenceDefinition(
+              steps: [
+                WorkoutSequenceStep.countSeconds(
+                  count: 2,
+                  direction: WorkoutCountDirection.ascending,
+                ),
+                WorkoutSequenceStep.end(),
+              ],
+            ),
+          ),
+        );
+
+        controller.startCountdown();
+        await _flushAsyncWork();
+        expect(speechEngine.spokenMessages, ['1']);
+
+        timerService.tick();
+        await _flushAsyncWork();
+        expect(speechEngine.spokenMessages, ['1', '2']);
+        expect(timerService.startCount, 2);
+      }
+    });
+
+    test('Count Seconds remains timed when voice is disabled or speech fails', () async {
+      final disabledTimer = _FakeWorkoutTimerService();
+      final disabledSpeech = _FakeSpeechEngine();
+      final disabledController = _controller(
+        timerService: disabledTimer,
+        voiceCoach: VoiceCoachService(
+          speechEngine: disabledSpeech,
+          isEnabled: false,
+        ),
+        workoutExercise: _countSecondsExercise(),
+      );
+      final failedTimer = _FakeWorkoutTimerService();
+      final failedController = _controller(
+        timerService: failedTimer,
+        speechEngine: _FakeSpeechEngine(throwOnSpeak: true),
+        workoutExercise: _countSecondsExercise(),
+      );
+
+      disabledController.startCountdown();
+      failedController.startCountdown();
+      await _flushAsyncWork();
+      disabledTimer.tick();
+      failedTimer.tick();
+      await _flushAsyncWork();
+      disabledTimer.tick();
+      failedTimer.tick();
+      await _flushAsyncWork();
+
+      expect(disabledSpeech.spokenMessages, isEmpty);
+      expect(disabledController.session.status, WorkoutSessionStatus.completed);
+      expect(failedController.session.status, WorkoutSessionStatus.completed);
+    });
+
+    test('pause and resume exclude paused time from Count Seconds', () async {
+      final speechEngine = _FakeSpeechEngine();
+      final timerService = _FakeWorkoutTimerService();
+      final controller = _controller(
+        speechEngine: speechEngine,
+        timerService: timerService,
+        workoutExercise: _countSecondsExercise(),
+      );
+
+      controller.startCountdown();
+      await _flushAsyncWork();
+      expect(speechEngine.spokenMessages, ['1']);
+
+      controller.pause();
+      timerService.tick();
+      await _flushAsyncWork();
+      expect(speechEngine.spokenMessages, ['1']);
+
+      controller.resume();
+      timerService.tick();
+      await _flushAsyncWork();
+      expect(speechEngine.spokenMessages, ['1', '2']);
+
+      timerService.tick();
+      await _flushAsyncWork();
+      expect(controller.session.status, WorkoutSessionStatus.completed);
+    });
+
+    test('Count Seconds repeats inside Counter without changing its repetition count', () async {
+      final events = const WorkoutSequenceExecutor().execute(
+        workoutExercise: _sequenceExercise(
+          sequenceDefinition: WorkoutSequenceDefinition(
+            steps: const [],
+          ),
+        ),
+        sequenceDefinition: WorkoutSequenceDefinition(
+          steps: [
+            WorkoutSequenceStep.counter(repetitionCount: 2),
+            WorkoutSequenceStep.countSeconds(
+              count: 2,
+              direction: WorkoutCountDirection.descending,
+            ),
+            WorkoutSequenceStep.sequenceBreak(),
+            WorkoutSequenceStep.end(),
+          ],
+        ),
+      );
+
+      expect(
+        events
+            .where((event) => event.type == WorkoutSequenceEventType.countSeconds)
+            .map((event) => event.countValue),
+        [2, 1, 2, 1],
+      );
+      expect(
+        events
+            .where((event) => event.type == WorkoutSequenceEventType.countSeconds)
+            .map((event) => event.iterationNumber),
+        [1, 1, 2, 2],
       );
     });
 
@@ -999,7 +1237,8 @@ void main() {
 }
 
 WorkoutSessionController _controller({
-  required _FakeSpeechEngine speechEngine,
+  _FakeSpeechEngine? speechEngine,
+  VoiceCoachService? voiceCoach,
   WorkoutTimerService? timerService,
   required WorkoutExercise workoutExercise,
 }) {
@@ -1007,9 +1246,8 @@ WorkoutSessionController _controller({
     session: WorkoutSession(
       workoutExercises: [workoutExercise],
     ),
-    voiceCoach: VoiceCoachService(
-      speechEngine: speechEngine,
-    ),
+    voiceCoach:
+        voiceCoach ?? VoiceCoachService(speechEngine: speechEngine ?? _FakeSpeechEngine()),
     timerService: timerService,
   );
 }
@@ -1030,6 +1268,20 @@ WorkoutExercise _sequenceExercise({
     restInSeconds: 0,
     sessionRepetitions: sessionRepetitions,
     sequenceDefinition: sequenceDefinition,
+  );
+}
+
+WorkoutExercise _countSecondsExercise() {
+  return _sequenceExercise(
+    sequenceDefinition: WorkoutSequenceDefinition(
+      steps: [
+        WorkoutSequenceStep.countSeconds(
+          count: 2,
+          direction: WorkoutCountDirection.ascending,
+        ),
+        WorkoutSequenceStep.end(),
+      ],
+    ),
   );
 }
 
@@ -1130,6 +1382,7 @@ class _FakeWorkoutTimerService extends WorkoutTimerService {
   bool _isRunning = false;
   bool _isPaused = false;
   int _remainingSeconds = 0;
+  int startCount = 0;
   TimerTickCallback? _onTick;
   TimerFinishedCallback? _onFinished;
 
@@ -1148,6 +1401,7 @@ class _FakeWorkoutTimerService extends WorkoutTimerService {
     required TimerTickCallback onTick,
     required TimerFinishedCallback onFinished,
   }) {
+    startCount += 1;
     _isRunning = true;
     _isPaused = false;
     _remainingSeconds = seconds;

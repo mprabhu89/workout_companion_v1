@@ -145,6 +145,47 @@ void main() {
       expect(savedSequence, isNull);
     });
 
+    testWidgets('adds Count Seconds with count and direction controls', (
+      tester,
+    ) async {
+      WorkoutSequenceDefinition? savedSequence;
+
+      await tester.pumpWidget(
+        _testApp(
+          WorkoutSequenceEditor(
+            workoutExercise: _workoutExercise(),
+            sequenceDefinition: null,
+            onChanged: (value) {
+              savedSequence = value;
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('sequence_editor_add_step_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('sequence_step_type_dropdown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Count Seconds').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('sequence_step_count_field')),
+        '3',
+      );
+      await tester.tap(find.byKey(const Key('sequence_step_save_button')));
+      await tester.pumpAndSettle();
+
+      expect(savedSequence, isNotNull);
+      expect(savedSequence!.steps.single.type, WorkoutSequenceStepType.countSeconds);
+      expect(savedSequence!.steps.single.count, 3);
+      expect(
+        savedSequence!.steps.single.countDirection,
+        WorkoutCountDirection.ascending,
+      );
+    });
+
     testWidgets(
       'edits a Reps - Counter without changing its internal step type',
       (tester) async {

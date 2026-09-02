@@ -1,6 +1,7 @@
 enum WorkoutSequenceEventType {
   guide,
   count,
+  countSeconds,
   relax,
   end,
 }
@@ -41,6 +42,19 @@ class WorkoutSequenceEvent {
     );
   }
 
+  factory WorkoutSequenceEvent.countSeconds({
+    required int value,
+    int? iterationNumber,
+    int? iterationTotal,
+  }) {
+    return WorkoutSequenceEvent._(
+      type: WorkoutSequenceEventType.countSeconds,
+      countValue: value,
+      iterationNumber: iterationNumber,
+      iterationTotal: iterationTotal,
+    );
+  }
+
   factory WorkoutSequenceEvent.relax({
     required int durationInSeconds,
     int? iterationNumber,
@@ -69,7 +83,8 @@ class WorkoutSequenceEvent {
 
   bool get shouldSpeak =>
       type == WorkoutSequenceEventType.guide ||
-      type == WorkoutSequenceEventType.count;
+      type == WorkoutSequenceEventType.count ||
+      type == WorkoutSequenceEventType.countSeconds;
 
   @override
   bool operator ==(Object other) =>

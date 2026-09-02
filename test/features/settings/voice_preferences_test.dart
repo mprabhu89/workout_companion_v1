@@ -26,7 +26,11 @@ void main() {
         expect(store.preferences.isEnabled, isTrue);
         expect(store.preferences.coachVoiceMode, CoachVoiceMode.ritmoAuto);
         expect(store.preferences.selectedCoachVoice, CoachVoiceProfile.pulse);
-        expect(store.preferences.speechRate, 0.45);
+        expect(store.preferences.speechRate, 0.5);
+        expect(
+          store.preferences.speechRate,
+          (VoicePreferences.minSpeechRate + VoicePreferences.maxSpeechRate) / 2,
+        );
         expect(store.preferences.pitch, 1.0);
         expect(store.preferences.volume, 1.0);
       },

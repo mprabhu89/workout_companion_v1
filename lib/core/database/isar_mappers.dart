@@ -331,6 +331,21 @@ WorkoutSequenceStep mapSequenceStepFromRecord(
           'countDirectionName',
         ),
       );
+    case WorkoutSequenceStepType.countSeconds:
+      return WorkoutSequenceStep.countSeconds(
+        count: _requiredValue(
+          record.count,
+          'count',
+        ),
+        direction: _enumByName(
+          WorkoutCountDirection.values,
+          _requiredValue(
+            record.countDirectionName,
+            'countDirectionName',
+          ),
+          'countDirectionName',
+        ),
+      );
     case WorkoutSequenceStepType.counter:
       return WorkoutSequenceStep.counter(
         repetitionCount: _requiredValue(

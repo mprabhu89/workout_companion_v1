@@ -19,7 +19,8 @@ String? validateWorkoutSequenceDefinitionForEditor({
       return 'Guide text must not be empty.';
     }
 
-    if (step.type == WorkoutSequenceStepType.count &&
+    if ((step.type == WorkoutSequenceStepType.count ||
+            step.type == WorkoutSequenceStepType.countSeconds) &&
         (step.count == null || step.count! <= 0)) {
       return 'Count must be greater than zero.';
     }
@@ -309,6 +310,7 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
           ),
         ];
       case WorkoutSequenceStepType.count:
+      case WorkoutSequenceStepType.countSeconds:
         return [
           TextField(
             key: const Key('sequence_step_count_field'),
@@ -409,6 +411,16 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
           );
         }
         break;
+      case WorkoutSequenceStepType.countSeconds:
+        if (count == null || count <= 0) {
+          errorText = 'Count Seconds must be greater than zero.';
+        } else {
+          step = WorkoutSequenceStep.countSeconds(
+            count: count,
+            direction: _countDirection,
+          );
+        }
+        break;
       case WorkoutSequenceStepType.counter:
         if (repetitionCount == null || repetitionCount <= 0) {
           errorText = 'Reps must be greater than zero.';
@@ -447,6 +459,8 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
         return 'Guide';
       case WorkoutSequenceStepType.count:
         return 'Count';
+      case WorkoutSequenceStepType.countSeconds:
+        return 'Count Seconds';
       case WorkoutSequenceStepType.counter:
         return 'Reps - Counter';
       case WorkoutSequenceStepType.relax:
@@ -525,6 +539,8 @@ class _SequenceStepTile extends StatelessWidget {
         return 'Guide - ${step.text ?? ''}';
       case WorkoutSequenceStepType.count:
         return 'Count - ${step.count} ${step.countDirection?.name ?? WorkoutCountDirection.ascending.name}';
+      case WorkoutSequenceStepType.countSeconds:
+        return 'Count Seconds - ${step.count} ${step.countDirection?.name ?? WorkoutCountDirection.ascending.name}';
       case WorkoutSequenceStepType.counter:
         return 'Reps - Counter - Reps: ${step.repetitionCount}';
       case WorkoutSequenceStepType.relax:

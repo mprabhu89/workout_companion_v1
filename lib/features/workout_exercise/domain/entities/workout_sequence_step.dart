@@ -1,6 +1,7 @@
 enum WorkoutSequenceStepType {
   guide,
   count,
+  countSeconds,
   counter,
   relax,
   sequenceBreak,
@@ -64,6 +65,25 @@ class WorkoutSequenceStep {
     return WorkoutSequenceStep._(
       type: WorkoutSequenceStepType.counter,
       repetitionCount: repetitionCount,
+    );
+  }
+
+  factory WorkoutSequenceStep.countSeconds({
+    required int count,
+    required WorkoutCountDirection direction,
+  }) {
+    if (count <= 0) {
+      throw ArgumentError.value(
+        count,
+        'count',
+        'Count Seconds must be greater than zero.',
+      );
+    }
+
+    return WorkoutSequenceStep._(
+      type: WorkoutSequenceStepType.countSeconds,
+      count: count,
+      countDirection: direction,
     );
   }
 

@@ -125,6 +125,7 @@ class WorkoutSequenceExecutor {
           ),
         ];
       case WorkoutSequenceStepType.count:
+      case WorkoutSequenceStepType.countSeconds:
         final count = step.count ?? 0;
         final direction = step.countDirection ??
             WorkoutCountDirection.ascending;
@@ -137,11 +138,17 @@ class WorkoutSequenceExecutor {
 
         return values
             .map(
-              (value) => WorkoutSequenceEvent.count(
-                value: value,
-                iterationNumber: iterationNumber,
-                iterationTotal: iterationTotal,
-              ),
+              (value) => step.type == WorkoutSequenceStepType.count
+                  ? WorkoutSequenceEvent.count(
+                      value: value,
+                      iterationNumber: iterationNumber,
+                      iterationTotal: iterationTotal,
+                    )
+                  : WorkoutSequenceEvent.countSeconds(
+                      value: value,
+                      iterationNumber: iterationNumber,
+                      iterationTotal: iterationTotal,
+                    ),
             )
             .toList(growable: false);
       case WorkoutSequenceStepType.counter:
@@ -171,7 +178,8 @@ class WorkoutSequenceExecutor {
     for (var index = 0; index < steps.length; index += 1) {
       final step = steps[index];
 
-      if (step.type == WorkoutSequenceStepType.count &&
+      if ((step.type == WorkoutSequenceStepType.count ||
+              step.type == WorkoutSequenceStepType.countSeconds) &&
           (step.count == null || step.count! <= 0)) {
         throw StateError(
           'Count steps must have a positive count value.',

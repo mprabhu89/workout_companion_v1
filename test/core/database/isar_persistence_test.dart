@@ -404,6 +404,56 @@ void main() {
     );
 
     test(
+      'Count and Count Seconds round-trip with distinct persisted step types',
+      () async {
+        final harness = testHarness!;
+        final definition = WorkoutSequenceDefinition(
+          steps: [
+            WorkoutSequenceStep.count(
+              count: 2,
+              direction: WorkoutCountDirection.ascending,
+            ),
+            WorkoutSequenceStep.countSeconds(
+              count: 3,
+              direction: WorkoutCountDirection.descending,
+            ),
+            WorkoutSequenceStep.end(),
+          ],
+        );
+
+        await harness.exerciseRepository.saveWorkoutExercise(
+          _sequenceWorkoutExercise(
+            id: 'count-seconds-exercise',
+            workoutGroupId: 'group-1',
+            displayOrder: 1,
+            sequenceDefinition: definition,
+          ),
+        );
+        await harness.reopen();
+
+        final reloadedExercise = await harness.exerciseRepository
+            .getWorkoutExerciseById('count-seconds-exercise');
+
+        expect(reloadedExercise?.sequenceDefinition, definition);
+        final events = const WorkoutSequenceExecutor().execute(
+          workoutExercise: reloadedExercise!,
+          sequenceDefinition: reloadedExercise.sequenceDefinition!,
+        );
+        expect(
+          events.map((event) => event.type),
+          [
+            WorkoutSequenceEventType.count,
+            WorkoutSequenceEventType.count,
+            WorkoutSequenceEventType.countSeconds,
+            WorkoutSequenceEventType.countSeconds,
+            WorkoutSequenceEventType.countSeconds,
+            WorkoutSequenceEventType.end,
+          ],
+        );
+      },
+    );
+
+    test(
       'completed workout history survives reopen with metadata timestamps and counts',
       () async {
         final harness = testHarness!;

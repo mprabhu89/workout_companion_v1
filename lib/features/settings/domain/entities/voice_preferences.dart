@@ -12,7 +12,7 @@ class VoicePreferences {
        pitch = _clamp(pitch, minPitch, maxPitch),
        volume = _clamp(volume, minVolume, maxVolume);
 
-  static const double defaultSpeechRate = 0.45;
+  static const double defaultSpeechRate = 0.5;
   static const double defaultPitch = 1.0;
   static const double defaultVolume = 1.0;
 

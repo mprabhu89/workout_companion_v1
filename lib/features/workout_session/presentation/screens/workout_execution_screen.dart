@@ -494,6 +494,13 @@ class _SequenceExecutionPanel extends StatelessWidget {
           style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold),
         );
         break;
+      case WorkoutSequenceEventType.countSeconds:
+        label = 'Count Seconds';
+        primaryContent = Text(
+          '${event!.countValue ?? 0}',
+          style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold),
+        );
+        break;
       case WorkoutSequenceEventType.relax:
         label = 'Relax';
         primaryContent = Text(

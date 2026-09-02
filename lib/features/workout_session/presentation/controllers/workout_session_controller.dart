@@ -311,6 +311,17 @@ class WorkoutSessionController extends ChangeNotifier {
             '${event.countValue ?? ''}',
           );
           break;
+        case WorkoutSequenceEventType.countSeconds:
+          // The timer owns cadence; speech must not delay the next tick.
+          unawaited(
+            _voiceCoach?.speakText(
+              '${event.countValue ?? ''}',
+            ),
+          );
+          await _waitForCountSecond(
+            executionToken: executionToken,
+          );
+          break;
         case WorkoutSequenceEventType.relax:
           await _waitForRelax(
             durationInSeconds:
@@ -357,6 +368,42 @@ class WorkoutSessionController extends ChangeNotifier {
 
     _timerService.start(
       seconds: durationInSeconds,
+      onTick: (remaining) {
+        _engine.updateRemainingSeconds(remaining);
+        _syncSession();
+      },
+      onFinished: () {
+        if (!waitCompleter.isCompleted) {
+          waitCompleter.complete();
+        }
+      },
+    );
+
+    await waitCompleter.future;
+
+    if (identical(_sequenceWaitCompleter, waitCompleter)) {
+      _sequenceWaitCompleter = null;
+    }
+
+    if (executionToken != _sequenceExecutionToken) {
+      return;
+    }
+
+    _engine.updateRemainingSeconds(0);
+    _syncSession();
+  }
+
+  Future<void> _waitForCountSecond({
+    required int executionToken,
+  }) async {
+    final waitCompleter = Completer<void>();
+    _sequenceWaitCompleter = waitCompleter;
+
+    _engine.updateRemainingSeconds(1);
+    _syncSession();
+
+    _timerService.start(
+      seconds: 1,
       onTick: (remaining) {
         _engine.updateRemainingSeconds(remaining);
         _syncSession();

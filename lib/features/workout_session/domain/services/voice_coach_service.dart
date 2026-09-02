@@ -292,10 +292,11 @@ class VoiceCoachService {
     VoicePreferences preferences, {
     WorkoutPlanCategory? workoutPlanCategory,
   }) async {
-    final speechEngine = _speechEngine as VoiceProfileSpeechEngine?;
-    if (speechEngine == null) {
+    final Object speechEngineCandidate = _speechEngine;
+    if (speechEngineCandidate is! VoiceProfileSpeechEngine) {
       return;
     }
+    final speechEngine = speechEngineCandidate;
 
     final profile = _coachVoiceResolver.resolveProfile(
       preferences: preferences,

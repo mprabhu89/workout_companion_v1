@@ -48,6 +48,10 @@ void main() {
         _countValues(events),
         [1, 2],
       );
+      expect(
+        events.take(2).map((event) => event.type),
+        [WorkoutSequenceEventType.count, WorkoutSequenceEventType.count],
+      );
     });
 
     test('descending count emits one event for each descending number', () {
@@ -68,6 +72,54 @@ void main() {
         _countValues(events),
         [5, 4, 3, 2, 1],
       );
+    });
+
+    test('Count Seconds emits distinct ascending timed-count events', () {
+      final events = executor.execute(
+        workoutExercise: _workoutExercise(repetitions: 1),
+        sequenceDefinition: WorkoutSequenceDefinition(
+          steps: [
+            WorkoutSequenceStep.countSeconds(
+              count: 3,
+              direction: WorkoutCountDirection.ascending,
+            ),
+            WorkoutSequenceStep.end(),
+          ],
+        ),
+      );
+
+      expect(
+        events
+            .where(
+              (event) => event.type == WorkoutSequenceEventType.countSeconds,
+            )
+            .map((event) => event.countValue),
+        [1, 2, 3],
+      );
+      expect(events.last.type, WorkoutSequenceEventType.end);
+    });
+
+    test('Count Seconds preserves descending direction inside Counter', () {
+      final events = executor.execute(
+        workoutExercise: _workoutExercise(repetitions: 99),
+        sequenceDefinition: WorkoutSequenceDefinition(
+          steps: [
+            WorkoutSequenceStep.counter(repetitionCount: 2),
+            WorkoutSequenceStep.countSeconds(
+              count: 2,
+              direction: WorkoutCountDirection.descending,
+            ),
+            WorkoutSequenceStep.sequenceBreak(),
+            WorkoutSequenceStep.end(),
+          ],
+        ),
+      );
+
+      final timedEvents = events
+          .where((event) => event.type == WorkoutSequenceEventType.countSeconds)
+          .toList();
+      expect(timedEvents.map((event) => event.countValue), [2, 1, 2, 1]);
+      expect(timedEvents.map((event) => event.iterationNumber), [1, 1, 2, 2]);
     });
 
     test('relax emits its configured duration and is not a speech event', () {
