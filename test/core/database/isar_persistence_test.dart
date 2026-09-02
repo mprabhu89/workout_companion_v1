@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:workout_companion_v1/core/database/isar_database.dart';
+import 'package:workout_companion_v1/core/services/speech_engine.dart';
+import 'package:workout_companion_v1/features/progress/domain/services/workout_progress_service.dart';
 import 'package:workout_companion_v1/features/workout_day/data/repositories/isar_workout_day_repository.dart';
 import 'package:workout_companion_v1/features/workout_day/domain/entities/workout_day.dart';
 import 'package:workout_companion_v1/features/workout_exercise/data/repositories/isar_workout_exercise_repository.dart';
@@ -22,8 +24,11 @@ import 'package:workout_companion_v1/features/workout_plan/domain/entities/worko
 import 'package:workout_companion_v1/features/workout_plan/domain/enums/workout_plan_category.dart';
 import 'package:workout_companion_v1/features/workout_plan/domain/enums/workout_plan_difficulty.dart';
 import 'package:workout_companion_v1/features/workout_session/domain/entities/workout_sequence_event.dart';
+import 'package:workout_companion_v1/features/workout_session/domain/entities/workout_session.dart';
+import 'package:workout_companion_v1/features/workout_session/domain/services/voice_coach_service.dart';
 import 'package:workout_companion_v1/features/workout_session/domain/services/workout_sequence_executor.dart';
 import 'package:workout_companion_v1/features/workout_session/domain/services/workout_session_builder.dart';
+import 'package:workout_companion_v1/features/workout_session/presentation/controllers/workout_session_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -530,6 +535,192 @@ void main() {
         expect(session.workoutDayName, 'Day 1');
       },
     );
+
+    test(
+      'reopened definitions complete once through sequence and legacy execution then derive history progress',
+      () async {
+        final harness = testHarness!;
+        const planId = 'plan-journey';
+        const dayId = 'day-journey';
+
+        await harness.planRepository.saveWorkoutPlan(
+          _workoutPlan(id: planId, name: 'Journey Plan'),
+        );
+        await harness.dayRepository.saveWorkoutDay(
+          _workoutDay(
+            id: dayId,
+            workoutPlanId: planId,
+            dayNumber: 1,
+            name: 'Workout Day',
+          ),
+        );
+        await harness.groupRepository.saveWorkoutGroup(
+          _workoutGroup(
+            id: 'group-sequence',
+            workoutDayId: dayId,
+            displayOrder: 1,
+            name: 'Sequence Group',
+          ),
+        );
+        await harness.groupRepository.saveWorkoutGroup(
+          _workoutGroup(
+            id: 'group-legacy',
+            workoutDayId: dayId,
+            displayOrder: 2,
+            name: 'Legacy Group',
+          ),
+        );
+        await harness.exerciseRepository.saveWorkoutExercise(
+          _sequenceWorkoutExercise(
+            id: 'sequence-exercise',
+            workoutGroupId: 'group-sequence',
+            displayOrder: 1,
+            sessionRepetitions: 2,
+            sequenceDefinition: WorkoutSequenceDefinition(
+              steps: [
+                WorkoutSequenceStep.guide(text: 'Prepare'),
+                WorkoutSequenceStep.count(
+                  count: 2,
+                  direction: WorkoutCountDirection.ascending,
+                ),
+                WorkoutSequenceStep.counter(repetitionCount: 2),
+                WorkoutSequenceStep.guide(text: 'Lift'),
+                WorkoutSequenceStep.relax(durationInSeconds: 0),
+                WorkoutSequenceStep.sequenceBreak(),
+                WorkoutSequenceStep.end(),
+              ],
+            ),
+          ).copyWith(restInSeconds: 0),
+        );
+        await harness.exerciseRepository.saveWorkoutExercise(
+          WorkoutExercise(
+            id: 'legacy-exercise',
+            workoutGroupId: 'group-legacy',
+            exerciseId: 'exercise-legacy',
+            displayOrder: 1,
+            sets: 1,
+            targetType: WorkoutTargetType.duration,
+            durationInSeconds: 0,
+            restInSeconds: 0,
+          ),
+        );
+
+        await harness.reopen();
+
+        final session = await WorkoutSessionBuilder(
+          workoutGroupRepository: harness.groupRepository,
+          workoutExerciseRepository: harness.exerciseRepository,
+        ).build(
+          workoutDayId: dayId,
+          workoutPlanId: planId,
+          workoutPlanName: 'Journey Plan',
+          workoutDayName: 'Workout Day',
+        );
+        final sequenceExercise = session.workoutExercises.first;
+
+        expect(
+          session.workoutExercises.map((exercise) => exercise.id),
+          ['sequence-exercise', 'legacy-exercise'],
+        );
+        expect(sequenceExercise.sessionRepetitions, 2);
+        expect(
+          sequenceExercise.sequenceDefinition!.steps[2].repetitionCount,
+          2,
+        );
+
+        final speechEngine = _RecordingSpeechEngine();
+        final controller = WorkoutSessionController(
+          session: session,
+          voiceCoach: VoiceCoachService(speechEngine: speechEngine),
+        );
+        var completionNotifications = 0;
+        controller.addListener(() {
+          if (controller.session.status == WorkoutSessionStatus.completed) {
+            completionNotifications += 1;
+          }
+        });
+
+        controller.startCountdown();
+        await _flushAsyncWork();
+
+        expect(controller.session.status, WorkoutSessionStatus.completed);
+        expect(controller.completedExerciseCount, 2);
+        expect(completionNotifications, 1);
+        expect(
+          speechEngine.spokenMessages,
+          [
+            'Prepare',
+            '1',
+            '2',
+            '1',
+            'Lift',
+            '2',
+            'Lift',
+            'End of exercise.',
+            'Prepare',
+            '1',
+            '2',
+            '1',
+            'Lift',
+            '2',
+            'Lift',
+            'End of exercise.',
+          ],
+        );
+
+        final completedAt = DateTime.utc(2026, 9, 2, 9);
+        await harness.historyRepository.saveSession(
+          CompletedWorkoutSession(
+            id: 'journey-session-1',
+            workoutPlanId: planId,
+            workoutPlanName: 'Journey Plan',
+            workoutDayId: dayId,
+            workoutDayName: 'Workout Day',
+            startedAt: completedAt.subtract(const Duration(minutes: 5)),
+            completedAt: completedAt,
+            durationInSeconds: 300,
+            completedExercises: controller.completedExerciseCount,
+            totalExercises: controller.totalExerciseCount,
+            wasCompleted: true,
+          ),
+        );
+        await harness.historyRepository.saveSession(
+          CompletedWorkoutSession(
+            id: 'journey-session-2',
+            workoutPlanId: planId,
+            workoutPlanName: 'Journey Plan',
+            workoutDayId: dayId,
+            workoutDayName: 'Workout Day',
+            startedAt: completedAt,
+            completedAt: completedAt.add(const Duration(minutes: 2)),
+            durationInSeconds: 120,
+            completedExercises: 2,
+            totalExercises: 2,
+            wasCompleted: true,
+          ),
+        );
+        await harness.reopen();
+
+        final progress = const WorkoutProgressService().calculate(
+          workoutPlans: await harness.planRepository.getAllWorkoutPlans(),
+          workoutDaysByPlanId: {
+            planId: await harness.dayRepository.getWorkoutDays(
+              workoutPlanId: planId,
+            ),
+          },
+          workoutSessions: await harness.historyRepository
+              .getCompletedSessions(),
+        );
+
+        expect(progress.overall.plannedWorkouts, 1);
+        expect(progress.overall.completedPlannedWorkouts, 1);
+        expect(progress.overall.actualSessions, 2);
+        expect(progress.overall.totalDurationInSeconds, 420);
+        expect(progress.overall.completionPercentage, 100);
+
+        controller.dispose();
+      },
+    );
   });
 }
 
@@ -752,4 +943,37 @@ WorkoutSequenceDefinition _mixedSequenceDefinition({
       WorkoutSequenceStep.end(),
     ],
   );
+}
+
+Future<void> _flushAsyncWork() async {
+  for (var index = 0; index < 12; index += 1) {
+    await Future<void>.delayed(Duration.zero);
+  }
+}
+
+class _RecordingSpeechEngine implements SpeechEngine {
+  final List<String> spokenMessages = [];
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> resume() async {}
+
+  @override
+  Future<void> setPitch(double pitch) async {}
+
+  @override
+  Future<void> setSpeechRate(double rate) async {}
+
+  @override
+  Future<void> setVolume(double volume) async {}
+
+  @override
+  Future<void> speak(String text) async {
+    spokenMessages.add(text);
+  }
+
+  @override
+  Future<void> stop() async {}
 }
