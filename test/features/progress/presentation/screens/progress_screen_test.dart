@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:workout_companion_v1/app/router/app_router.dart';
 import 'package:workout_companion_v1/app/workout_companion_app.dart';
 import 'package:workout_companion_v1/core/di/repository_registry.dart';
 import 'package:workout_companion_v1/features/progress/domain/services/workout_progress_service.dart';
@@ -13,6 +14,8 @@ import 'package:workout_companion_v1/features/workout_plan/data/repositories/in_
 import 'package:workout_companion_v1/features/workout_plan/domain/entities/workout_plan.dart';
 import 'package:workout_companion_v1/features/workout_plan/domain/enums/workout_plan_category.dart';
 import 'package:workout_companion_v1/features/workout_plan/domain/enums/workout_plan_difficulty.dart';
+
+import '../../../../support/completing_startup_video_player.dart';
 
 void main() {
   testWidgets('renders overall progress and opens plan details', (
@@ -78,7 +81,13 @@ void main() {
     RepositoryRegistry.workoutHistoryRepository =
         InMemoryWorkoutHistoryRepository();
 
-    await tester.pumpWidget(const WorkoutCompanionApp());
+    await tester.pumpWidget(
+      WorkoutCompanionApp(
+        router: createAppRouter(
+          startupVideoPlayerFactory: CompletingStartupVideoPlayer.new,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Progress'));

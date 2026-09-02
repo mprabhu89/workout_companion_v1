@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:workout_companion_v1/app/router/app_router.dart';
 import 'package:workout_companion_v1/app/workout_companion_app.dart';
 import 'package:workout_companion_v1/core/di/repository_registry.dart';
 import 'package:workout_companion_v1/core/services/speech_engine.dart';
@@ -9,6 +10,8 @@ import 'package:workout_companion_v1/features/settings/domain/services/voice_pre
 import 'package:workout_companion_v1/features/settings/presentation/controllers/voice_preferences_controller.dart';
 import 'package:workout_companion_v1/features/settings/presentation/screens/settings_screen.dart';
 import 'package:workout_companion_v1/features/workout_session/domain/services/voice_coach_service.dart';
+
+import '../../support/completing_startup_video_player.dart';
 
 void main() {
   group('Voice preferences', () {
@@ -170,7 +173,13 @@ void main() {
       );
       RepositoryRegistry.speechEngineFactory = () => engine;
 
-      await tester.pumpWidget(const WorkoutCompanionApp());
+      await tester.pumpWidget(
+        WorkoutCompanionApp(
+          router: createAppRouter(
+            startupVideoPlayerFactory: CompletingStartupVideoPlayer.new,
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Settings'));

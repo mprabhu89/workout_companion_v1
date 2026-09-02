@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:workout_companion_v1/app/router/app_router.dart';
 import 'package:workout_companion_v1/app/workout_companion_app.dart';
+
+import 'support/completing_startup_video_player.dart';
 
 void main() {
   testWidgets('App launches to the Dashboard screen', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const WorkoutCompanionApp());
+    await tester.pumpWidget(_testApp());
     await tester.pumpAndSettle();
 
     expect(find.byType(MaterialApp), findsOneWidget);
@@ -26,7 +29,7 @@ void main() {
   testWidgets(
     'Dashboard opens Workout History and keeps developer tools secondary',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const WorkoutCompanionApp());
+      await tester.pumpWidget(_testApp());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Workout History'));
@@ -52,7 +55,7 @@ void main() {
   );
 
   testWidgets('Dashboard opens Workout Plans', (WidgetTester tester) async {
-    await tester.pumpWidget(const WorkoutCompanionApp());
+    await tester.pumpWidget(_testApp());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Start Workout'));
@@ -70,7 +73,7 @@ void main() {
   testWidgets('Dashboard Workout Plans card opens Workout Plan Library', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const WorkoutCompanionApp());
+    await tester.pumpWidget(_testApp());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Workout Plans'));
@@ -84,4 +87,12 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+WorkoutCompanionApp _testApp() {
+  return WorkoutCompanionApp(
+    router: createAppRouter(
+      startupVideoPlayerFactory: CompletingStartupVideoPlayer.new,
+    ),
+  );
 }
