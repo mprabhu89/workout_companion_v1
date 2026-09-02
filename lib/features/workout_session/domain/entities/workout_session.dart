@@ -1,4 +1,5 @@
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
+import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 
 enum WorkoutSessionStatus {
   notStarted,
@@ -14,6 +15,7 @@ class WorkoutSession {
     required this.workoutExercises,
     this.workoutPlanId,
     this.workoutPlanName,
+    this.workoutPlanCategory,
     this.workoutDayId,
     this.workoutDayName,
     this.startedAt,
@@ -28,6 +30,7 @@ class WorkoutSession {
   final List<WorkoutExercise> workoutExercises;
   final String? workoutPlanId;
   final String? workoutPlanName;
+  final WorkoutPlanCategory? workoutPlanCategory;
   final String? workoutDayId;
   final String? workoutDayName;
   final DateTime? startedAt;
@@ -85,6 +88,7 @@ class WorkoutSession {
     List<WorkoutExercise>? workoutExercises,
     String? workoutPlanId,
     String? workoutPlanName,
+    WorkoutPlanCategory? workoutPlanCategory,
     String? workoutDayId,
     String? workoutDayName,
     DateTime? startedAt,
@@ -100,6 +104,7 @@ class WorkoutSession {
           workoutExercises ?? this.workoutExercises,
       workoutPlanId: workoutPlanId ?? this.workoutPlanId,
       workoutPlanName: workoutPlanName ?? this.workoutPlanName,
+      workoutPlanCategory: workoutPlanCategory ?? this.workoutPlanCategory,
       workoutDayId: workoutDayId ?? this.workoutDayId,
       workoutDayName: workoutDayName ?? this.workoutDayName,
       startedAt: startedAt ?? this.startedAt,

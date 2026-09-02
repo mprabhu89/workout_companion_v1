@@ -10,6 +10,7 @@ import '../../../workout_group/domain/repositories/workout_group_repository.dart
 import '../../../workout_session/domain/entities/workout_session.dart';
 import '../../../workout_session/domain/services/workout_session_builder.dart';
 import '../../../workout_session/presentation/screens/workout_execution_screen.dart';
+import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 import '../../domain/entities/workout_day.dart';
 
 class WorkoutDayOverviewScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class WorkoutDayOverviewScreen extends StatefulWidget {
     required this.workoutPlanId,
     required this.workoutPlanName,
     required this.workoutDay,
+    this.workoutPlanCategory,
     this.workoutGroupRepository,
     this.workoutExerciseRepository,
     this.exerciseRepository,
@@ -27,6 +29,7 @@ class WorkoutDayOverviewScreen extends StatefulWidget {
 
   final String workoutPlanId;
   final String workoutPlanName;
+  final WorkoutPlanCategory? workoutPlanCategory;
   final WorkoutDay workoutDay;
   final WorkoutGroupRepository? workoutGroupRepository;
   final WorkoutExerciseRepository? workoutExerciseRepository;
@@ -137,6 +140,7 @@ class _WorkoutDayOverviewScreenState
       workoutDayId: widget.workoutDay.id,
       workoutPlanId: widget.workoutPlanId,
       workoutPlanName: widget.workoutPlanName,
+      workoutPlanCategory: widget.workoutPlanCategory,
       workoutDayName: widget.workoutDay.name,
     );
 

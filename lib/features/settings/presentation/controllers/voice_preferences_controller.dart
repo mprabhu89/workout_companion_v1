@@ -48,8 +48,9 @@ class VoicePreferencesController extends ChangeNotifier {
 
   Future<void> persist() => _preferencesStore.persist();
 
-  Future<void> testVoice() {
-    return _voiceCoach.previewText('Voice coach is ready.');
+  Future<void> testVoice() async {
+    await _voiceCoach.applyPreferences(preferences);
+    await _voiceCoach.previewText("Ready. Let's begin your workout.");
   }
 
   void _onPreferencesChanged() {

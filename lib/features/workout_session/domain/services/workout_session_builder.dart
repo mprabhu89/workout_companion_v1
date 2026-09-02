@@ -2,6 +2,7 @@ import '../../../workout_exercise/domain/entities/workout_exercise.dart';
 import '../../../workout_exercise/domain/repositories/workout_exercise_repository.dart';
 import '../../../workout_group/domain/entities/workout_group.dart';
 import '../../../workout_group/domain/repositories/workout_group_repository.dart';
+import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 import '../entities/workout_session.dart';
 
 class WorkoutSessionBuilder {
@@ -17,6 +18,7 @@ class WorkoutSessionBuilder {
     required String workoutDayId,
     String? workoutPlanId,
     String? workoutPlanName,
+    WorkoutPlanCategory? workoutPlanCategory,
     String? workoutDayName,
   }) async {
     final List<WorkoutGroup> groups =
@@ -41,6 +43,7 @@ class WorkoutSessionBuilder {
       workoutExercises: List.unmodifiable(exercises),
       workoutPlanId: workoutPlanId,
       workoutPlanName: workoutPlanName,
+      workoutPlanCategory: workoutPlanCategory,
       workoutDayId: workoutDayId,
       workoutDayName: workoutDayName,
     );

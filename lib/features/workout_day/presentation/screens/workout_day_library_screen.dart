@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/repository_registry.dart';
 import '../../../workout_group/presentation/screens/workout_group_library_screen.dart';
+import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 import '../../domain/entities/workout_day.dart';
 import '../../domain/repositories/workout_day_repository.dart';
 import '../controllers/workout_day_library_controller.dart';
@@ -14,6 +15,7 @@ class WorkoutDayLibraryScreen extends StatefulWidget {
     required this.workoutPlanId,
     required this.workoutPlanName,
     this.workoutPlanDescription = '',
+    this.workoutPlanCategory,
     this.repository,
     this.workoutDayOverviewScreenBuilder,
   });
@@ -21,6 +23,7 @@ class WorkoutDayLibraryScreen extends StatefulWidget {
   final String workoutPlanId;
   final String workoutPlanName;
   final String workoutPlanDescription;
+  final WorkoutPlanCategory? workoutPlanCategory;
   final WorkoutDayRepository? repository;
   final Widget Function(WorkoutDay workoutDay)?
       workoutDayOverviewScreenBuilder;
@@ -131,6 +134,7 @@ class _WorkoutDayLibraryScreenState
             WorkoutDayOverviewScreen(
               workoutPlanId: widget.workoutPlanId,
               workoutPlanName: widget.workoutPlanName,
+              workoutPlanCategory: widget.workoutPlanCategory,
               workoutDay: workoutDay,
             ),
       ),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/di/repository_registry.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
 import '../../../workout_session/domain/services/voice_coach_service.dart';
+import '../../domain/entities/coach_voice_profile.dart';
 import '../../domain/entities/voice_preferences.dart';
 import '../controllers/voice_preferences_controller.dart';
 
@@ -77,6 +78,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              Card(
+                child: ListTile(
+                  title: const Text('Coach Voice'),
+                  subtitle: Text(
+                    preferences.coachVoiceMode == CoachVoiceMode.ritmoAuto
+                        ? 'RITMO Auto - Recommended'
+                        : '${preferences.selectedCoachVoice.displayName} - ${preferences.selectedCoachVoice.description}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _showCoachVoicePicker(preferences),
+                ),
+              ),
+              const SizedBox(height: 12),
               _VoiceSlider(
                 label: 'Speech Rate',
                 lowLabel: 'Slow',
@@ -128,6 +142,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _showCoachVoicePicker(
+    VoicePreferences preferences,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+            const ListTile(
+              title: Text('Choose Coach Voice'),
+            ),
+            ListTile(
+              title: const Text('RITMO Auto'),
+              subtitle: const Text('Recommended'),
+              trailing:
+                  preferences.coachVoiceMode == CoachVoiceMode.ritmoAuto
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () async {
+                await _controller.update(
+                  preferences.copyWith(
+                    coachVoiceMode: CoachVoiceMode.ritmoAuto,
+                  ),
+                );
+                if (sheetContext.mounted) {
+                  Navigator.of(sheetContext).pop();
+                }
+              },
+            ),
+            ...CoachVoiceProfile.values.map(
+              (profile) => ListTile(
+                title: Text(profile.displayName),
+                subtitle: Text(profile.description),
+                trailing:
+                    preferences.coachVoiceMode == CoachVoiceMode.chooseMyCoach
+                    && preferences.selectedCoachVoice == profile
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () async {
+                  await _controller.update(
+                    preferences.copyWith(
+                      coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+                      selectedCoachVoice: profile,
+                    ),
+                  );
+                  if (sheetContext.mounted) {
+                    Navigator.of(sheetContext).pop();
+                  }
+                },
+              ),
+            ),
+            ],
+          ),
+        ),
       ),
     );
   }

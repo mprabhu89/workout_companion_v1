@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/di/repository_registry.dart';
 import '../../../exercise/domain/entities/exercise.dart';
+import '../../../settings/domain/entities/voice_preferences.dart';
 import '../../../settings/domain/services/voice_preferences_store.dart';
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
 import '../../../workout_history/domain/entities/completed_workout_session.dart';
@@ -56,7 +57,6 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     _voicePreferencesStore = RepositoryRegistry.voicePreferencesStore;
     _voiceEnabled = _voicePreferencesStore.preferences.isEnabled;
     _voicePreferencesStore.addListener(_onVoicePreferencesChanged);
-    unawaited(_voiceCoach.applyPreferences(_voicePreferencesStore.preferences));
     _ownsController = widget.controller == null;
     _controller =
         widget.controller ??
@@ -64,6 +64,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           session: widget.session,
           voiceCoach: _voiceCoach,
         );
+    unawaited(_applyVoicePreferences(_voicePreferencesStore.preferences));
     _workoutHistoryRepository =
         widget.workoutHistoryRepository ??
         RepositoryRegistry.workoutHistoryRepository;
@@ -155,7 +156,16 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         _voiceEnabled = preferences.isEnabled;
       });
     }
-    unawaited(_voiceCoach.applyPreferences(preferences));
+    unawaited(_applyVoicePreferences(preferences));
+  }
+
+  Future<void> _applyVoicePreferences(
+    VoicePreferences preferences,
+  ) {
+    return _voiceCoach.applyPreferences(
+      preferences,
+      workoutPlanCategory: _controller.session.workoutPlanCategory,
+    );
   }
 
   void _checkWorkoutCompleted() {

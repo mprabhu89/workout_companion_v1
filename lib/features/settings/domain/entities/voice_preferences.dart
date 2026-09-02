@@ -1,6 +1,10 @@
+import 'coach_voice_profile.dart';
+
 class VoicePreferences {
   VoicePreferences({
     this.isEnabled = true,
+    this.coachVoiceMode = CoachVoiceMode.ritmoAuto,
+    this.selectedCoachVoice = CoachVoiceProfile.pulse,
     double speechRate = defaultSpeechRate,
     double pitch = defaultPitch,
     double volume = defaultVolume,
@@ -20,18 +24,24 @@ class VoicePreferences {
   static const double maxVolume = 1.0;
 
   final bool isEnabled;
+  final CoachVoiceMode coachVoiceMode;
+  final CoachVoiceProfile selectedCoachVoice;
   final double speechRate;
   final double pitch;
   final double volume;
 
   VoicePreferences copyWith({
     bool? isEnabled,
+    CoachVoiceMode? coachVoiceMode,
+    CoachVoiceProfile? selectedCoachVoice,
     double? speechRate,
     double? pitch,
     double? volume,
   }) {
     return VoicePreferences(
       isEnabled: isEnabled ?? this.isEnabled,
+      coachVoiceMode: coachVoiceMode ?? this.coachVoiceMode,
+      selectedCoachVoice: selectedCoachVoice ?? this.selectedCoachVoice,
       speechRate: speechRate ?? this.speechRate,
       pitch: pitch ?? this.pitch,
       volume: volume ?? this.volume,

@@ -96,6 +96,7 @@ class _WorkoutPlanLibraryScreenState
               workoutPlanName: plan.name,
               workoutPlanDescription:
                   plan.description,
+              workoutPlanCategory: plan.category,
             ),
       ),
     );

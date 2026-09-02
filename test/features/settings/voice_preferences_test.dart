@@ -4,6 +4,7 @@ import 'package:workout_companion_v1/app/router/app_router.dart';
 import 'package:workout_companion_v1/app/workout_companion_app.dart';
 import 'package:workout_companion_v1/core/di/repository_registry.dart';
 import 'package:workout_companion_v1/core/services/speech_engine.dart';
+import 'package:workout_companion_v1/features/settings/domain/entities/coach_voice_profile.dart';
 import 'package:workout_companion_v1/features/settings/domain/entities/voice_preferences.dart';
 import 'package:workout_companion_v1/features/settings/domain/repositories/voice_preferences_repository.dart';
 import 'package:workout_companion_v1/features/settings/domain/services/voice_preferences_store.dart';
@@ -23,6 +24,8 @@ void main() {
         await store.load();
 
         expect(store.preferences.isEnabled, isTrue);
+        expect(store.preferences.coachVoiceMode, CoachVoiceMode.ritmoAuto);
+        expect(store.preferences.selectedCoachVoice, CoachVoiceProfile.pulse);
         expect(store.preferences.speechRate, 0.45);
         expect(store.preferences.pitch, 1.0);
         expect(store.preferences.volume, 1.0);
@@ -30,7 +33,7 @@ void main() {
     );
 
     test(
-      'persists enabled state, rate, pitch, and volume across a new store',
+      'persists coach selection and delivery preferences across a new store',
       () async {
         final repository = _MemoryRepository();
         final firstStore = VoicePreferencesStore(repository: repository);
@@ -38,6 +41,8 @@ void main() {
         await firstStore.update(
           VoicePreferences(
             isEnabled: false,
+            coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+            selectedCoachVoice: CoachVoiceProfile.valkyrie,
             speechRate: 0.6,
             pitch: 1.2,
             volume: 0.75,
@@ -48,6 +53,14 @@ void main() {
         await reopenedStore.load();
 
         expect(reopenedStore.preferences.isEnabled, isFalse);
+        expect(
+          reopenedStore.preferences.coachVoiceMode,
+          CoachVoiceMode.chooseMyCoach,
+        );
+        expect(
+          reopenedStore.preferences.selectedCoachVoice,
+          CoachVoiceProfile.valkyrie,
+        );
         expect(reopenedStore.preferences.speechRate, 0.6);
         expect(reopenedStore.preferences.pitch, 1.2);
         expect(reopenedStore.preferences.volume, 0.75);
@@ -60,6 +73,18 @@ void main() {
       expect(preferences.speechRate, VoicePreferences.maxSpeechRate);
       expect(preferences.pitch, VoicePreferences.minPitch);
       expect(preferences.volume, VoicePreferences.maxVolume);
+    });
+
+    test('all fixed coach profiles remain selectable', () {
+      for (final profile in CoachVoiceProfile.values) {
+        final preferences = VoicePreferences(
+          coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+          selectedCoachVoice: profile,
+        );
+
+        expect(preferences.coachVoiceMode, CoachVoiceMode.chooseMyCoach);
+        expect(preferences.selectedCoachVoice, profile);
+      }
     });
 
     test('storage failure keeps safe in-memory preferences', () async {
@@ -82,6 +107,8 @@ void main() {
           repository: _MemoryRepository(
             value: VoicePreferences(
               isEnabled: false,
+              coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+              selectedCoachVoice: CoachVoiceProfile.nova,
               speechRate: 0.6,
               pitch: 1.2,
               volume: 0.75,
@@ -128,13 +155,71 @@ void main() {
         await controller.load();
         await controller.testVoice();
 
-        expect(engine.speechRates, [0.55]);
-        expect(engine.pitches, [1.1]);
-        expect(engine.volumes, [0.5]);
-        expect(engine.spokenMessages, ['Voice coach is ready.']);
+        expect(engine.speechRates, [0.55, 0.55]);
+        expect(engine.pitches, [1.1, 1.1]);
+        expect(engine.volumes, [0.5, 0.5]);
+        expect(engine.spokenMessages, ["Ready. Let's begin your workout."]);
         expect(voiceCoach.isEnabled, isFalse);
       },
     );
+
+    test('preview uses the selected installed coach voice', () async {
+      final engine = _FakeSpeechEngine(
+        availableVoices: const [
+          SpeechVoice(name: 'Male', locale: 'en-US', gender: 'male'),
+          SpeechVoice(name: 'Female', locale: 'en-US', gender: 'female'),
+        ],
+      );
+      final controller = VoicePreferencesController(
+        preferencesStore: VoicePreferencesStore(
+          repository: _MemoryRepository(
+            value: VoicePreferences(
+              coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+              selectedCoachVoice: CoachVoiceProfile.nova,
+            ),
+          ),
+        ),
+        voiceCoach: VoiceCoachService(speechEngine: engine),
+      );
+
+      await controller.load();
+      await controller.testVoice();
+
+      expect(engine.selectedVoices.last.name, 'Female');
+      expect(engine.spokenMessages.single, "Ready. Let's begin your workout.");
+    });
+
+    test('voice discovery and voice-selection failures fall back safely', () async {
+      final discoveryFailureEngine = _FakeSpeechEngine(
+        throwOnVoiceDiscovery: true,
+      );
+      final selectionFailureEngine = _FakeSpeechEngine(
+        availableVoices: const [
+          SpeechVoice(name: 'Default', locale: 'en-US'),
+        ],
+        throwOnSetVoice: true,
+      );
+      final preferences = VoicePreferences(
+        coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+        selectedCoachVoice: CoachVoiceProfile.serena,
+      );
+
+      final discoveryFailureCoach = VoiceCoachService(
+        speechEngine: discoveryFailureEngine,
+      );
+      await discoveryFailureCoach.applyPreferences(preferences);
+      await discoveryFailureCoach.speakText('Continue');
+
+      final selectionFailureCoach = VoiceCoachService(
+        speechEngine: selectionFailureEngine,
+      );
+      await selectionFailureCoach.applyPreferences(preferences);
+      await selectionFailureCoach.speakText('Continue');
+
+      expect(discoveryFailureEngine.spokenMessages, ['Continue']);
+      expect(selectionFailureEngine.clearVoiceCount, 1);
+      expect(selectionFailureEngine.spokenMessages, ['Continue']);
+    });
 
     testWidgets(
       'Settings renders saved values and updates enabled preference',
@@ -155,6 +240,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Voice Coach'), findsOneWidget);
+        expect(find.text('RITMO Auto - Recommended'), findsOneWidget);
         expect(find.text('0.60'), findsOneWidget);
         expect(find.text('1.20'), findsOneWidget);
         expect(find.text('75%'), findsOneWidget);
@@ -163,6 +249,20 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(controller.preferences.isEnabled, isFalse);
+
+        await tester.tap(find.text('Coach Voice'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Zen'));
+        await tester.pumpAndSettle();
+
+        expect(
+          controller.preferences.coachVoiceMode,
+          CoachVoiceMode.chooseMyCoach,
+        );
+        expect(
+          controller.preferences.selectedCoachVoice,
+          CoachVoiceProfile.zen,
+        );
       },
     );
 
@@ -219,11 +319,22 @@ class _MemoryRepository implements VoicePreferencesRepository {
   }
 }
 
-class _FakeSpeechEngine implements SpeechEngine {
+class _FakeSpeechEngine implements SpeechEngine, VoiceProfileSpeechEngine {
+  _FakeSpeechEngine({
+    this.availableVoices = const [],
+    this.throwOnVoiceDiscovery = false,
+    this.throwOnSetVoice = false,
+  });
+
+  final List<SpeechVoice> availableVoices;
+  final bool throwOnVoiceDiscovery;
+  final bool throwOnSetVoice;
   final List<String> spokenMessages = [];
   final List<double> speechRates = [];
   final List<double> pitches = [];
   final List<double> volumes = [];
+  final List<SpeechVoice> selectedVoices = [];
+  int clearVoiceCount = 0;
 
   @override
   Future<void> pause() async {}
@@ -253,4 +364,25 @@ class _FakeSpeechEngine implements SpeechEngine {
 
   @override
   Future<void> stop() async {}
+
+  @override
+  Future<void> clearVoice() async {
+    clearVoiceCount += 1;
+  }
+
+  @override
+  Future<List<SpeechVoice>> getAvailableVoices() async {
+    if (throwOnVoiceDiscovery) {
+      throw StateError('Voice discovery unavailable');
+    }
+    return availableVoices;
+  }
+
+  @override
+  Future<void> setVoice(SpeechVoice voice) async {
+    if (throwOnSetVoice) {
+      throw StateError('Voice unavailable');
+    }
+    selectedVoices.add(voice);
+  }
 }

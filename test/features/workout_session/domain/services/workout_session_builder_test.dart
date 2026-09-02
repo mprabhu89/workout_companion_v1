@@ -4,6 +4,7 @@ import 'package:workout_companion_v1/features/workout_exercise/domain/entities/w
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_target_type.dart';
 import 'package:workout_companion_v1/features/workout_group/data/repositories/in_memory_workout_group_repository.dart';
 import 'package:workout_companion_v1/features/workout_group/domain/entities/workout_group.dart';
+import 'package:workout_companion_v1/features/workout_plan/domain/enums/workout_plan_category.dart';
 import 'package:workout_companion_v1/features/workout_session/domain/services/workout_session_builder.dart';
 
 void main() {
@@ -69,6 +70,7 @@ void main() {
         workoutDayId: 'day-1',
         workoutPlanId: 'plan-1',
         workoutPlanName: 'Plan',
+        workoutPlanCategory: WorkoutPlanCategory.cardio,
         workoutDayName: 'Day 1',
       );
 
@@ -77,6 +79,7 @@ void main() {
         ['exercise-1', 'exercise-2', 'exercise-3', 'exercise-4'],
       );
       expect(session.totalExercises, 4);
+      expect(session.workoutPlanCategory, WorkoutPlanCategory.cardio);
     });
 
     test('excludes archived entities according to queue-building semantics', () async {

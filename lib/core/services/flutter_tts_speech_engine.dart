@@ -2,7 +2,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import 'speech_engine.dart';
 
-class FlutterTtsSpeechEngine implements SpeechEngine {
+class FlutterTtsSpeechEngine
+    implements SpeechEngine, VoiceProfileSpeechEngine {
   FlutterTtsSpeechEngine()
       : _tts = FlutterTts() {
     _tts.awaitSpeakCompletion(true);
@@ -47,5 +48,39 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
   @override
   Future<void> setVolume(double volume) async {
     await _tts.setVolume(volume);
+  }
+
+  @override
+  Future<List<SpeechVoice>> getAvailableVoices() async {
+    final voices = await _tts.getVoices;
+
+    if (voices is! List) {
+      return const [];
+    }
+
+    return voices
+        .whereType<Map>()
+        .map(
+          (voice) => SpeechVoice(
+            name: voice['name']?.toString() ?? '',
+            locale: voice['locale']?.toString() ?? '',
+            gender: voice['gender']?.toString(),
+          ),
+        )
+        .where((voice) => voice.name.isNotEmpty && voice.locale.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> setVoice(SpeechVoice voice) async {
+    await _tts.setVoice({
+      'name': voice.name,
+      'locale': voice.locale,
+    });
+  }
+
+  @override
+  Future<void> clearVoice() async {
+    await _tts.clearVoice();
   }
 }

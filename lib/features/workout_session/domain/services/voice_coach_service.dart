@@ -1,8 +1,10 @@
 import '../../../../core/services/speech_engine.dart';
 import '../../../exercise/domain/entities/exercise.dart';
 import '../../../settings/domain/entities/voice_preferences.dart';
+import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
 import '../entities/workout_session.dart';
+import 'coach_voice_resolver.dart';
 
 class VoiceCoachService {
   factory VoiceCoachService({
@@ -18,6 +20,7 @@ class VoiceCoachService {
   VoiceCoachService._({required this._speechEngine, this._isEnabled = true});
 
   final SpeechEngine _speechEngine;
+  final CoachVoiceResolver _coachVoiceResolver = const CoachVoiceResolver();
   final Set<String> _announcedKeys = {};
 
   bool _isEnabled;
@@ -33,13 +36,19 @@ class VoiceCoachService {
     }
   }
 
-  Future<void> applyPreferences(VoicePreferences preferences) async {
+  Future<void> applyPreferences(
+    VoicePreferences preferences, {
+    WorkoutPlanCategory? workoutPlanCategory,
+  }) async {
     if (_isDisposed) {
       return;
     }
 
     _isEnabled = preferences.isEnabled;
-    await _safeConfigure(preferences);
+    await _safeConfigure(
+      preferences,
+      workoutPlanCategory: workoutPlanCategory,
+    );
 
     if (!_isEnabled) {
       await _safeStop();
@@ -261,11 +270,84 @@ class VoiceCoachService {
     }
   }
 
-  Future<void> _safeConfigure(VoicePreferences preferences) async {
+  Future<void> _safeConfigure(
+    VoicePreferences preferences, {
+    WorkoutPlanCategory? workoutPlanCategory,
+  }) async {
     try {
       await _speechEngine.setSpeechRate(preferences.speechRate);
       await _speechEngine.setPitch(preferences.pitch);
       await _speechEngine.setVolume(preferences.volume);
+    } catch (_) {
+      // Voice coach must never block workout execution.
+    }
+
+    await _safeConfigureCoachVoice(
+      preferences,
+      workoutPlanCategory: workoutPlanCategory,
+    );
+  }
+
+  Future<void> _safeConfigureCoachVoice(
+    VoicePreferences preferences, {
+    WorkoutPlanCategory? workoutPlanCategory,
+  }) async {
+    final speechEngine = _speechEngine as VoiceProfileSpeechEngine?;
+    if (speechEngine == null) {
+      return;
+    }
+
+    final profile = _coachVoiceResolver.resolveProfile(
+      preferences: preferences,
+      workoutPlanCategory: workoutPlanCategory,
+    );
+
+    List<SpeechVoice> voices;
+    try {
+      voices = await speechEngine.getAvailableVoices();
+    } catch (_) {
+      return;
+    }
+
+    final preferredVoice = _coachVoiceResolver.resolveVoice(
+      profile: profile,
+      availableVoices: voices,
+    );
+
+    if (preferredVoice == null) {
+      await _safeClearVoice(speechEngine);
+      return;
+    }
+
+    try {
+      await speechEngine.setVoice(preferredVoice);
+      return;
+    } catch (_) {
+      // Fall through to another compatible voice or the system default.
+    }
+
+    final fallbackVoice = _coachVoiceResolver.resolveFallbackVoice(
+      availableVoices: voices,
+      excluding: preferredVoice,
+    );
+
+    if (fallbackVoice != null) {
+      try {
+        await speechEngine.setVoice(fallbackVoice);
+        return;
+      } catch (_) {
+        // Use the engine's normal system voice as the final fallback.
+      }
+    }
+
+    await _safeClearVoice(speechEngine);
+  }
+
+  Future<void> _safeClearVoice(
+    VoiceProfileSpeechEngine speechEngine,
+  ) async {
+    try {
+      await speechEngine.clearVoice();
     } catch (_) {
       // Voice coach must never block workout execution.
     }

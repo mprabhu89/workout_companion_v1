@@ -21,3 +21,25 @@ abstract interface class SpeechEngine {
     double pitch,
   );
 }
+
+class SpeechVoice {
+  const SpeechVoice({
+    required this.name,
+    required this.locale,
+    this.gender,
+  });
+
+  final String name;
+  final String locale;
+
+  /// Present only when the platform explicitly reports it.
+  final String? gender;
+}
+
+abstract interface class VoiceProfileSpeechEngine {
+  Future<List<SpeechVoice>> getAvailableVoices();
+
+  Future<void> setVoice(SpeechVoice voice);
+
+  Future<void> clearVoice();
+}
