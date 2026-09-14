@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/repository_registry.dart';
+import '../../../../core/services/workout_export_permission.dart';
 import '../../../../core/widgets/app_delete_confirmation_dialog.dart';
 import '../../../../core/widgets/app_empty_state.dart';
+import '../../domain/entities/ritmo_builtin_workouts.dart';
 import '../../domain/entities/workout_exercise.dart';
+import '../admin/workout_json_export.dart';
 import 'create_workout_flow_screen.dart';
 import 'edit_workout_exercise_screen.dart';
 
 /// Manages canonical, reusable workout definitions independently of plans.
 class WorkoutLibraryScreen extends StatefulWidget {
-  const WorkoutLibraryScreen({super.key});
+  const WorkoutLibraryScreen({
+    super.key,
+    this.exportPermission,
+  });
+
+  /// Injected only by internal tooling or tests. Production defaults to no
+  /// export permission while debug builds retain the diagnostic action.
+  final WorkoutExportPermission? exportPermission;
 
   @override
   State<WorkoutLibraryScreen> createState() => _WorkoutLibraryScreenState();
@@ -17,10 +27,13 @@ class WorkoutLibraryScreen extends StatefulWidget {
 
 class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
   late Future<List<WorkoutExercise>> _workouts;
+  late final WorkoutExportPermission _exportPermission;
 
   @override
   void initState() {
     super.initState();
+    _exportPermission =
+        widget.exportPermission ?? const DevelopmentWorkoutExportPermission();
     _reload();
   }
 
@@ -68,6 +81,9 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
   }
 
   Future<void> _archiveWorkout(WorkoutExercise workout) async {
+    if (RitmoBuiltinWorkouts.isBuiltinWorkoutId(workout.id)) {
+      return;
+    }
     final confirmed = await AppDeleteConfirmationDialog.show(
       context,
       title: 'Archive Workout',
@@ -83,6 +99,32 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
     );
     if (mounted) {
       setState(_reload);
+    }
+  }
+
+  Future<void> _exportWorkoutJson(WorkoutExercise workout) async {
+    if (!_exportPermission.canExportWorkoutJson) {
+      return;
+    }
+
+    final persistedWorkout = await RepositoryRegistry.workoutExerciseRepository
+            .getWorkoutExerciseById(workout.id) ??
+        workout;
+    final linkedExercise = await RepositoryRegistry.exerciseRepository
+        .getExerciseById(persistedWorkout.exerciseId);
+    final json = WorkoutJsonExport.encode(
+      workoutExercise: persistedWorkout,
+      linkedExercise: linkedExercise,
+    );
+
+    debugPrint('===== RITMO WORKOUT EXPORT START =====');
+    debugPrint(json);
+    debugPrint('===== RITMO WORKOUT EXPORT END =====');
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Workout exported to debug console')),
+      );
     }
   }
 
@@ -127,6 +169,8 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
             separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final workout = workouts[index];
+              final isBuiltin =
+                  RitmoBuiltinWorkouts.isBuiltinWorkoutId(workout.id);
               return Card(
                 child: ListTile(
                   onTap: () => _editWorkout(workout),
@@ -135,11 +179,39 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
                     future: _exerciseName(workout.exerciseId),
                     builder: (_, name) => Text(name.data ?? 'Loading...'),
                   ),
-                  subtitle: Text(_summary(workout)),
-                  trailing: IconButton(
-                    tooltip: 'Archive workout',
-                    icon: const Icon(Icons.archive_outlined),
-                    onPressed: () => _archiveWorkout(workout),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_summary(workout)),
+                      if (isBuiltin)
+                        const Text(
+                          'RITMO Sample',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_exportPermission.canExportWorkoutJson)
+                        PopupMenuButton<String>(
+                          tooltip: 'Workout actions',
+                          icon: const Icon(Icons.more_vert),
+                          onSelected: (_) => _exportWorkoutJson(workout),
+                          itemBuilder: (context) => const [
+                            PopupMenuItem<String>(
+                              value: 'export',
+                              child: Text('Export Workout JSON'),
+                            ),
+                          ],
+                        ),
+                      if (!isBuiltin)
+                        IconButton(
+                          tooltip: 'Archive workout',
+                          icon: const Icon(Icons.archive_outlined),
+                          onPressed: () => _archiveWorkout(workout),
+                        ),
+                    ],
                   ),
                 ),
               );

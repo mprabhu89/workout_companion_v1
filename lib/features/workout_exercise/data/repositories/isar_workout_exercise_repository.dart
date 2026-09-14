@@ -2,6 +2,7 @@ import 'package:isar_community/isar.dart';
 
 import '../../../../core/database/isar_mappers.dart';
 import '../../../../core/database/isar_models.dart';
+import '../../domain/entities/ritmo_builtin_workouts.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/repositories/workout_exercise_repository.dart';
 
@@ -58,6 +59,9 @@ class IsarWorkoutExerciseRepository
   Future<void> saveWorkoutExercise(
     WorkoutExercise workoutExercise,
   ) async {
+    if (RitmoBuiltinWorkouts.isBuiltinWorkoutId(workoutExercise.id)) {
+      return;
+    }
     final record =
         mapWorkoutExerciseToRecord(workoutExercise);
     final existing = await _isar.isarWorkoutExerciseRecords
@@ -78,6 +82,9 @@ class IsarWorkoutExerciseRepository
 
   @override
   Future<void> deleteWorkoutExercise(String id) async {
+    if (RitmoBuiltinWorkouts.isBuiltinWorkoutId(id)) {
+      return;
+    }
     final existing = await _isar.isarWorkoutExerciseRecords
         .filter()
         .idEqualTo(id)

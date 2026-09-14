@@ -1,4 +1,5 @@
 import '../database/isar_database.dart';
+import '../database/ritmo_sample_workout_seed.dart';
 import '../database/workout_library_migration.dart';
 import '../services/flutter_tts_speech_engine.dart';
 import '../services/speech_engine.dart';
@@ -75,6 +76,7 @@ final class RepositoryRegistry {
 
     await IsarExerciseRepository.seedIfEmpty(isar);
     await migrateLegacyWorkoutExercisesToLibrary(isar);
+    await seedRitmoSampleWorkout(isar);
 
     exerciseRepository = IsarExerciseRepository(isar);
     workoutExerciseRepository = IsarWorkoutExerciseRepository(isar);

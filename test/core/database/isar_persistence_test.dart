@@ -4,12 +4,19 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:workout_companion_v1/core/database/isar_database.dart';
+import 'package:workout_companion_v1/core/database/ritmo_sample_workout_seed.dart';
 import 'package:workout_companion_v1/core/services/speech_engine.dart';
+import 'package:workout_companion_v1/features/exercise/data/repositories/isar_exercise_repository.dart';
+import 'package:workout_companion_v1/features/exercise/domain/entities/exercise.dart';
+import 'package:workout_companion_v1/features/exercise/domain/enums/difficulty_level.dart';
+import 'package:workout_companion_v1/features/exercise/domain/enums/equipment_type.dart';
+import 'package:workout_companion_v1/features/exercise/domain/enums/muscle_group.dart';
 import 'package:workout_companion_v1/features/progress/domain/services/workout_progress_service.dart';
 import 'package:workout_companion_v1/features/workout_day/data/repositories/isar_workout_day_repository.dart';
 import 'package:workout_companion_v1/features/workout_day/domain/entities/workout_day.dart';
 import 'package:workout_companion_v1/features/workout_exercise/data/repositories/isar_workout_exercise_repository.dart';
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/tempo_type.dart';
+import 'package:workout_companion_v1/features/workout_exercise/domain/entities/ritmo_builtin_workouts.dart';
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/weight_unit.dart';
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_exercise.dart';
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_sequence_definition.dart';
@@ -17,6 +24,8 @@ import 'package:workout_companion_v1/features/workout_exercise/domain/entities/w
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_target_type.dart';
 import 'package:workout_companion_v1/features/workout_group/data/repositories/isar_workout_group_repository.dart';
 import 'package:workout_companion_v1/features/workout_group/domain/entities/workout_group.dart';
+import 'package:workout_companion_v1/features/workout_group_workout_reference/data/repositories/isar_workout_group_workout_reference_repository.dart';
+import 'package:workout_companion_v1/features/workout_group_workout_reference/domain/entities/workout_group_workout_reference.dart';
 import 'package:workout_companion_v1/features/workout_history/data/repositories/isar_workout_history_repository.dart';
 import 'package:workout_companion_v1/features/workout_history/domain/entities/completed_workout_session.dart';
 import 'package:workout_companion_v1/features/workout_plan/data/repositories/isar_workout_plan_repository.dart';
@@ -772,6 +781,154 @@ void main() {
         controller.dispose();
       },
     );
+
+    test('seeds and protects the exact RITMO sample without touching custom data', () async {
+      final harness = testHarness!;
+      const customExercise = Exercise(
+        id: 'custom-one-step-bicep-curl-exercise',
+        name: 'One Step Bicep Curl',
+        description: 'User-owned workout with the same name.',
+        instructions: 'Custom',
+        muscleGroup: MuscleGroup.biceps,
+        equipment: EquipmentType.dumbbell,
+        difficulty: DifficultyLevel.intermediate,
+        isCustom: true,
+      );
+      final customWorkout = WorkoutExercise(
+        id: 'custom-one-step-bicep-curl-workout',
+        workoutGroupId: null,
+        exerciseId: customExercise.id,
+        displayOrder: 4,
+        targetType: WorkoutTargetType.repetitions,
+        repetitions: 8,
+      );
+      await harness.definitionExerciseRepository.saveExercise(customExercise);
+      await harness.exerciseRepository.saveWorkoutExercise(customWorkout);
+
+      await seedRitmoSampleWorkout(harness.isar);
+      await seedRitmoSampleWorkout(harness.isar);
+
+      final sampleExercise = await harness.definitionExerciseRepository
+          .getExerciseById(RitmoBuiltinWorkouts.oneStepBicepCurlExerciseId);
+      final sampleWorkout = await harness.exerciseRepository
+          .getWorkoutExerciseById(
+            RitmoBuiltinWorkouts.oneStepBicepCurlWorkoutId,
+          );
+      final workouts = await harness.exerciseRepository.getAllWorkoutExercises();
+
+      expect(sampleExercise, RitmoBuiltinWorkouts.oneStepBicepCurlExercise);
+      expect(sampleWorkout, isNotNull);
+      expect(sampleWorkout!.workoutGroupId, isNull);
+      expect(sampleWorkout.displayOrder, 0);
+      expect(sampleWorkout.sets, 3);
+      expect(sampleWorkout.targetType, WorkoutTargetType.repetitions);
+      expect(sampleWorkout.repetitions, 10);
+      expect(sampleWorkout.durationInSeconds, isNull);
+      expect(sampleWorkout.restInSeconds, 15);
+      expect(sampleWorkout.sessionRepetitions, 1);
+      expect(sampleWorkout.weight, isNull);
+      expect(sampleWorkout.weightUnit, WeightUnit.kilograms);
+      expect(sampleWorkout.rpe, isNull);
+      expect(sampleWorkout.tempoType, TempoType.normal);
+      expect(sampleWorkout.customTempo, isNull);
+      expect(sampleWorkout.notes, '');
+      expect(sampleWorkout.isArchived, isFalse);
+      expect(sampleWorkout.sequenceDefinition!.steps, [
+        WorkoutSequenceStep.guide(
+          text: 'Hold the dumbbell firm. Be ready in position,',
+        ),
+        WorkoutSequenceStep.guide(text: 'Exercise begins in 5 seconds'),
+        WorkoutSequenceStep.countSeconds(
+          count: 5,
+          direction: WorkoutCountDirection.descending,
+        ),
+        WorkoutSequenceStep.guide(text: 'Rep'),
+        WorkoutSequenceStep.counter(repetitionCount: 2),
+        WorkoutSequenceStep.guide(text: 'Pull up and hold in 90 degrees'),
+        WorkoutSequenceStep.count(
+          count: 2,
+          direction: WorkoutCountDirection.ascending,
+        ),
+        WorkoutSequenceStep.guide(text: 'Up by 45 degrees and hold'),
+        WorkoutSequenceStep.count(
+          count: 2,
+          direction: WorkoutCountDirection.ascending,
+        ),
+        WorkoutSequenceStep.guide(
+          text: 'Squeeze and release back to 90 degrees',
+        ),
+        WorkoutSequenceStep.count(
+          count: 2,
+          direction: WorkoutCountDirection.ascending,
+        ),
+        WorkoutSequenceStep.guide(text: 'Down'),
+        WorkoutSequenceStep.sequenceBreak(),
+        WorkoutSequenceStep.end(),
+      ]);
+      expect(
+        workouts.where((workout) => workout.id == sampleWorkout.id),
+        hasLength(1),
+      );
+      expect(
+        workouts.where((workout) => workout.id == customWorkout.id),
+        hasLength(1),
+      );
+
+      await harness.exerciseRepository.saveWorkoutExercise(
+        sampleWorkout.copyWith(notes: 'Attempted update', isArchived: true),
+      );
+      await harness.exerciseRepository.deleteWorkoutExercise(sampleWorkout.id);
+      await harness.definitionExerciseRepository.deleteExercise(
+        sampleExercise!.id,
+      );
+      await harness.reopen();
+      await seedRitmoSampleWorkout(harness.isar);
+
+      final protectedWorkout = await harness.exerciseRepository
+          .getWorkoutExerciseById(sampleWorkout.id);
+      final protectedExercise = await harness.definitionExerciseRepository
+          .getExerciseById(sampleExercise.id);
+      expect(protectedWorkout!.notes, '');
+      expect(protectedWorkout.isArchived, isFalse);
+      expect(protectedExercise, RitmoBuiltinWorkouts.oneStepBicepCurlExercise);
+      expect(
+        await harness.exerciseRepository.getWorkoutExerciseById(customWorkout.id),
+        isNotNull,
+      );
+    });
+
+    test('allows the protected sample to be attached and removed by reference',
+        () async {
+      final harness = testHarness!;
+      await seedRitmoSampleWorkout(harness.isar);
+      const reference = WorkoutGroupWorkoutReference(
+        id: 'sample-group-reference',
+        workoutGroupId: 'group-1',
+        workoutExerciseId: RitmoBuiltinWorkouts.oneStepBicepCurlWorkoutId,
+        displayOrder: 1,
+      );
+
+      await harness.referenceRepository.saveReference(reference);
+      final attached = await harness.referenceRepository.getReferences('group-1');
+      expect(attached, hasLength(1));
+      expect(attached.single.id, reference.id);
+      expect(
+        attached.single.workoutExerciseId,
+        RitmoBuiltinWorkouts.oneStepBicepCurlWorkoutId,
+      );
+      expect(attached.single.displayOrder, 1);
+
+      await harness.referenceRepository.archiveReference(reference.id);
+      expect(
+        await harness.referenceRepository.getReferences('group-1'),
+        isEmpty,
+      );
+      final sample = await harness.exerciseRepository.getWorkoutExerciseById(
+        RitmoBuiltinWorkouts.oneStepBicepCurlWorkoutId,
+      );
+      expect(sample, isNotNull);
+      expect(sample!.isArchived, isFalse);
+    });
   });
 }
 
@@ -790,6 +947,8 @@ class _PersistenceHarness {
   late IsarWorkoutPlanRepository planRepository;
   late IsarWorkoutDayRepository dayRepository;
   late IsarWorkoutGroupRepository groupRepository;
+  late IsarWorkoutGroupWorkoutReferenceRepository referenceRepository;
+  late IsarExerciseRepository definitionExerciseRepository;
   late IsarWorkoutExerciseRepository exerciseRepository;
   late IsarWorkoutHistoryRepository historyRepository;
 
@@ -813,13 +972,17 @@ class _PersistenceHarness {
     );
 
     final isar = _database!.isar;
+    definitionExerciseRepository = IsarExerciseRepository(isar);
     planRepository = IsarWorkoutPlanRepository(isar);
     dayRepository = IsarWorkoutDayRepository(isar);
     groupRepository = IsarWorkoutGroupRepository(isar);
+    referenceRepository = IsarWorkoutGroupWorkoutReferenceRepository(isar);
     exerciseRepository =
         IsarWorkoutExerciseRepository(isar);
     historyRepository = IsarWorkoutHistoryRepository(isar);
   }
+
+  Isar get isar => _database!.isar;
 
   Future<void> reopen() async {
     await close();

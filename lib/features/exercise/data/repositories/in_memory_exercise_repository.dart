@@ -1,5 +1,6 @@
 import '../../domain/entities/exercise.dart';
 import '../../domain/repositories/exercise_repository.dart';
+import '../../../workout_exercise/domain/entities/ritmo_builtin_workouts.dart';
 import '../seed/exercise_seed_data.dart';
 
 class InMemoryExerciseRepository
@@ -38,6 +39,9 @@ class InMemoryExerciseRepository
   Future<void> saveExercise(
     Exercise exercise,
   ) async {
+    if (RitmoBuiltinWorkouts.isBuiltinExerciseId(exercise.id)) {
+      return;
+    }
     final index = _exercises.indexWhere(
       (e) => e.id == exercise.id,
     );
@@ -53,6 +57,9 @@ class InMemoryExerciseRepository
   Future<void> deleteExercise(
     String id,
   ) async {
+    if (RitmoBuiltinWorkouts.isBuiltinExerciseId(id)) {
+      return;
+    }
     final index = _exercises.indexWhere(
       (e) => e.id == id,
     );

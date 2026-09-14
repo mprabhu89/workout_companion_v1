@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/entities/ritmo_builtin_workouts.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/entities/workout_sequence_definition.dart';
+import '../../domain/entities/workout_sequence_step.dart';
 import '../../domain/entities/workout_target_type.dart';
 import '../widgets/workout_exercise_form.dart';
 import '../widgets/workout_sequence_editor.dart';
@@ -78,6 +80,13 @@ class _EditWorkoutExerciseScreenState extends State<EditWorkoutExerciseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (RitmoBuiltinWorkouts.isBuiltinWorkoutId(widget.workoutExercise.id)) {
+      return _BuiltinWorkoutDetails(
+        workoutExercise: widget.workoutExercise,
+        exerciseName: widget.exerciseName,
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Workout Exercise')),
       body: SafeArea(
@@ -166,6 +175,98 @@ class _EditWorkoutExerciseScreenState extends State<EditWorkoutExerciseScreen> {
         return workoutExercise.durationInSeconds?.toString() ?? '';
       default:
         return '';
+    }
+  }
+}
+
+class _BuiltinWorkoutDetails extends StatelessWidget {
+  const _BuiltinWorkoutDetails({
+    required this.workoutExercise,
+    required this.exerciseName,
+  });
+
+  final WorkoutExercise workoutExercise;
+  final String exerciseName;
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = workoutExercise.sequenceDefinition?.steps ?? const [];
+    return Scaffold(
+      appBar: AppBar(title: const Text('RITMO Sample Workout')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(exerciseName, style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 4),
+            Text(
+              'RITMO Sample',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 12),
+            const Text('This RITMO-provided workout is read-only.'),
+            const SizedBox(height: 20),
+            Text('Configuration', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text('Sets: ${workoutExercise.sets ?? '-'}'),
+            Text('Repetitions: ${workoutExercise.repetitions ?? '-'}'),
+            Text('Rest: ${workoutExercise.restInSeconds ?? '-'} seconds'),
+            const SizedBox(height: 20),
+            Text(
+              'Sequence Definition',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            for (var index = 0; index < steps.length; index += 1)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(child: Text('${index + 1}')),
+                title: Text(_stepLabel(steps[index])),
+                subtitle: Text(_stepSummary(steps[index])),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _stepLabel(WorkoutSequenceStep step) {
+    switch (step.type) {
+      case WorkoutSequenceStepType.guide:
+        return 'Guide';
+      case WorkoutSequenceStepType.count:
+        return 'Count';
+      case WorkoutSequenceStepType.countSeconds:
+        return 'Count Seconds';
+      case WorkoutSequenceStepType.counter:
+        return 'Reps - Counter';
+      case WorkoutSequenceStepType.relax:
+        return 'Relax';
+      case WorkoutSequenceStepType.sequenceBreak:
+        return 'Break';
+      case WorkoutSequenceStepType.end:
+        return 'End';
+    }
+  }
+
+  String _stepSummary(WorkoutSequenceStep step) {
+    switch (step.type) {
+      case WorkoutSequenceStepType.guide:
+        return step.text ?? '';
+      case WorkoutSequenceStepType.count:
+      case WorkoutSequenceStepType.countSeconds:
+        final direction = step.countDirection == WorkoutCountDirection.descending
+            ? 'descending'
+            : 'ascending';
+        return '${step.count ?? 0} $direction';
+      case WorkoutSequenceStepType.counter:
+        return '${step.repetitionCount ?? 0} repetitions';
+      case WorkoutSequenceStepType.relax:
+        return '${step.durationInSeconds ?? 0} seconds';
+      case WorkoutSequenceStepType.sequenceBreak:
+        return 'End set';
+      case WorkoutSequenceStepType.end:
+        return 'End workout';
     }
   }
 }
