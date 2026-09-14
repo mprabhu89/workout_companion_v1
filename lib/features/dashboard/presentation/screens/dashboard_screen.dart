@@ -96,6 +96,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onTap: () => context.push('/workout-plans'),
             ),
             _DashboardLinkCard(
+              icon: Icons.fitness_center_outlined,
+              title: 'Workout Library',
+              subtitle: 'Create reusable workouts for any plan group.',
+              onTap: () => context.push('/workout-library'),
+            ),
+            _DashboardLinkCard(
               icon: Icons.history,
               title: 'Workout History',
               subtitle: 'Review completed workouts and session details.',

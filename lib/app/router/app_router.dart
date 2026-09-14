@@ -8,6 +8,7 @@ import '../../features/exercise/presentation/screens/exercise_library_screen.dar
 import '../../features/progress/presentation/screens/progress_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/workout_history/presentation/screens/workout_history_screen.dart';
+import '../../features/workout_exercise/presentation/screens/workout_library_screen.dart';
 import '../../features/workout_plan/presentation/screens/workout_plan_library_screen.dart';
 
 GoRouter createAppRouter({
@@ -40,6 +41,11 @@ GoRouter createAppRouter({
       GoRoute(
         path: '/workout-plans',
         builder: (context, state) => const WorkoutPlanLibraryScreen(),
+      ),
+
+      GoRoute(
+        path: '/workout-library',
+        builder: (context, state) => const WorkoutLibraryScreen(),
       ),
 
       GoRoute(

@@ -1,6 +1,8 @@
 import '../entities/workout_exercise.dart';
 
 abstract interface class WorkoutExerciseRepository {
+  /// Returns all canonical library workouts, excluding archived items.
+  Future<List<WorkoutExercise>> getAllWorkoutExercises();
   /// Returns all workout exercises for a workout group.
   Future<List<WorkoutExercise>> getWorkoutExercises(
     String workoutGroupId,

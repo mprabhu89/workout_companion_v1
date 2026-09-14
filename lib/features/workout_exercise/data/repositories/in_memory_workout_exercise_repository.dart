@@ -6,6 +6,10 @@ class InMemoryWorkoutExerciseRepository
   final List<WorkoutExercise> _workoutExercises = [];
 
   @override
+  Future<List<WorkoutExercise>> getAllWorkoutExercises() async =>
+      List.unmodifiable(_workoutExercises.where((exercise) => !exercise.isArchived));
+
+  @override
   Future<List<WorkoutExercise>> getWorkoutExercises(
     String workoutGroupId,
   ) async {

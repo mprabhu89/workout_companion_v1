@@ -21,31 +21,34 @@ void main() {
         ),
       );
 
-      expect(find.text('Guide - One stop bicep curl'), findsOneWidget);
+      expect(find.text('Guide'), findsNWidgets(3));
+      expect(find.text('One stop bicep curl'), findsOneWidget);
       expect(
-        find.text('Guide - Be in position. Hold the dumbbell in position.'),
+        find.text('Be in position. Hold the dumbbell in position.'),
         findsOneWidget,
       );
-      expect(find.text('Guide - Workout begins in 5 seconds'), findsOneWidget);
-      expect(find.text('Count - 5 descending'), findsOneWidget);
+      expect(find.text('Workout begins in 5 seconds'), findsOneWidget);
+      expect(find.text('5 to 1'), findsOneWidget);
 
       await tester.scrollUntilVisible(
-        find.text('Reps - Counter - Reps: 10'),
+        find.text('10 repetitions'),
         300,
         scrollable: find.byType(Scrollable),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Reps - Counter - Reps: 10'), findsOneWidget);
+      expect(find.text('Reps - Counter'), findsOneWidget);
+      expect(find.text('10 repetitions'), findsOneWidget);
 
       await tester.scrollUntilVisible(
-        find.text('Relax - 2 sec'),
+        find.text('2 seconds'),
         300,
         scrollable: find.byType(Scrollable),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Relax - 2 sec'), findsOneWidget);
+      expect(find.text('Relax'), findsOneWidget);
+      expect(find.text('2 seconds'), findsOneWidget);
       expect(find.text('Break'), findsOneWidget);
       expect(find.text('End'), findsOneWidget);
     });
@@ -70,9 +73,9 @@ void main() {
         ),
       );
 
-      final firstY = tester.getTopLeft(find.text('Guide - First')).dy;
-      final secondY = tester.getTopLeft(find.text('Count - 2 ascending')).dy;
-      final thirdY = tester.getTopLeft(find.text('Relax - 3 sec')).dy;
+      final firstY = tester.getTopLeft(find.text('First')).dy;
+      final secondY = tester.getTopLeft(find.text('1 to 2')).dy;
+      final thirdY = tester.getTopLeft(find.text('3 seconds')).dy;
 
       expect(firstY, lessThan(secondY));
       expect(secondY, lessThan(thirdY));
@@ -178,7 +181,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(savedSequence, isNotNull);
-      expect(savedSequence!.steps.single.type, WorkoutSequenceStepType.countSeconds);
+      expect(
+        savedSequence!.steps.single.type,
+        WorkoutSequenceStepType.countSeconds,
+      );
       expect(savedSequence!.steps.single.count, 3);
       expect(
         savedSequence!.steps.single.countDirection,
@@ -210,11 +216,12 @@ void main() {
           sequenceDefinition.steps.single.type,
           WorkoutSequenceStepType.counter,
         );
-        expect(find.text('Reps - Counter - Reps: 10'), findsOneWidget);
+        expect(find.text('Reps - Counter'), findsOneWidget);
+        expect(find.text('10 repetitions'), findsOneWidget);
 
         await tester.tap(find.byTooltip('Edit Step'));
         await tester.pumpAndSettle();
-        expect(find.text('Reps - Counter'), findsOneWidget);
+        expect(find.text('Reps - Counter').last, findsOneWidget);
         expect(find.text('Reps'), findsOneWidget);
 
         await tester.enterText(
@@ -248,6 +255,55 @@ void main() {
 
       expect(message, isNotNull);
       expect(message, contains('Counter'));
+    });
+
+    testWidgets('uses readable primary and secondary text on a narrow phone', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _testApp(
+          WorkoutSequenceEditor(
+            workoutExercise: _workoutExercise(),
+            sequenceDefinition: WorkoutSequenceDefinition(
+              steps: [
+                WorkoutSequenceStep.guide(
+                  text: 'Begin with a controlled movement and keep breathing.',
+                ),
+                WorkoutSequenceStep.countSeconds(
+                  count: 3,
+                  direction: WorkoutCountDirection.descending,
+                ),
+                WorkoutSequenceStep.counter(repetitionCount: 10),
+              ],
+            ),
+            onChanged: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text('Guide'), findsOneWidget);
+      expect(
+        find.text('Begin with a controlled movement and keep breathing.'),
+        findsOneWidget,
+      );
+      expect(find.text('Count Seconds'), findsOneWidget);
+      expect(find.text('3 to 1 seconds'), findsOneWidget);
+      expect(find.text('10 repetitions'), findsOneWidget);
+
+      final guideSummary = tester.widget<Text>(
+        find.byKey(const Key('sequence_step_summary_0')),
+      );
+      final countType = tester.widget<Text>(
+        find.byKey(const Key('sequence_step_type_1')),
+      );
+      expect(guideSummary.maxLines, 2);
+      expect(guideSummary.overflow, TextOverflow.ellipsis);
+      expect(countType.maxLines, 1);
+      expect(countType.overflow, TextOverflow.ellipsis);
+      expect(tester.takeException(), isNull);
     });
   });
 }

@@ -65,6 +65,7 @@ final class IsarDatabase {
     IsarWorkoutDayRecordSchema,
     IsarWorkoutGroupRecordSchema,
     IsarWorkoutExerciseRecordSchema,
+    IsarWorkoutGroupWorkoutReferenceRecordSchema,
     IsarCompletedWorkoutSessionRecordSchema,
   ];
 }

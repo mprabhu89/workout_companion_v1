@@ -92,15 +92,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
               _VoiceSlider(
-                label: 'Speech Rate',
+                label: 'Voice Pace',
                 lowLabel: 'Slow',
                 highLabel: 'Fast',
-                value: preferences.speechRate,
-                min: VoicePreferences.minSpeechRate,
-                max: VoicePreferences.maxSpeechRate,
-                displayValue: preferences.speechRate.toStringAsFixed(2),
+                value: preferences.voicePaceIndex.toDouble(),
+                min: 0,
+                max: 4,
+                divisions: 4,
+                displayValue: '${preferences.voicePaceMultiplier}x',
                 onChanged: (value) => _controller.update(
-                  preferences.copyWith(speechRate: value),
+                  preferences.copyWith(
+                    speechRate: VoicePreferences.speechRateForVoicePaceIndex(value.round()),
+                    isVoicePaceExplicit: true,
+                  ),
                   persist: false,
                 ),
                 onChangeEnd: (_) => _controller.persist(),
@@ -218,6 +222,7 @@ class _VoiceSlider extends StatelessWidget {
     required this.displayValue,
     required this.onChanged,
     required this.onChangeEnd,
+    this.divisions,
   });
 
   final String label;
@@ -229,6 +234,7 @@ class _VoiceSlider extends StatelessWidget {
   final String displayValue;
   final ValueChanged<double> onChanged;
   final ValueChanged<double> onChangeEnd;
+  final int? divisions;
 
   @override
   Widget build(BuildContext context) {
@@ -248,6 +254,7 @@ class _VoiceSlider extends StatelessWidget {
               value: value,
               min: min,
               max: max,
+              divisions: divisions,
               onChanged: onChanged,
               onChangeEnd: onChangeEnd,
             ),

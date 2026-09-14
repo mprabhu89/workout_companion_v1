@@ -5,10 +5,10 @@ import '../../../../core/widgets/app_delete_confirmation_dialog.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_list_card.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../../workout_exercise/presentation/screens/workout_exercise_library_screen.dart';
 import '../../domain/entities/workout_group.dart';
 import '../controllers/workout_group_controller.dart';
 import 'create_workout_group_screen.dart';
+import 'workout_group_workouts_screen.dart';
 
 class WorkoutGroupLibraryScreen extends StatefulWidget {
   const WorkoutGroupLibraryScreen({
@@ -46,7 +46,7 @@ class _WorkoutGroupLibraryScreenState
   ) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => WorkoutExerciseLibraryScreen(
+        builder: (_) => WorkoutGroupWorkoutsScreen(
           workoutGroupId: workoutGroup.id,
           workoutGroupName: workoutGroup.name,
         ),

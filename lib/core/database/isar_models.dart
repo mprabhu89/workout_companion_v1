@@ -89,7 +89,7 @@ class IsarWorkoutExerciseRecord {
   late String id;
 
   @Index()
-  late String workoutGroupId;
+  String? workoutGroupId;
 
   late String exerciseId;
   late int displayOrder;
@@ -107,6 +107,23 @@ class IsarWorkoutExerciseRecord {
   String notes = '';
   IsarWorkoutSequenceDefinitionRecord?
       sequenceDefinition;
+  bool isArchived = false;
+}
+
+@collection
+class IsarWorkoutGroupWorkoutReferenceRecord {
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late String id;
+
+  @Index()
+  late String workoutGroupId;
+
+  @Index()
+  late String workoutExerciseId;
+
+  late int displayOrder;
   bool isArchived = false;
 }
 

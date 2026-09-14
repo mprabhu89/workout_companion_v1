@@ -35,31 +35,42 @@ class CoachVoiceResolver {
     required CoachVoiceProfile profile,
     required List<SpeechVoice> availableVoices,
   }) {
-    if (availableVoices.isEmpty) {
+    final usableVoices = _distinctUsableVoices(availableVoices);
+    if (usableVoices.isEmpty) {
       return null;
     }
 
-    final englishVoices = availableVoices
+    final englishVoices = usableVoices
         .where((voice) => voice.locale.toLowerCase().startsWith('en'))
         .toList(growable: false);
-    final localeCompatibleVoices =
-        englishVoices.isEmpty ? availableVoices : englishVoices;
+    final localeCompatibleVoices = englishVoices.isEmpty
+        ? usableVoices
+        : englishVoices;
     final preferredGender = profile.preferredGender.name;
-    final genderCompatibleVoice = localeCompatibleVoices
-        .where(
-          (voice) => voice.gender?.toLowerCase() == preferredGender,
-        )
-        .firstOrNull;
+    final genderCompatibleVoices = localeCompatibleVoices
+        .where((voice) => voice.gender?.toLowerCase() == preferredGender)
+        .toList(growable: false);
 
-    return genderCompatibleVoice ?? localeCompatibleVoices.first;
+    final candidates = genderCompatibleVoices.isEmpty
+        ? localeCompatibleVoices
+        : genderCompatibleVoices;
+    final profileIndex = genderCompatibleVoices.isEmpty
+        ? profile.index
+        : _sameGenderProfileIndex(profile);
+
+    return candidates[profileIndex % candidates.length];
   }
 
   SpeechVoice? resolveFallbackVoice({
     required List<SpeechVoice> availableVoices,
     SpeechVoice? excluding,
   }) {
-    final fallbackVoices = availableVoices
-        .where((voice) => voice.name != excluding?.name)
+    final fallbackVoices = _distinctUsableVoices(availableVoices)
+        .where(
+          (voice) =>
+              voice.name != excluding?.name ||
+              voice.locale != excluding?.locale,
+        )
         .toList(growable: false);
 
     if (fallbackVoices.isEmpty) {
@@ -70,5 +81,36 @@ class CoachVoiceResolver {
             .where((voice) => voice.locale.toLowerCase().startsWith('en'))
             .firstOrNull ??
         fallbackVoices.first;
+  }
+
+  List<SpeechVoice> _distinctUsableVoices(List<SpeechVoice> voices) {
+    final offlineVoices = voices
+        .where((voice) => !voice.requiresNetwork)
+        .toList(growable: false);
+    final candidates = offlineVoices.isEmpty ? voices : offlineVoices;
+    final distinct = <String, SpeechVoice>{};
+
+    for (final voice in candidates) {
+      final identity =
+          '${voice.locale.toLowerCase()}\u0000${voice.name.toLowerCase()}';
+      distinct.putIfAbsent(identity, () => voice);
+    }
+
+    final result = distinct.values.toList(growable: false)
+      ..sort((first, second) {
+        final localeComparison = first.locale.compareTo(second.locale);
+        return localeComparison != 0
+            ? localeComparison
+            : first.name.compareTo(second.name);
+      });
+    return result;
+  }
+
+  int _sameGenderProfileIndex(CoachVoiceProfile profile) {
+    return switch (profile) {
+      CoachVoiceProfile.zen || CoachVoiceProfile.serena => 0,
+      CoachVoiceProfile.pulse || CoachVoiceProfile.nova => 1,
+      CoachVoiceProfile.titan || CoachVoiceProfile.valkyrie => 2,
+    };
   }
 }

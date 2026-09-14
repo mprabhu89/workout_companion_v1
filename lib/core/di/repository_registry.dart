@@ -1,4 +1,5 @@
 import '../database/isar_database.dart';
+import '../database/workout_library_migration.dart';
 import '../services/flutter_tts_speech_engine.dart';
 import '../services/speech_engine.dart';
 import '../../features/exercise/data/repositories/in_memory_exercise_repository.dart';
@@ -7,6 +8,9 @@ import '../../features/exercise/domain/repositories/exercise_repository.dart';
 import '../../features/workout_group/data/repositories/in_memory_workout_group_repository.dart';
 import '../../features/workout_group/data/repositories/isar_workout_group_repository.dart';
 import '../../features/workout_group/domain/repositories/workout_group_repository.dart';
+import '../../features/workout_group_workout_reference/data/repositories/in_memory_workout_group_workout_reference_repository.dart';
+import '../../features/workout_group_workout_reference/data/repositories/isar_workout_group_workout_reference_repository.dart';
+import '../../features/workout_group_workout_reference/domain/repositories/workout_group_workout_reference_repository.dart';
 import '../../features/workout_plan/data/repositories/in_memory_workout_plan_repository.dart';
 import '../../features/workout_plan/data/repositories/isar_workout_plan_repository.dart';
 import '../../features/workout_plan/domain/repositories/workout_plan_repository.dart';
@@ -44,6 +48,8 @@ final class RepositoryRegistry {
 
   static WorkoutGroupRepository workoutGroupRepository =
       InMemoryWorkoutGroupRepository();
+  static WorkoutGroupWorkoutReferenceRepository workoutGroupWorkoutReferenceRepository =
+      InMemoryWorkoutGroupWorkoutReferenceRepository();
 
   static WorkoutHistoryRepository workoutHistoryRepository =
       InMemoryWorkoutHistoryRepository();
@@ -68,12 +74,15 @@ final class RepositoryRegistry {
     await voicePreferencesStore.load();
 
     await IsarExerciseRepository.seedIfEmpty(isar);
+    await migrateLegacyWorkoutExercisesToLibrary(isar);
 
     exerciseRepository = IsarExerciseRepository(isar);
     workoutExerciseRepository = IsarWorkoutExerciseRepository(isar);
     workoutPlanRepository = IsarWorkoutPlanRepository(isar);
     workoutDayRepository = IsarWorkoutDayRepository(isar);
     workoutGroupRepository = IsarWorkoutGroupRepository(isar);
+    workoutGroupWorkoutReferenceRepository =
+        IsarWorkoutGroupWorkoutReferenceRepository(isar);
     workoutHistoryRepository = IsarWorkoutHistoryRepository(isar);
 
     _isInitialized = true;
@@ -87,6 +96,8 @@ final class RepositoryRegistry {
     workoutPlanRepository = InMemoryWorkoutPlanRepository();
     workoutDayRepository = InMemoryWorkoutDayRepository();
     workoutGroupRepository = InMemoryWorkoutGroupRepository();
+    workoutGroupWorkoutReferenceRepository =
+        InMemoryWorkoutGroupWorkoutReferenceRepository();
     workoutHistoryRepository = InMemoryWorkoutHistoryRepository();
 
     voicePreferencesStore.dispose();

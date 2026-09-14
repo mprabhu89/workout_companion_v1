@@ -6865,7 +6865,12 @@ int _isarWorkoutExerciseRecordEstimateSize(
   bytesCount += 3 + object.targetTypeName.length * 3;
   bytesCount += 3 + object.tempoTypeName.length * 3;
   bytesCount += 3 + object.weightUnitName.length * 3;
-  bytesCount += 3 + object.workoutGroupId.length * 3;
+  {
+    final value = object.workoutGroupId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -6930,7 +6935,7 @@ IsarWorkoutExerciseRecord _isarWorkoutExerciseRecordDeserialize(
   object.tempoTypeName = reader.readString(offsets[14]);
   object.weight = reader.readDoubleOrNull(offsets[15]);
   object.weightUnitName = reader.readString(offsets[16]);
-  object.workoutGroupId = reader.readString(offsets[17]);
+  object.workoutGroupId = reader.readStringOrNull(offsets[17]);
   return object;
 }
 
@@ -6981,7 +6986,7 @@ P _isarWorkoutExerciseRecordDeserializeProp<P>(
     case 16:
       return (reader.readString(offset)) as P;
     case 17:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -7243,7 +7248,38 @@ extension IsarWorkoutExerciseRecordQueryWhere
     IsarWorkoutExerciseRecord,
     QAfterWhereClause
   >
-  workoutGroupIdEqualTo(String workoutGroupId) {
+  workoutGroupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'workoutGroupId', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutExerciseRecord,
+    IsarWorkoutExerciseRecord,
+    QAfterWhereClause
+  >
+  workoutGroupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'workoutGroupId',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutExerciseRecord,
+    IsarWorkoutExerciseRecord,
+    QAfterWhereClause
+  >
+  workoutGroupIdEqualTo(String? workoutGroupId) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IndexWhereClause.equalTo(
@@ -7259,7 +7295,7 @@ extension IsarWorkoutExerciseRecordQueryWhere
     IsarWorkoutExerciseRecord,
     QAfterWhereClause
   >
-  workoutGroupIdNotEqualTo(String workoutGroupId) {
+  workoutGroupIdNotEqualTo(String? workoutGroupId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -9457,7 +9493,33 @@ extension IsarWorkoutExerciseRecordQueryFilter
     IsarWorkoutExerciseRecord,
     QAfterFilterCondition
   >
-  workoutGroupIdEqualTo(String value, {bool caseSensitive = true}) {
+  workoutGroupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'workoutGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutExerciseRecord,
+    IsarWorkoutExerciseRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'workoutGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutExerciseRecord,
+    IsarWorkoutExerciseRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(
@@ -9475,7 +9537,7 @@ extension IsarWorkoutExerciseRecordQueryFilter
     QAfterFilterCondition
   >
   workoutGroupIdGreaterThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -9497,7 +9559,7 @@ extension IsarWorkoutExerciseRecordQueryFilter
     QAfterFilterCondition
   >
   workoutGroupIdLessThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -9519,8 +9581,8 @@ extension IsarWorkoutExerciseRecordQueryFilter
     QAfterFilterCondition
   >
   workoutGroupIdBetween(
-    String lower,
-    String upper, {
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -10723,7 +10785,1645 @@ extension IsarWorkoutExerciseRecordQueryProperty
     });
   }
 
-  QueryBuilder<IsarWorkoutExerciseRecord, String, QQueryOperations>
+  QueryBuilder<IsarWorkoutExerciseRecord, String?, QQueryOperations>
+  workoutGroupIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'workoutGroupId');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+extension GetIsarWorkoutGroupWorkoutReferenceRecordCollection on Isar {
+  IsarCollection<IsarWorkoutGroupWorkoutReferenceRecord>
+  get isarWorkoutGroupWorkoutReferenceRecords => this.collection();
+}
+
+const IsarWorkoutGroupWorkoutReferenceRecordSchema = CollectionSchema(
+  name: r'IsarWorkoutGroupWorkoutReferenceRecord',
+  id: -4459050030333306619,
+  properties: {
+    r'displayOrder': PropertySchema(
+      id: 0,
+      name: r'displayOrder',
+      type: IsarType.long,
+    ),
+    r'id': PropertySchema(id: 1, name: r'id', type: IsarType.string),
+    r'isArchived': PropertySchema(
+      id: 2,
+      name: r'isArchived',
+      type: IsarType.bool,
+    ),
+    r'workoutExerciseId': PropertySchema(
+      id: 3,
+      name: r'workoutExerciseId',
+      type: IsarType.string,
+    ),
+    r'workoutGroupId': PropertySchema(
+      id: 4,
+      name: r'workoutGroupId',
+      type: IsarType.string,
+    ),
+  },
+
+  estimateSize: _isarWorkoutGroupWorkoutReferenceRecordEstimateSize,
+  serialize: _isarWorkoutGroupWorkoutReferenceRecordSerialize,
+  deserialize: _isarWorkoutGroupWorkoutReferenceRecordDeserialize,
+  deserializeProp: _isarWorkoutGroupWorkoutReferenceRecordDeserializeProp,
+  idName: r'isarId',
+  indexes: {
+    r'id': IndexSchema(
+      id: -3268401673993471357,
+      name: r'id',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'id',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
+    r'workoutGroupId': IndexSchema(
+      id: 7726520331874482434,
+      name: r'workoutGroupId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'workoutGroupId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
+    r'workoutExerciseId': IndexSchema(
+      id: -4942265476646082112,
+      name: r'workoutExerciseId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'workoutExerciseId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
+  },
+  links: {},
+  embeddedSchemas: {},
+
+  getId: _isarWorkoutGroupWorkoutReferenceRecordGetId,
+  getLinks: _isarWorkoutGroupWorkoutReferenceRecordGetLinks,
+  attach: _isarWorkoutGroupWorkoutReferenceRecordAttach,
+  version: '3.3.2',
+);
+
+int _isarWorkoutGroupWorkoutReferenceRecordEstimateSize(
+  IsarWorkoutGroupWorkoutReferenceRecord object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.id.length * 3;
+  bytesCount += 3 + object.workoutExerciseId.length * 3;
+  bytesCount += 3 + object.workoutGroupId.length * 3;
+  return bytesCount;
+}
+
+void _isarWorkoutGroupWorkoutReferenceRecordSerialize(
+  IsarWorkoutGroupWorkoutReferenceRecord object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeLong(offsets[0], object.displayOrder);
+  writer.writeString(offsets[1], object.id);
+  writer.writeBool(offsets[2], object.isArchived);
+  writer.writeString(offsets[3], object.workoutExerciseId);
+  writer.writeString(offsets[4], object.workoutGroupId);
+}
+
+IsarWorkoutGroupWorkoutReferenceRecord
+_isarWorkoutGroupWorkoutReferenceRecordDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = IsarWorkoutGroupWorkoutReferenceRecord();
+  object.displayOrder = reader.readLong(offsets[0]);
+  object.id = reader.readString(offsets[1]);
+  object.isArchived = reader.readBool(offsets[2]);
+  object.isarId = id;
+  object.workoutExerciseId = reader.readString(offsets[3]);
+  object.workoutGroupId = reader.readString(offsets[4]);
+  return object;
+}
+
+P _isarWorkoutGroupWorkoutReferenceRecordDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readLong(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readBool(offset)) as P;
+    case 3:
+      return (reader.readString(offset)) as P;
+    case 4:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+Id _isarWorkoutGroupWorkoutReferenceRecordGetId(
+  IsarWorkoutGroupWorkoutReferenceRecord object,
+) {
+  return object.isarId;
+}
+
+List<IsarLinkBase<dynamic>> _isarWorkoutGroupWorkoutReferenceRecordGetLinks(
+  IsarWorkoutGroupWorkoutReferenceRecord object,
+) {
+  return [];
+}
+
+void _isarWorkoutGroupWorkoutReferenceRecordAttach(
+  IsarCollection<dynamic> col,
+  Id id,
+  IsarWorkoutGroupWorkoutReferenceRecord object,
+) {
+  object.isarId = id;
+}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordByIndex
+    on IsarCollection<IsarWorkoutGroupWorkoutReferenceRecord> {
+  Future<IsarWorkoutGroupWorkoutReferenceRecord?> getById(String id) {
+    return getByIndex(r'id', [id]);
+  }
+
+  IsarWorkoutGroupWorkoutReferenceRecord? getByIdSync(String id) {
+    return getByIndexSync(r'id', [id]);
+  }
+
+  Future<bool> deleteById(String id) {
+    return deleteByIndex(r'id', [id]);
+  }
+
+  bool deleteByIdSync(String id) {
+    return deleteByIndexSync(r'id', [id]);
+  }
+
+  Future<List<IsarWorkoutGroupWorkoutReferenceRecord?>> getAllById(
+    List<String> idValues,
+  ) {
+    final values = idValues.map((e) => [e]).toList();
+    return getAllByIndex(r'id', values);
+  }
+
+  List<IsarWorkoutGroupWorkoutReferenceRecord?> getAllByIdSync(
+    List<String> idValues,
+  ) {
+    final values = idValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'id', values);
+  }
+
+  Future<int> deleteAllById(List<String> idValues) {
+    final values = idValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'id', values);
+  }
+
+  int deleteAllByIdSync(List<String> idValues) {
+    final values = idValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'id', values);
+  }
+
+  Future<Id> putById(IsarWorkoutGroupWorkoutReferenceRecord object) {
+    return putByIndex(r'id', object);
+  }
+
+  Id putByIdSync(
+    IsarWorkoutGroupWorkoutReferenceRecord object, {
+    bool saveLinks = true,
+  }) {
+    return putByIndexSync(r'id', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllById(
+    List<IsarWorkoutGroupWorkoutReferenceRecord> objects,
+  ) {
+    return putAllByIndex(r'id', objects);
+  }
+
+  List<Id> putAllByIdSync(
+    List<IsarWorkoutGroupWorkoutReferenceRecord> objects, {
+    bool saveLinks = true,
+  }) {
+    return putAllByIndexSync(r'id', objects, saveLinks: saveLinks);
+  }
+}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordQueryWhereSort
+    on
+        QueryBuilder<
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          QWhere
+        > {
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhere
+  >
+  anyIsarId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordQueryWhere
+    on
+        QueryBuilder<
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          QWhereClause
+        > {
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  isarIdEqualTo(Id isarId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.between(lower: isarId, upper: isarId),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  isarIdNotEqualTo(Id isarId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: isarId, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: isarId, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: isarId, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: isarId, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  isarIdGreaterThan(Id isarId, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: isarId, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  isarIdLessThan(Id isarId, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: isarId, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  isarIdBetween(
+    Id lowerIsarId,
+    Id upperIsarId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerIsarId,
+          includeLower: includeLower,
+          upper: upperIsarId,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  idEqualTo(String id) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'id', value: [id]),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  idNotEqualTo(String id) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'id',
+                lower: [],
+                upper: [id],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'id',
+                lower: [id],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'id',
+                lower: [id],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'id',
+                lower: [],
+                upper: [id],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  workoutGroupIdEqualTo(String workoutGroupId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'workoutGroupId',
+          value: [workoutGroupId],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  workoutGroupIdNotEqualTo(String workoutGroupId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'workoutGroupId',
+                lower: [],
+                upper: [workoutGroupId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'workoutGroupId',
+                lower: [workoutGroupId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'workoutGroupId',
+                lower: [workoutGroupId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'workoutGroupId',
+                lower: [],
+                upper: [workoutGroupId],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  workoutExerciseIdEqualTo(String workoutExerciseId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'workoutExerciseId',
+          value: [workoutExerciseId],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterWhereClause
+  >
+  workoutExerciseIdNotEqualTo(String workoutExerciseId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'workoutExerciseId',
+                lower: [],
+                upper: [workoutExerciseId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'workoutExerciseId',
+                lower: [workoutExerciseId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'workoutExerciseId',
+                lower: [workoutExerciseId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'workoutExerciseId',
+                lower: [],
+                upper: [workoutExerciseId],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordQueryFilter
+    on
+        QueryBuilder<
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          QFilterCondition
+        > {
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  displayOrderEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'displayOrder', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  displayOrderGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'displayOrder',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  displayOrderLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'displayOrder',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  displayOrderBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'displayOrder',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idLessThan(String value, {bool include = false, bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'id',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  idIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'id', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  isArchivedEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isArchived', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  isarIdEqualTo(Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isarId', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  isarIdGreaterThan(Id value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'isarId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  isarIdLessThan(Id value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'isarId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  isarIdBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'isarId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'workoutExerciseId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'workoutExerciseId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'workoutExerciseId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'workoutExerciseId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'workoutExerciseId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'workoutExerciseId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'workoutExerciseId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'workoutExerciseId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'workoutExerciseId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutExerciseIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'workoutExerciseId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'workoutGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'workoutGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'workoutGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'workoutGroupId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'workoutGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'workoutGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'workoutGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'workoutGroupId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'workoutGroupId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterFilterCondition
+  >
+  workoutGroupIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'workoutGroupId', value: ''),
+      );
+    });
+  }
+}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordQueryObject
+    on
+        QueryBuilder<
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          QFilterCondition
+        > {}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordQueryLinks
+    on
+        QueryBuilder<
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          QFilterCondition
+        > {}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordQuerySortBy
+    on
+        QueryBuilder<
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          QSortBy
+        > {
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortByDisplayOrder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortByDisplayOrderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortByIsArchived() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isArchived', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortByIsArchivedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isArchived', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortByWorkoutExerciseId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'workoutExerciseId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortByWorkoutExerciseIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'workoutExerciseId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortByWorkoutGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'workoutGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  sortByWorkoutGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'workoutGroupId', Sort.desc);
+    });
+  }
+}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordQuerySortThenBy
+    on
+        QueryBuilder<
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          QSortThenBy
+        > {
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByDisplayOrder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByDisplayOrderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByIsArchived() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isArchived', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByIsArchivedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isArchived', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByIsarId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isarId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByIsarIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isarId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByWorkoutExerciseId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'workoutExerciseId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByWorkoutExerciseIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'workoutExerciseId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByWorkoutGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'workoutGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QAfterSortBy
+  >
+  thenByWorkoutGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'workoutGroupId', Sort.desc);
+    });
+  }
+}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordQueryWhereDistinct
+    on
+        QueryBuilder<
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          QDistinct
+        > {
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QDistinct
+  >
+  distinctByDisplayOrder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'displayOrder');
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QDistinct
+  >
+  distinctById({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'id', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QDistinct
+  >
+  distinctByIsArchived() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isArchived');
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QDistinct
+  >
+  distinctByWorkoutExerciseId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'workoutExerciseId',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
+  QueryBuilder<
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    IsarWorkoutGroupWorkoutReferenceRecord,
+    QDistinct
+  >
+  distinctByWorkoutGroupId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'workoutGroupId',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+}
+
+extension IsarWorkoutGroupWorkoutReferenceRecordQueryProperty
+    on
+        QueryBuilder<
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          IsarWorkoutGroupWorkoutReferenceRecord,
+          QQueryProperty
+        > {
+  QueryBuilder<IsarWorkoutGroupWorkoutReferenceRecord, int, QQueryOperations>
+  isarIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isarId');
+    });
+  }
+
+  QueryBuilder<IsarWorkoutGroupWorkoutReferenceRecord, int, QQueryOperations>
+  displayOrderProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'displayOrder');
+    });
+  }
+
+  QueryBuilder<IsarWorkoutGroupWorkoutReferenceRecord, String, QQueryOperations>
+  idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<IsarWorkoutGroupWorkoutReferenceRecord, bool, QQueryOperations>
+  isArchivedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isArchived');
+    });
+  }
+
+  QueryBuilder<IsarWorkoutGroupWorkoutReferenceRecord, String, QQueryOperations>
+  workoutExerciseIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'workoutExerciseId');
+    });
+  }
+
+  QueryBuilder<IsarWorkoutGroupWorkoutReferenceRecord, String, QQueryOperations>
   workoutGroupIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'workoutGroupId');

@@ -10,6 +10,7 @@ import '../../features/workout_exercise/domain/entities/workout_sequence_definit
 import '../../features/workout_exercise/domain/entities/workout_sequence_step.dart';
 import '../../features/workout_exercise/domain/entities/workout_target_type.dart';
 import '../../features/workout_group/domain/entities/workout_group.dart';
+import '../../features/workout_group_workout_reference/domain/entities/workout_group_workout_reference.dart';
 import '../../features/workout_history/domain/entities/completed_workout_session.dart';
 import '../../features/workout_plan/domain/entities/workout_plan.dart';
 import '../../features/workout_plan/domain/enums/workout_plan_category.dart';
@@ -29,6 +30,29 @@ IsarExerciseRecord mapExerciseToRecord(
     ..difficultyName = exercise.difficulty.name
     ..isCustom = exercise.isCustom
     ..isArchived = exercise.isArchived;
+}
+
+IsarWorkoutGroupWorkoutReferenceRecord mapWorkoutGroupWorkoutReferenceToRecord(
+  WorkoutGroupWorkoutReference reference,
+) {
+  return IsarWorkoutGroupWorkoutReferenceRecord()
+    ..id = reference.id
+    ..workoutGroupId = reference.workoutGroupId
+    ..workoutExerciseId = reference.workoutExerciseId
+    ..displayOrder = reference.displayOrder
+    ..isArchived = reference.isArchived;
+}
+
+WorkoutGroupWorkoutReference mapWorkoutGroupWorkoutReferenceFromRecord(
+  IsarWorkoutGroupWorkoutReferenceRecord record,
+) {
+  return WorkoutGroupWorkoutReference(
+    id: record.id,
+    workoutGroupId: record.workoutGroupId,
+    workoutExerciseId: record.workoutExerciseId,
+    displayOrder: record.displayOrder,
+    isArchived: record.isArchived,
+  );
 }
 
 Exercise mapExerciseFromRecord(

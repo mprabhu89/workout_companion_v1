@@ -682,6 +682,7 @@ void main() {
         final controller = WorkoutSessionController(
           session: session,
           voiceCoach: VoiceCoachService(speechEngine: speechEngine),
+          coachCadenceDelay: Duration.zero,
         );
         var completionNotifications = 0;
         controller.addListener(() {

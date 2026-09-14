@@ -26,10 +26,11 @@ void main() {
         expect(store.preferences.isEnabled, isTrue);
         expect(store.preferences.coachVoiceMode, CoachVoiceMode.ritmoAuto);
         expect(store.preferences.selectedCoachVoice, CoachVoiceProfile.pulse);
-        expect(store.preferences.speechRate, 0.5);
+        expect(store.preferences.speechRate, 0.35);
+        expect(store.preferences.voicePaceMultiplier, 1);
         expect(
-          store.preferences.speechRate,
-          (VoicePreferences.minSpeechRate + VoicePreferences.maxSpeechRate) / 2,
+          store.preferences.coachCadenceDelay,
+          const Duration(milliseconds: 700),
         );
         expect(store.preferences.pitch, 1.0);
         expect(store.preferences.volume, 1.0);
@@ -48,6 +49,7 @@ void main() {
             coachVoiceMode: CoachVoiceMode.chooseMyCoach,
             selectedCoachVoice: CoachVoiceProfile.valkyrie,
             speechRate: 0.6,
+            isVoicePaceExplicit: true,
             pitch: 1.2,
             volume: 0.75,
           ),
@@ -66,6 +68,7 @@ void main() {
           CoachVoiceProfile.valkyrie,
         );
         expect(reopenedStore.preferences.speechRate, 0.6);
+        expect(reopenedStore.preferences.isVoicePaceExplicit, isTrue);
         expect(reopenedStore.preferences.pitch, 1.2);
         expect(reopenedStore.preferences.volume, 0.75);
       },
@@ -77,6 +80,40 @@ void main() {
       expect(preferences.speechRate, VoicePreferences.maxSpeechRate);
       expect(preferences.pitch, VoicePreferences.minPitch);
       expect(preferences.volume, VoicePreferences.maxVolume);
+    });
+
+    test('normalizes arbitrary rates to the five Voice Pace steps', () {
+      expect(VoicePreferences(speechRate: 0.16).voicePaceMultiplier, 0.25);
+      expect(VoicePreferences(speechRate: 0.34).voicePaceMultiplier, 1);
+      expect(VoicePreferences(speechRate: 0.44).voicePaceMultiplier, 1.5);
+      expect(VoicePreferences(speechRate: 0.8).voicePaceMultiplier, 2);
+    });
+
+    test('preserves previous Voice Pace selections on the calmer curve', () {
+      expect(VoicePreferences.normalizePersistedSpeechRate(0.25), 0.15);
+      expect(VoicePreferences.normalizePersistedSpeechRate(0.33), 0.25);
+      expect(VoicePreferences.normalizePersistedSpeechRate(0.42), 0.35);
+      expect(VoicePreferences.normalizePersistedSpeechRate(0.55), 0.45);
+      expect(VoicePreferences.normalizePersistedSpeechRate(0.7), 0.6);
+    });
+
+    test('maps every Voice Pace step to its engine rate and coach delay', () {
+      final expected = <double, ({double rate, Duration delay})>{
+        0.25: (rate: 0.15, delay: const Duration(milliseconds: 1100)),
+        0.5: (rate: 0.25, delay: const Duration(milliseconds: 900)),
+        1: (rate: 0.35, delay: const Duration(milliseconds: 700)),
+        1.5: (rate: 0.45, delay: const Duration(milliseconds: 500)),
+        2: (rate: 0.6, delay: const Duration(milliseconds: 350)),
+      };
+
+      for (var index = 0; index < VoicePreferences.voicePaceMultipliers.length; index++) {
+        final preferences = VoicePreferences(
+          speechRate: VoicePreferences.speechRateForVoicePaceIndex(index),
+        );
+        final values = expected[preferences.voicePaceMultiplier]!;
+        expect(preferences.speechRate, values.rate);
+        expect(preferences.coachCadenceDelay, values.delay);
+      }
     });
 
     test('all fixed coach profiles remain selectable', () {
@@ -114,6 +151,7 @@ void main() {
               coachVoiceMode: CoachVoiceMode.chooseMyCoach,
               selectedCoachVoice: CoachVoiceProfile.nova,
               speechRate: 0.6,
+              isVoicePaceExplicit: true,
               pitch: 1.2,
               volume: 0.75,
             ),
@@ -144,7 +182,8 @@ void main() {
           repository: _MemoryRepository(
             value: VoicePreferences(
               isEnabled: false,
-              speechRate: 0.55,
+              speechRate: 0.6,
+              isVoicePaceExplicit: true,
               pitch: 1.1,
               volume: 0.5,
             ),
@@ -159,7 +198,7 @@ void main() {
         await controller.load();
         await controller.testVoice();
 
-        expect(engine.speechRates, [0.55, 0.55]);
+        expect(engine.speechRates, [0.6, 0.6]);
         expect(engine.pitches, [1.1, 1.1]);
         expect(engine.volumes, [0.5, 0.5]);
         expect(engine.spokenMessages, ["Ready. Let's begin your workout."]);
@@ -193,44 +232,145 @@ void main() {
       expect(engine.spokenMessages.single, "Ready. Let's begin your workout.");
     });
 
-    test('voice discovery and voice-selection failures fall back safely', () async {
-      final discoveryFailureEngine = _FakeSpeechEngine(
-        throwOnVoiceDiscovery: true,
-      );
-      final selectionFailureEngine = _FakeSpeechEngine(
-        availableVoices: const [
-          SpeechVoice(name: 'Default', locale: 'en-US'),
-        ],
-        throwOnSetVoice: true,
-      );
-      final preferences = VoicePreferences(
-        coachVoiceMode: CoachVoiceMode.chooseMyCoach,
-        selectedCoachVoice: CoachVoiceProfile.serena,
-      );
+    test(
+      'voice discovery and voice-selection failures fall back safely',
+      () async {
+        final discoveryFailureEngine = _FakeSpeechEngine(
+          throwOnVoiceDiscovery: true,
+        );
+        final selectionFailureEngine = _FakeSpeechEngine(
+          availableVoices: const [
+            SpeechVoice(name: 'Default', locale: 'en-US'),
+          ],
+          throwOnSetVoice: true,
+        );
+        final preferences = VoicePreferences(
+          coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+          selectedCoachVoice: CoachVoiceProfile.serena,
+        );
 
-      final discoveryFailureCoach = VoiceCoachService(
-        speechEngine: discoveryFailureEngine,
-      );
-      await discoveryFailureCoach.applyPreferences(preferences);
-      await discoveryFailureCoach.speakText('Continue');
+        final discoveryFailureCoach = VoiceCoachService(
+          speechEngine: discoveryFailureEngine,
+        );
+        await discoveryFailureCoach.applyPreferences(preferences);
+        await discoveryFailureCoach.speakText('Continue');
 
-      final selectionFailureCoach = VoiceCoachService(
-        speechEngine: selectionFailureEngine,
-      );
-      await selectionFailureCoach.applyPreferences(preferences);
-      await selectionFailureCoach.speakText('Continue');
+        final selectionFailureCoach = VoiceCoachService(
+          speechEngine: selectionFailureEngine,
+        );
+        await selectionFailureCoach.applyPreferences(preferences);
+        await selectionFailureCoach.speakText('Continue');
 
-      expect(discoveryFailureEngine.spokenMessages, ['Continue']);
-      expect(selectionFailureEngine.clearVoiceCount, 1);
-      expect(selectionFailureEngine.spokenMessages, ['Continue']);
-    });
+        expect(discoveryFailureEngine.spokenMessages, ['Continue']);
+        expect(discoveryFailureEngine.clearVoiceCount, 1);
+        expect(selectionFailureEngine.clearVoiceCount, 1);
+        expect(selectionFailureEngine.spokenMessages, ['Continue']);
+      },
+    );
+
+    test(
+      'an unavailable preferred voice falls through to another installed voice',
+      () async {
+        final engine = _FakeSpeechEngine(
+          availableVoices: const [
+            SpeechVoice(name: 'Preferred', locale: 'en-US', gender: 'male'),
+            SpeechVoice(name: 'Fallback', locale: 'en-US'),
+          ],
+          unavailableVoiceNames: {'Preferred'},
+        );
+        final coach = VoiceCoachService(speechEngine: engine);
+
+        await coach.applyPreferences(
+          VoicePreferences(
+            coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+            selectedCoachVoice: CoachVoiceProfile.zen,
+          ),
+        );
+        await coach.speakText('Continue');
+
+        expect(engine.selectedVoices.single.name, 'Fallback');
+        expect(engine.selectedVoices.single.locale, 'en-US');
+        expect(engine.spokenMessages, ['Continue']);
+      },
+    );
+
+    test(
+      'all coach profiles continue speaking when only one voice is installed',
+      () async {
+        for (final profile in CoachVoiceProfile.values) {
+          final engine = _FakeSpeechEngine(
+            availableVoices: const [
+              SpeechVoice(name: 'System', locale: 'en-US'),
+            ],
+          );
+          final coach = VoiceCoachService(speechEngine: engine);
+
+          await coach.applyPreferences(
+            VoicePreferences(
+              coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+              selectedCoachVoice: profile,
+            ),
+          );
+          await coach.speakText('Continue');
+
+          expect(engine.spokenMessages, ['Continue']);
+        }
+      },
+    );
+
+    test(
+      'neutral controls use the selected coach delivery characteristics',
+      () async {
+        final engine = _FakeSpeechEngine();
+        final coach = VoiceCoachService(speechEngine: engine);
+
+        await coach.applyPreferences(
+          VoicePreferences(
+            coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+            selectedCoachVoice: CoachVoiceProfile.zen,
+          ),
+        );
+
+        expect(engine.speechRates, [VoicePreferences.defaultSpeechRate]);
+        expect(engine.pitches, [CoachVoiceProfile.zen.neutralPitch]);
+        expect(engine.volumes, [VoicePreferences.defaultVolume]);
+      },
+    );
+
+    test(
+      'custom pace, pitch, and volume override coach delivery defaults',
+      () async {
+        final engine = _FakeSpeechEngine();
+        final coach = VoiceCoachService(speechEngine: engine);
+
+        await coach.applyPreferences(
+          VoicePreferences(
+            coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+            selectedCoachVoice: CoachVoiceProfile.titan,
+            speechRate: 0.6,
+            isVoicePaceExplicit: true,
+            pitch: 1.18,
+            volume: 0.72,
+          ),
+        );
+
+        expect(engine.speechRates, [0.6]);
+        expect(engine.pitches, [1.18]);
+        expect(engine.volumes, [0.72]);
+      },
+    );
 
     testWidgets(
       'Settings renders saved values and updates enabled preference',
       (tester) async {
         final store = VoicePreferencesStore(
           repository: _MemoryRepository(
-            value: VoicePreferences(speechRate: 0.6, pitch: 1.2, volume: 0.75),
+            value: VoicePreferences(
+              speechRate: 0.45,
+              isVoicePaceExplicit: true,
+              pitch: 1.2,
+              volume: 0.75,
+            ),
           ),
         );
         final controller = VoicePreferencesController(
@@ -245,7 +385,7 @@ void main() {
 
         expect(find.text('Voice Coach'), findsOneWidget);
         expect(find.text('RITMO Auto - Recommended'), findsOneWidget);
-        expect(find.text('0.60'), findsOneWidget);
+        expect(find.text('1.5x'), findsOneWidget);
         expect(find.text('1.20'), findsOneWidget);
         expect(find.text('75%'), findsOneWidget);
 
@@ -286,6 +426,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.drag(find.byType(ListView).first, const Offset(0, -240));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Settings'));
       await tester.pumpAndSettle();
 
@@ -328,11 +470,13 @@ class _FakeSpeechEngine implements SpeechEngine, VoiceProfileSpeechEngine {
     this.availableVoices = const [],
     this.throwOnVoiceDiscovery = false,
     this.throwOnSetVoice = false,
+    this.unavailableVoiceNames = const {},
   });
 
   final List<SpeechVoice> availableVoices;
   final bool throwOnVoiceDiscovery;
   final bool throwOnSetVoice;
+  final Set<String> unavailableVoiceNames;
   final List<String> spokenMessages = [];
   final List<double> speechRates = [];
   final List<double> pitches = [];
@@ -384,7 +528,7 @@ class _FakeSpeechEngine implements SpeechEngine, VoiceProfileSpeechEngine {
 
   @override
   Future<void> setVoice(SpeechVoice voice) async {
-    if (throwOnSetVoice) {
+    if (throwOnSetVoice || unavailableVoiceNames.contains(voice.name)) {
       throw StateError('Voice unavailable');
     }
     selectedVoices.add(voice);

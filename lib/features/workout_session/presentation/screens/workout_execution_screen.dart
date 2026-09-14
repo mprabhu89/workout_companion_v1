@@ -89,7 +89,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _refresh() {
     if (mounted) {
       setState(() {});
-      unawaited(_announceCurrentSessionState());
+      if (_controller.session.status != WorkoutSessionStatus.completed) {
+        unawaited(_announceCurrentSessionState());
+      }
     }
   }
 
@@ -180,14 +182,28 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     }
     _completionHandled = true;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) {
-        return;
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_completeWorkout(session));
+    });
+  }
 
-      final completedAt = session.completedAt ?? DateTime.now();
-      final startedAt = session.startedAt ?? completedAt;
-      final completedSession = CompletedWorkoutSession(
+  Future<void> _completeWorkout(WorkoutSession session) async {
+    if (!mounted) {
+      return;
+    }
+
+    // FlutterTtsSpeechEngine awaits the platform completion callback. Keep
+    // this screen alive until the final utterance finishes before replacing
+    // it, because disposal stops the active voice coach.
+    await _announceCurrentSessionState();
+
+    if (!mounted) {
+      return;
+    }
+
+    final completedAt = session.completedAt ?? DateTime.now();
+    final startedAt = session.startedAt ?? completedAt;
+    final completedSession = CompletedWorkoutSession(
         id: const Uuid().v4(),
         workoutPlanId: session.workoutPlanId ?? '',
         workoutPlanName: session.workoutPlanName ?? 'Workout',
@@ -199,20 +215,19 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         completedExercises: session.completedExerciseCount,
         totalExercises: session.totalExercises,
         wasCompleted: true,
-      );
+    );
 
-      await _workoutHistoryRepository.saveSession(completedSession);
+    await _workoutHistoryRepository.saveSession(completedSession);
 
-      if (!mounted) {
-        return;
-      }
+    if (!mounted) {
+      return;
+    }
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => WorkoutCompletionScreen(session: completedSession),
-        ),
-      );
-    });
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => WorkoutCompletionScreen(session: completedSession),
+      ),
+    );
   }
 
   bool get _canLeaveScreen =>

@@ -23,6 +23,8 @@ void main() {
     expect(find.text('Progress'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
     expect(find.byTooltip('More options'), findsOneWidget);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -260));
+    await tester.pumpAndSettle();
     expect(find.text('No workout history yet'), findsOneWidget);
   });
 

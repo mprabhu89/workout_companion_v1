@@ -1,5 +1,6 @@
 import '../../../../core/services/speech_engine.dart';
 import '../../../exercise/domain/entities/exercise.dart';
+import '../../../settings/domain/entities/coach_voice_profile.dart';
 import '../../../settings/domain/entities/voice_preferences.dart';
 import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
@@ -25,8 +26,10 @@ class VoiceCoachService {
 
   bool _isEnabled;
   bool _isDisposed = false;
+  Duration _coachCadenceDelay = const Duration(milliseconds: 700);
 
   bool get isEnabled => _isEnabled;
+  Duration get coachCadenceDelay => _coachCadenceDelay;
 
   Future<void> setEnabled(bool enabled) async {
     _isEnabled = enabled;
@@ -45,10 +48,8 @@ class VoiceCoachService {
     }
 
     _isEnabled = preferences.isEnabled;
-    await _safeConfigure(
-      preferences,
-      workoutPlanCategory: workoutPlanCategory,
-    );
+    _coachCadenceDelay = preferences.coachCadenceDelay;
+    await _safeConfigure(preferences, workoutPlanCategory: workoutPlanCategory);
 
     if (!_isEnabled) {
       await _safeStop();
@@ -98,16 +99,22 @@ class VoiceCoachService {
   }
 
   Future<void> speakText(String text) async {
+    await speakSequenceText(text);
+  }
+
+  /// Returns whether speech completed, so sequence orchestration can add
+  /// cadence only after audible guidance.
+  Future<bool> speakSequenceText(String text) async {
     if (!_isEnabled || _isDisposed) {
-      return;
+      return false;
     }
 
     final trimmed = text.trim();
     if (trimmed.isEmpty) {
-      return;
+      return false;
     }
 
-    await _safeSpeak(trimmed);
+    return _safeSpeak(trimmed);
   }
 
   Future<void> previewText(String text) async {
@@ -177,7 +184,7 @@ class VoiceCoachService {
       case WorkoutSessionStatus.completed:
         return const _VoiceAnnouncement(
           key: 'workout-completed',
-          message: 'Workout complete. Great work.',
+          message: 'Workout completed.',
         );
     }
   }
@@ -238,11 +245,13 @@ class VoiceCoachService {
     return parts.join(', ');
   }
 
-  Future<void> _safeSpeak(String message) async {
+  Future<bool> _safeSpeak(String message) async {
     try {
       await _speechEngine.speak(message);
+      return true;
     } catch (_) {
       // Voice coach must never block workout execution.
+      return false;
     }
   }
 
@@ -274,23 +283,25 @@ class VoiceCoachService {
     VoicePreferences preferences, {
     WorkoutPlanCategory? workoutPlanCategory,
   }) async {
+    final profile = _coachVoiceResolver.resolveProfile(
+      preferences: preferences,
+      workoutPlanCategory: workoutPlanCategory,
+    );
     try {
-      await _speechEngine.setSpeechRate(preferences.speechRate);
-      await _speechEngine.setPitch(preferences.pitch);
+      await _speechEngine.setSpeechRate(
+        _effectiveSpeechRate(preferences, profile),
+      );
+      await _speechEngine.setPitch(_effectivePitch(preferences, profile));
       await _speechEngine.setVolume(preferences.volume);
     } catch (_) {
       // Voice coach must never block workout execution.
     }
 
-    await _safeConfigureCoachVoice(
-      preferences,
-      workoutPlanCategory: workoutPlanCategory,
-    );
+    await _safeConfigureCoachVoice(profile: profile);
   }
 
-  Future<void> _safeConfigureCoachVoice(
-    VoicePreferences preferences, {
-    WorkoutPlanCategory? workoutPlanCategory,
+  Future<void> _safeConfigureCoachVoice({
+    required CoachVoiceProfile profile,
   }) async {
     final Object speechEngineCandidate = _speechEngine;
     if (speechEngineCandidate is! VoiceProfileSpeechEngine) {
@@ -298,15 +309,13 @@ class VoiceCoachService {
     }
     final speechEngine = speechEngineCandidate;
 
-    final profile = _coachVoiceResolver.resolveProfile(
-      preferences: preferences,
-      workoutPlanCategory: workoutPlanCategory,
-    );
-
     List<SpeechVoice> voices;
     try {
       voices = await speechEngine.getAvailableVoices();
     } catch (_) {
+      // A discovery failure must not leave a previous unavailable profile voice
+      // selected. The engine's default voice remains the final safe fallback.
+      await _safeClearVoice(speechEngine);
       return;
     }
 
@@ -344,14 +353,28 @@ class VoiceCoachService {
     await _safeClearVoice(speechEngine);
   }
 
-  Future<void> _safeClearVoice(
-    VoiceProfileSpeechEngine speechEngine,
-  ) async {
+  Future<void> _safeClearVoice(VoiceProfileSpeechEngine speechEngine) async {
     try {
       await speechEngine.clearVoice();
     } catch (_) {
       // Voice coach must never block workout execution.
     }
+  }
+
+  double _effectiveSpeechRate(
+    VoicePreferences preferences,
+    CoachVoiceProfile profile,
+  ) {
+    return preferences.speechRate;
+  }
+
+  double _effectivePitch(
+    VoicePreferences preferences,
+    CoachVoiceProfile profile,
+  ) {
+    return preferences.pitch == VoicePreferences.defaultPitch
+        ? profile.neutralPitch
+        : preferences.pitch;
   }
 }
 

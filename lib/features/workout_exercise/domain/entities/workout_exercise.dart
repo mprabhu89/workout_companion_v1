@@ -6,7 +6,7 @@ import 'workout_target_type.dart';
 class WorkoutExercise {
   const WorkoutExercise({
     required this.id,
-    required this.workoutGroupId,
+    this.workoutGroupId,
     required this.exerciseId,
     required this.displayOrder,
 
@@ -43,7 +43,9 @@ class WorkoutExercise {
        );
 
   final String id;
-  final String workoutGroupId;
+  /// Legacy ownership retained only while existing persisted records migrate to
+  /// [WorkoutGroupWorkoutReference]. New library workouts have no group here.
+  final String? workoutGroupId;
   final String exerciseId;
 
   final int displayOrder;

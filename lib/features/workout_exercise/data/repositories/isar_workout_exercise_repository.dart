@@ -12,6 +12,13 @@ class IsarWorkoutExerciseRepository
   final Isar _isar;
 
   @override
+  Future<List<WorkoutExercise>> getAllWorkoutExercises() async {
+    final records = await _isar.isarWorkoutExerciseRecords
+        .filter().isArchivedEqualTo(false).findAll();
+    return List.unmodifiable(records.map(mapWorkoutExerciseFromRecord));
+  }
+
+  @override
   Future<List<WorkoutExercise>> getWorkoutExercises(
     String workoutGroupId,
   ) async {

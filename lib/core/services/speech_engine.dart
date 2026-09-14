@@ -1,7 +1,5 @@
 abstract interface class SpeechEngine {
-  Future<void> speak(
-    String text,
-  );
+  Future<void> speak(String text);
 
   Future<void> stop();
 
@@ -9,17 +7,11 @@ abstract interface class SpeechEngine {
 
   Future<void> resume();
 
-  Future<void> setSpeechRate(
-    double rate,
-  );
+  Future<void> setSpeechRate(double rate);
 
-  Future<void> setVolume(
-    double volume,
-  );
+  Future<void> setVolume(double volume);
 
-  Future<void> setPitch(
-    double pitch,
-  );
+  Future<void> setPitch(double pitch);
 }
 
 class SpeechVoice {
@@ -27,6 +19,7 @@ class SpeechVoice {
     required this.name,
     required this.locale,
     this.gender,
+    this.requiresNetwork = false,
   });
 
   final String name;
@@ -34,6 +27,10 @@ class SpeechVoice {
 
   /// Present only when the platform explicitly reports it.
   final String? gender;
+
+  /// True only when the platform explicitly reports that this voice needs a
+  /// network connection. Offline voices are preferred when they are available.
+  final bool requiresNetwork;
 }
 
 abstract interface class VoiceProfileSpeechEngine {

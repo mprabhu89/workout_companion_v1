@@ -123,6 +123,94 @@ void main() {
       expect(controller.session.status, WorkoutSessionStatus.completed);
     });
 
+    testWidgets('ordinary guidance waits for the post-speech coach cadence', (tester) async {
+      final speechEngine = _FakeSpeechEngine();
+      final controller = _controller(
+        speechEngine: speechEngine,
+        coachCadenceDelay: const Duration(milliseconds: 700),
+        workoutExercise: _sequenceExercise(
+          sequenceDefinition: WorkoutSequenceDefinition(
+            steps: [
+              WorkoutSequenceStep.guide(text: 'First'),
+              WorkoutSequenceStep.guide(text: 'Second'),
+              WorkoutSequenceStep.end(),
+            ],
+          ),
+        ),
+      );
+
+      controller.startCountdown();
+      await tester.pump();
+      await tester.pump();
+      expect(speechEngine.spokenMessages, ['First']);
+
+      await tester.pump(const Duration(milliseconds: 699));
+      expect(speechEngine.spokenMessages, ['First']);
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump();
+      expect(speechEngine.spokenMessages, ['First', 'Second']);
+
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.pump();
+      expect(speechEngine.spokenMessages, ['First', 'Second', 'End of exercise.']);
+    });
+
+    testWidgets('pausing during coach cadence prevents background progression', (tester) async {
+      final speechEngine = _FakeSpeechEngine();
+      final controller = _controller(
+        speechEngine: speechEngine,
+        coachCadenceDelay: const Duration(milliseconds: 700),
+        workoutExercise: _sequenceExercise(
+          sequenceDefinition: WorkoutSequenceDefinition(
+            steps: [
+              WorkoutSequenceStep.guide(text: 'First'),
+              WorkoutSequenceStep.guide(text: 'Second'),
+              WorkoutSequenceStep.end(),
+            ],
+          ),
+        ),
+      );
+
+      controller.startCountdown();
+      await tester.pump();
+      await tester.pump();
+      controller.pause();
+      await tester.pump(const Duration(seconds: 2));
+      expect(speechEngine.spokenMessages, ['First']);
+
+      controller.resume();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(speechEngine.spokenMessages, ['First']);
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump();
+      expect(speechEngine.spokenMessages, ['First', 'Second']);
+      controller.dispose();
+    });
+
+    test('voice disabled or speech failure skips cadence without hanging', () async {
+      for (final voiceCoach in [
+        VoiceCoachService(speechEngine: _FakeSpeechEngine(), isEnabled: false),
+        VoiceCoachService(speechEngine: _FakeSpeechEngine(throwOnSpeak: true)),
+      ]) {
+        final controller = _controller(
+          voiceCoach: voiceCoach,
+          coachCadenceDelay: const Duration(milliseconds: 700),
+          workoutExercise: _sequenceExercise(
+            sequenceDefinition: WorkoutSequenceDefinition(
+              steps: [
+                WorkoutSequenceStep.guide(text: 'Continue'),
+                WorkoutSequenceStep.end(),
+              ],
+            ),
+          ),
+        );
+
+        controller.startCountdown();
+        await _flushAsyncWork();
+        expect(controller.session.status, WorkoutSessionStatus.completed);
+      }
+    });
+
     test('Count Seconds ascending speaks immediately then once per timer tick', () async {
       final speechEngine = _FakeSpeechEngine();
       final timerService = _FakeWorkoutTimerService();
@@ -203,7 +291,7 @@ void main() {
     });
 
     test('Count Seconds cadence ignores slow speech and Voice Pace', () async {
-      for (final speechRate in [0.2, 0.8]) {
+      for (final speechRate in [0.15, 0.6]) {
         final speechEngine = _FakeSpeechEngine(blockSpeaks: true);
         final timerService = _FakeWorkoutTimerService();
         final voiceCoach = VoiceCoachService(speechEngine: speechEngine);
@@ -234,6 +322,32 @@ void main() {
         await _flushAsyncWork();
         expect(speechEngine.spokenMessages, ['1', '2']);
         expect(timerService.startCount, 2);
+      }
+    });
+
+    test('Count Seconds ignores both the slowest and fastest coach cadence', () async {
+      for (final delay in const [
+        Duration(milliseconds: 1100),
+        Duration(milliseconds: 350),
+      ]) {
+        final timerService = _FakeWorkoutTimerService();
+        final speechEngine = _FakeSpeechEngine();
+        final controller = _controller(
+          speechEngine: speechEngine,
+          timerService: timerService,
+          coachCadenceDelay: delay,
+          workoutExercise: _countSecondsExercise(),
+        );
+
+        controller.startCountdown();
+        await _flushAsyncWork();
+        timerService.tick();
+        await _flushAsyncWork();
+        timerService.tick();
+        await _flushAsyncWork();
+
+        expect(speechEngine.spokenMessages, ['1', '2', 'End of exercise.']);
+        expect(controller.session.status, WorkoutSessionStatus.completed);
       }
     });
 
@@ -810,6 +924,7 @@ void main() {
           speechEngine: _FakeSpeechEngine(),
         ),
         timerService: timerService,
+        coachCadenceDelay: Duration.zero,
       );
 
       controller.startCountdown(seconds: 3);
@@ -847,6 +962,7 @@ void main() {
           speechEngine: _FakeSpeechEngine(),
         ),
         timerService: timerService,
+        coachCadenceDelay: Duration.zero,
       );
 
       controller.startCountdown(seconds: 1);
@@ -892,6 +1008,7 @@ void main() {
           speechEngine: _FakeSpeechEngine(),
         ),
         timerService: timerService,
+        coachCadenceDelay: Duration.zero,
       );
 
       var completedNotifications = 0;
@@ -949,6 +1066,7 @@ void main() {
           speechEngine: speechEngine,
         ),
         timerService: timerService,
+        coachCadenceDelay: Duration.zero,
       );
 
       controller.startCountdown();
@@ -986,6 +1104,7 @@ void main() {
           speechEngine: _FakeSpeechEngine(),
         ),
         timerService: timerService,
+        coachCadenceDelay: Duration.zero,
       );
 
       controller.startCountdown(seconds: 1);
@@ -1024,6 +1143,7 @@ void main() {
           speechEngine: _FakeSpeechEngine(),
         ),
         timerService: timerService,
+        coachCadenceDelay: Duration.zero,
       );
 
       controller.startCountdown();
@@ -1064,6 +1184,7 @@ void main() {
           speechEngine: _FakeSpeechEngine(),
         ),
         timerService: timerService,
+        coachCadenceDelay: Duration.zero,
       );
 
       controller.startCountdown(seconds: 1);
@@ -1114,6 +1235,7 @@ void main() {
           speechEngine: speechEngine,
         ),
         timerService: _FakeWorkoutTimerService(),
+        coachCadenceDelay: Duration.zero,
       );
 
       controller.startCountdown();
@@ -1240,6 +1362,7 @@ WorkoutSessionController _controller({
   _FakeSpeechEngine? speechEngine,
   VoiceCoachService? voiceCoach,
   WorkoutTimerService? timerService,
+  Duration coachCadenceDelay = Duration.zero,
   required WorkoutExercise workoutExercise,
 }) {
   return WorkoutSessionController(
@@ -1249,6 +1372,7 @@ WorkoutSessionController _controller({
     voiceCoach:
         voiceCoach ?? VoiceCoachService(speechEngine: speechEngine ?? _FakeSpeechEngine()),
     timerService: timerService,
+    coachCadenceDelay: coachCadenceDelay,
   );
 }
 

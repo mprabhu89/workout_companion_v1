@@ -494,61 +494,165 @@ class _SequenceStepTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
         border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        leading: CircleAvatar(child: Text('${index + 1}')),
-        title: Text(_summaryText(), key: Key('sequence_step_summary_$index')),
-        subtitle: Text('${index + 1} of $stepCount'),
-        trailing: Wrap(
-          spacing: 4,
-          children: [
-            IconButton(
-              onPressed: onMoveUp,
-              icon: const Icon(Icons.arrow_upward),
-              tooltip: 'Move Up',
-            ),
-            IconButton(
-              onPressed: onMoveDown,
-              icon: const Icon(Icons.arrow_downward),
-              tooltip: 'Move Down',
-            ),
-            IconButton(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Edit Step',
-            ),
-            IconButton(
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Delete Step',
-            ),
-          ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final actions = _actions();
+            final content = _stepContent(context);
+
+            if (constraints.maxWidth >= 540) {
+              return Row(
+                children: [
+                  _stepNumber(),
+                  const SizedBox(width: 12),
+                  Expanded(child: content),
+                  const SizedBox(width: 8),
+                  actions,
+                ],
+              );
+            }
+
+            // On phones, keep the full text column on its own row and place
+            // the touch targets below it rather than squeezing text vertically.
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _stepNumber(),
+                    const SizedBox(width: 12),
+                    Expanded(child: content),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Align(alignment: Alignment.centerRight, child: actions),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  String _summaryText() {
+  Widget _stepNumber() {
+    return CircleAvatar(
+      radius: 22,
+      child: Text('${index + 1}'),
+    );
+  }
+
+  Widget _stepContent(BuildContext context) {
+    final isGuide = step.type == WorkoutSequenceStepType.guide;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _stepTypeLabel(),
+          key: Key('sequence_step_type_$index'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          _stepSummary(),
+          key: Key('sequence_step_summary_$index'),
+          maxLines: isGuide ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
+    );
+  }
+
+  Widget _actions() {
+    return Wrap(
+      spacing: 0,
+      children: [
+        IconButton(
+          onPressed: onMoveUp,
+          icon: const Icon(Icons.arrow_upward),
+          tooltip: 'Move Up',
+        ),
+        IconButton(
+          onPressed: onMoveDown,
+          icon: const Icon(Icons.arrow_downward),
+          tooltip: 'Move Down',
+        ),
+        IconButton(
+          onPressed: onEdit,
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: 'Edit Step',
+        ),
+        IconButton(
+          onPressed: onDelete,
+          icon: const Icon(Icons.delete_outline),
+          tooltip: 'Delete Step',
+        ),
+      ],
+    );
+  }
+
+  String _stepTypeLabel() {
     switch (step.type) {
       case WorkoutSequenceStepType.guide:
-        return 'Guide - ${step.text ?? ''}';
+        return 'Guide';
       case WorkoutSequenceStepType.count:
-        return 'Count - ${step.count} ${step.countDirection?.name ?? WorkoutCountDirection.ascending.name}';
+        return 'Count';
       case WorkoutSequenceStepType.countSeconds:
-        return 'Count Seconds - ${step.count} ${step.countDirection?.name ?? WorkoutCountDirection.ascending.name}';
+        return 'Count Seconds';
       case WorkoutSequenceStepType.counter:
-        return 'Reps - Counter - Reps: ${step.repetitionCount}';
+        return 'Reps - Counter';
       case WorkoutSequenceStepType.relax:
-        return 'Relax - ${step.durationInSeconds} sec';
+        return 'Relax';
       case WorkoutSequenceStepType.sequenceBreak:
         return 'Break';
       case WorkoutSequenceStepType.end:
         return 'End';
+    }
+  }
+
+  String _stepSummary() {
+    final count = step.count;
+    final isAscending = step.countDirection != WorkoutCountDirection.descending;
+
+    switch (step.type) {
+      case WorkoutSequenceStepType.guide:
+        return step.text?.trim().isNotEmpty == true
+            ? step.text!.trim()
+            : 'No guide text';
+      case WorkoutSequenceStepType.count:
+        return count == null
+            ? 'No count configured'
+            : isAscending
+            ? '1 to $count'
+            : '$count to 1';
+      case WorkoutSequenceStepType.countSeconds:
+        return count == null
+            ? 'No duration configured'
+            : isAscending
+            ? '$count seconds'
+            : '$count to 1 seconds';
+      case WorkoutSequenceStepType.counter:
+        return '${step.repetitionCount ?? 0} repetitions';
+      case WorkoutSequenceStepType.relax:
+        return '${step.durationInSeconds ?? 0} seconds';
+      case WorkoutSequenceStepType.sequenceBreak:
+        return 'Ends the current repetition block';
+      case WorkoutSequenceStepType.end:
+        return 'End workout';
     }
   }
 }

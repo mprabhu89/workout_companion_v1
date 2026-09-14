@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:workout_companion_v1/core/services/speech_engine.dart';
@@ -83,6 +85,89 @@ void main() {
     },
   );
 
+  testWidgets(
+    'awaits the final completion announcement before saving and replacing',
+    (tester) async {
+      final historyRepository = _FakeWorkoutHistoryRepository();
+      final speechEngine = _PendingSpeechEngine();
+      final voiceCoach = VoiceCoachService(speechEngine: speechEngine);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkoutExecutionScreen(
+            session: _completedSession(),
+            voiceCoach: voiceCoach,
+            workoutHistoryRepository: historyRepository,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(speechEngine.spokenMessages, ['Workout completed.']);
+      expect(historyRepository.savedSessions, isEmpty);
+      expect(speechEngine.stopCount, 0);
+
+      speechEngine.completeSpeech();
+      await tester.pump();
+      await tester.pump();
+
+      expect(historyRepository.savedSessions, hasLength(1));
+    },
+  );
+
+  testWidgets('voice-off completion does not wait for an announcement', (
+    tester,
+  ) async {
+    final historyRepository = _FakeWorkoutHistoryRepository();
+    final speechEngine = _PendingSpeechEngine();
+    final voiceCoach = VoiceCoachService(speechEngine: speechEngine);
+    final controller = WorkoutSessionController(
+      session: WorkoutSession(
+        workoutExercises: [_exercise()],
+        status: WorkoutSessionStatus.exercising,
+      ),
+      voiceCoach: voiceCoach,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutExecutionScreen(
+          session: controller.session,
+          controller: controller,
+          voiceCoach: voiceCoach,
+          workoutHistoryRepository: historyRepository,
+        ),
+      ),
+    );
+    await tester.pump();
+    await voiceCoach.setEnabled(false);
+    controller.finishWorkout();
+    await tester.pump();
+
+    expect(speechEngine.spokenMessages, isEmpty);
+    expect(historyRepository.savedSessions, hasLength(1));
+  });
+
+  testWidgets('failed final speech does not block completion', (tester) async {
+    final historyRepository = _FakeWorkoutHistoryRepository();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutExecutionScreen(
+          session: _completedSession(),
+          voiceCoach: VoiceCoachService(
+            speechEngine: _ThrowingSpeechEngine(),
+          ),
+          workoutHistoryRepository: historyRepository,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(historyRepository.savedSessions, hasLength(1));
+  });
+
   testWidgets('active workout requires confirmation before leaving', (
     tester,
   ) async {
@@ -153,6 +238,20 @@ WorkoutExercise _exercise({int sessionRepetitions = 1}) {
   );
 }
 
+WorkoutSession _completedSession() {
+  return WorkoutSession(
+    workoutExercises: [_exercise()],
+    workoutPlanId: 'plan-1',
+    workoutPlanName: 'Plan',
+    workoutDayId: 'day-1',
+    workoutDayName: 'Day 1',
+    startedAt: DateTime(2026, 8, 13, 10, 0, 0),
+    completedAt: DateTime(2026, 8, 13, 10, 5, 0),
+    currentExerciseIndex: 0,
+    status: WorkoutSessionStatus.completed,
+  );
+}
+
 class _FakeSpeechEngine implements SpeechEngine {
   @override
   Future<void> pause() async {}
@@ -174,6 +273,51 @@ class _FakeSpeechEngine implements SpeechEngine {
 
   @override
   Future<void> stop() async {}
+}
+
+class _PendingSpeechEngine implements SpeechEngine {
+  final List<String> spokenMessages = [];
+  final Completer<void> _speechCompleter = Completer<void>();
+  var stopCount = 0;
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> resume() async {}
+
+  @override
+  Future<void> setPitch(double pitch) async {}
+
+  @override
+  Future<void> setSpeechRate(double rate) async {}
+
+  @override
+  Future<void> setVolume(double volume) async {}
+
+  @override
+  Future<void> speak(String text) async {
+    spokenMessages.add(text);
+    await _speechCompleter.future;
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCount += 1;
+  }
+
+  void completeSpeech() {
+    if (!_speechCompleter.isCompleted) {
+      _speechCompleter.complete();
+    }
+  }
+}
+
+class _ThrowingSpeechEngine extends _FakeSpeechEngine {
+  @override
+  Future<void> speak(String text) async {
+    throw StateError('TTS unavailable');
+  }
 }
 
 class _FakeWorkoutHistoryRepository implements WorkoutHistoryRepository {

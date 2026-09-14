@@ -15,13 +15,15 @@ class WorkoutSessionController extends ChangeNotifier {
     VoiceCoachService? voiceCoach,
     WorkoutTimerService? timerService,
     WorkoutSequenceExecutor? sequenceExecutor,
+    Duration? coachCadenceDelay,
   })  : _session = session,
         _engine = WorkoutEngine(session: session),
         // ignore: prefer_initializing_formals
         _voiceCoach = voiceCoach,
         _timerService = timerService ?? WorkoutTimerService(),
         _sequenceExecutor =
-            sequenceExecutor ?? const WorkoutSequenceExecutor();
+            sequenceExecutor ?? const WorkoutSequenceExecutor(),
+        _coachCadenceDelayOverride = coachCadenceDelay;
 
   WorkoutSession _session;
 
@@ -29,6 +31,7 @@ class WorkoutSessionController extends ChangeNotifier {
   final VoiceCoachService? _voiceCoach;
   final WorkoutTimerService _timerService;
   final WorkoutSequenceExecutor _sequenceExecutor;
+  final Duration? _coachCadenceDelayOverride;
 
   WorkoutSessionStatus? _statusBeforePause;
   WorkoutSequenceEvent? _activeSequenceEvent;
@@ -36,6 +39,10 @@ class WorkoutSessionController extends ChangeNotifier {
   int _sequenceExecutionToken = 0;
   Completer<void>? _sequencePauseCompleter;
   Completer<void>? _sequenceWaitCompleter;
+  Timer? _coachCadenceTimer;
+  Completer<void>? _coachCadenceCompleter;
+  Duration? _remainingCoachCadence;
+  DateTime? _coachCadenceStartedAt;
   bool _isSequenceExecutionRunning = false;
 
   WorkoutSession get session => _session;
@@ -122,6 +129,7 @@ class WorkoutSessionController extends ChangeNotifier {
     if (_timerService.isRunning) {
       _timerService.pause();
     }
+    _pauseCoachCadence();
 
     _engine.pause();
 
@@ -136,6 +144,7 @@ class WorkoutSessionController extends ChangeNotifier {
     if (_timerService.isPaused) {
       _timerService.resume();
     }
+    _resumeCoachCadence();
 
     _engine.resume(
       _statusBeforePause ??
@@ -294,7 +303,9 @@ class WorkoutSessionController extends ChangeNotifier {
 
       _syncSession();
 
-      await _announceIterationIfNeeded(event);
+      final announcedIteration = event.type == WorkoutSequenceEventType.countSeconds
+          ? false
+          : await _announceIterationIfNeeded(event);
 
       if (executionToken != _sequenceExecutionToken) {
         return;
@@ -302,17 +313,30 @@ class WorkoutSessionController extends ChangeNotifier {
 
       switch (event.type) {
         case WorkoutSequenceEventType.guide:
-          await _voiceCoach?.speakText(
+          if (announcedIteration) {
+            await _waitForCoachCadence(executionToken: executionToken);
+          }
+          final spokeGuide = await _voiceCoach?.speakSequenceText(
             event.guideText ?? '',
           );
+          if (spokeGuide ?? false) {
+            await _waitForCoachCadence(executionToken: executionToken);
+          }
           break;
         case WorkoutSequenceEventType.count:
-          await _voiceCoach?.speakText(
+          if (announcedIteration) {
+            await _waitForCoachCadence(executionToken: executionToken);
+          }
+          final spokeCount = await _voiceCoach?.speakSequenceText(
             '${event.countValue ?? ''}',
           );
+          if (spokeCount ?? false) {
+            await _waitForCoachCadence(executionToken: executionToken);
+          }
           break;
         case WorkoutSequenceEventType.countSeconds:
           // The timer owns cadence; speech must not delay the next tick.
+          unawaited(_announceIterationIfNeeded(event).then<void>((_) {}));
           unawaited(
             _voiceCoach?.speakText(
               '${event.countValue ?? ''}',
@@ -341,18 +365,83 @@ class WorkoutSessionController extends ChangeNotifier {
     }
   }
 
-  Future<void> _announceIterationIfNeeded(
+  Future<bool> _announceIterationIfNeeded(
     WorkoutSequenceEvent event,
   ) async {
     final iterationNumber = event.iterationNumber;
 
     if (iterationNumber == null ||
         iterationNumber == _lastAnnouncedIterationNumber) {
-      return;
+      return false;
     }
 
     _lastAnnouncedIterationNumber = iterationNumber;
-    await _voiceCoach?.speakText('$iterationNumber');
+    return await _voiceCoach?.speakSequenceText('$iterationNumber') ?? false;
+  }
+
+  Duration get _coachCadenceDelay =>
+      _coachCadenceDelayOverride ??
+      _voiceCoach?.coachCadenceDelay ??
+      Duration.zero;
+
+  Future<void> _waitForCoachCadence({
+    required int executionToken,
+  }) async {
+    await _waitIfPaused(executionToken: executionToken);
+    final delay = _coachCadenceDelay;
+    if (delay <= Duration.zero || executionToken != _sequenceExecutionToken) {
+      return;
+    }
+
+    final completer = Completer<void>();
+    _coachCadenceCompleter = completer;
+    _remainingCoachCadence = delay;
+    _startCoachCadenceTimer();
+    await completer.future;
+
+    if (identical(_coachCadenceCompleter, completer)) {
+      _coachCadenceCompleter = null;
+      _remainingCoachCadence = null;
+      _coachCadenceStartedAt = null;
+    }
+  }
+
+  void _startCoachCadenceTimer() {
+    final remaining = _remainingCoachCadence;
+    if (remaining == null) {
+      return;
+    }
+    _coachCadenceStartedAt = DateTime.now();
+    _coachCadenceTimer = Timer(remaining, () {
+      _coachCadenceTimer = null;
+      _coachCadenceStartedAt = null;
+      if (!(_coachCadenceCompleter?.isCompleted ?? true)) {
+        _coachCadenceCompleter!.complete();
+      }
+    });
+  }
+
+  void _pauseCoachCadence() {
+    final timer = _coachCadenceTimer;
+    final startedAt = _coachCadenceStartedAt;
+    final remaining = _remainingCoachCadence;
+    if (timer == null || startedAt == null || remaining == null) {
+      return;
+    }
+
+    timer.cancel();
+    _coachCadenceTimer = null;
+    _remainingCoachCadence = remaining - DateTime.now().difference(startedAt);
+    _coachCadenceStartedAt = null;
+  }
+
+  void _resumeCoachCadence() {
+    if (_coachCadenceCompleter == null ||
+        _coachCadenceCompleter!.isCompleted ||
+        _coachCadenceTimer != null) {
+      return;
+    }
+    _startCoachCadenceTimer();
   }
 
   Future<void> _waitForRelax({
@@ -547,6 +636,16 @@ class WorkoutSessionController extends ChangeNotifier {
       _sequenceWaitCompleter!.complete();
     }
     _sequenceWaitCompleter = null;
+
+    _coachCadenceTimer?.cancel();
+    _coachCadenceTimer = null;
+    _coachCadenceStartedAt = null;
+    _remainingCoachCadence = null;
+    if (_coachCadenceCompleter != null &&
+        !_coachCadenceCompleter!.isCompleted) {
+      _coachCadenceCompleter!.complete();
+    }
+    _coachCadenceCompleter = null;
 
     if (stopVoice) {
       unawaited(_voiceCoach?.stop());

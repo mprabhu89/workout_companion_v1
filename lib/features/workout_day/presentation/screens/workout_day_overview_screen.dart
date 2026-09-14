@@ -7,6 +7,7 @@ import '../../../workout_exercise/domain/entities/workout_exercise.dart';
 import '../../../workout_exercise/domain/repositories/workout_exercise_repository.dart';
 import '../../../workout_group/domain/entities/workout_group.dart';
 import '../../../workout_group/domain/repositories/workout_group_repository.dart';
+import '../../../workout_group_workout_reference/domain/repositories/workout_group_workout_reference_repository.dart';
 import '../../../workout_session/domain/entities/workout_session.dart';
 import '../../../workout_session/domain/services/workout_session_builder.dart';
 import '../../../workout_session/presentation/screens/workout_execution_screen.dart';
@@ -22,6 +23,7 @@ class WorkoutDayOverviewScreen extends StatefulWidget {
     this.workoutPlanCategory,
     this.workoutGroupRepository,
     this.workoutExerciseRepository,
+    this.referenceRepository,
     this.exerciseRepository,
     this.sessionBuilder,
     this.executionScreenBuilder,
@@ -33,6 +35,7 @@ class WorkoutDayOverviewScreen extends StatefulWidget {
   final WorkoutDay workoutDay;
   final WorkoutGroupRepository? workoutGroupRepository;
   final WorkoutExerciseRepository? workoutExerciseRepository;
+  final WorkoutGroupWorkoutReferenceRepository? referenceRepository;
   final ExerciseRepository? exerciseRepository;
   final WorkoutSessionBuilder? sessionBuilder;
   final Widget Function(WorkoutSession session)?
@@ -49,6 +52,7 @@ class _WorkoutDayOverviewScreenState
   late final WorkoutExerciseRepository
       _workoutExerciseRepository;
   late final ExerciseRepository _exerciseRepository;
+  late final WorkoutGroupWorkoutReferenceRepository _referenceRepository;
   late final WorkoutSessionBuilder _sessionBuilder;
 
   bool _isLoading = true;
@@ -79,6 +83,8 @@ class _WorkoutDayOverviewScreenState
     _exerciseRepository =
         widget.exerciseRepository ??
         RepositoryRegistry.exerciseRepository;
+    _referenceRepository = widget.referenceRepository ??
+        RepositoryRegistry.workoutGroupWorkoutReferenceRepository;
     _sessionBuilder =
         widget.sessionBuilder ??
         WorkoutSessionBuilder(
@@ -86,6 +92,7 @@ class _WorkoutDayOverviewScreenState
               _workoutGroupRepository,
           workoutExerciseRepository:
               _workoutExerciseRepository,
+          referenceRepository: _referenceRepository,
         );
     _loadOverview();
   }
@@ -101,9 +108,13 @@ class _WorkoutDayOverviewScreenState
     final sections = <_WorkoutGroupSection>[];
 
     for (final group in groups) {
-      final workoutExercises =
-          await _workoutExerciseRepository
-              .getWorkoutExercises(group.id);
+      final references = await _referenceRepository.getReferences(group.id);
+      final workoutExercises = references.isEmpty
+          ? await _workoutExerciseRepository.getWorkoutExercises(group.id)
+          : await Future.wait(references.map((reference) async =>
+              _workoutExerciseRepository.getWorkoutExerciseById(
+                reference.workoutExerciseId,
+              ))).then((items) => items.whereType<WorkoutExercise>().toList());
       final visibleExercises = workoutExercises
           .where((exercise) => !exercise.isArchived)
           .toList(growable: false);

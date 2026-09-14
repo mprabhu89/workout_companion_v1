@@ -4,6 +4,7 @@ import '../../domain/entities/workout_plan.dart';
 import '../../domain/repositories/workout_plan_repository.dart';
 import '../controllers/workout_plan_library_controller.dart';
 import 'create_workout_plan_screen.dart';
+import '../widgets/plan_sharing_placeholder.dart';
 import '../../../workout_day/presentation/screens/workout_day_library_screen.dart';
 
 class WorkoutPlanLibraryScreen extends StatefulWidget {
@@ -111,6 +112,13 @@ class _WorkoutPlanLibraryScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Workout Plans'),
+        actions: [
+          TextButton.icon(
+            onPressed: () => PlanSharingPlaceholder.show(context),
+            icon: const Icon(Icons.file_download_outlined),
+            label: const Text('Import Plan'),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createWorkoutPlan,

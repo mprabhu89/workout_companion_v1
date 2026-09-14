@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/repository_registry.dart';
 import '../../../workout_group/presentation/screens/workout_group_library_screen.dart';
+import '../../../workout_plan/presentation/widgets/plan_sharing_placeholder.dart';
 import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 import '../../domain/entities/workout_day.dart';
 import '../../domain/repositories/workout_day_repository.dart';
@@ -146,6 +147,13 @@ class _WorkoutDayLibraryScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.workoutPlanName),
+        actions: [
+          IconButton(
+            tooltip: 'Export Plan',
+            icon: const Icon(Icons.ios_share_outlined),
+            onPressed: () => PlanSharingPlaceholder.show(context),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createWorkoutDay,

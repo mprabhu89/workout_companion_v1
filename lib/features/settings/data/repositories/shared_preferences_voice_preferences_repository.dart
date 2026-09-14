@@ -16,6 +16,7 @@ class SharedPreferencesVoicePreferencesRepository
   static const _coachVoiceModeKey = 'voice_coach_mode';
   static const _selectedCoachVoiceKey = 'voice_coach_selected_profile';
   static const _speechRateKey = 'voice_coach_speech_rate';
+  static const _voicePaceExplicitKey = 'voice_coach_voice_pace_explicit';
   static const _pitchKey = 'voice_coach_pitch';
   static const _volumeKey = 'voice_coach_volume';
 
@@ -32,14 +33,27 @@ class SharedPreferencesVoicePreferencesRepository
       _selectedCoachVoiceKey,
     );
     final speechRate = await _storage.getDouble(_speechRateKey);
+    final voicePaceExplicit = await _storage.getBool(_voicePaceExplicitKey);
     final pitch = await _storage.getDouble(_pitchKey);
     final volume = await _storage.getDouble(_volumeKey);
+
+    // Earlier releases stored the engine rate. Preserve the selected
+    // user-facing pace when moving to the calmer rate curve.
+    final isLegacyDefaultPace = voicePaceExplicit == null &&
+        (speechRate == 0.5 || speechRate == 0.42);
+    final normalizedSpeechRate = speechRate == null
+        ? VoicePreferences.defaultSpeechRate
+        : VoicePreferences.normalizePersistedSpeechRate(speechRate);
 
     return VoicePreferences(
       isEnabled: enabled ?? true,
       coachVoiceMode: _coachVoiceModeFromStorage(coachVoiceMode),
       selectedCoachVoice: _coachVoiceProfileFromStorage(selectedCoachVoice),
-      speechRate: speechRate ?? VoicePreferences.defaultSpeechRate,
+      speechRate: normalizedSpeechRate,
+      isVoicePaceExplicit: voicePaceExplicit ??
+          (speechRate != null &&
+              !isLegacyDefaultPace &&
+              speechRate != VoicePreferences.defaultSpeechRate),
       pitch: pitch ?? VoicePreferences.defaultPitch,
       volume: volume ?? VoicePreferences.defaultVolume,
     );
@@ -57,6 +71,7 @@ class SharedPreferencesVoicePreferencesRepository
       preferences.selectedCoachVoice.name,
     );
     await _storage.setDouble(_speechRateKey, preferences.speechRate);
+    await _storage.setBool(_voicePaceExplicitKey, preferences.isVoicePaceExplicit);
     await _storage.setDouble(_pitchKey, preferences.pitch);
     await _storage.setDouble(_volumeKey, preferences.volume);
   }

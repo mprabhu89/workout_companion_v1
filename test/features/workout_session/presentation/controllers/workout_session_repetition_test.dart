@@ -581,6 +581,7 @@ WorkoutSessionController _controller({
           speechEngine ?? _FakeSpeechEngine(),
     ),
     timerService: timerService,
+    coachCadenceDelay: Duration.zero,
   );
 }
 

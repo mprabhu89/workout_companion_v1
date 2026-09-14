@@ -77,7 +77,7 @@ void main() {
 
       expect(
         speechEngine.spokenMessages,
-        ['Workout complete. Great work.'],
+        ['Workout completed.'],
       );
     });
 
