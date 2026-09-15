@@ -3,11 +3,12 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/di/repository_registry.dart';
 import '../../../../core/widgets/app_delete_confirmation_dialog.dart';
-import '../../../../core/widgets/app_empty_state.dart';
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
 import '../../../workout_exercise/presentation/screens/create_workout_flow_screen.dart';
 import '../../../workout_exercise/presentation/screens/edit_workout_exercise_screen.dart';
 import '../../../workout_group_workout_reference/domain/entities/workout_group_workout_reference.dart';
+import '../../../workout_plan/presentation/widgets/training_program_hud_widgets.dart';
 
 class WorkoutGroupWorkoutsScreen extends StatefulWidget {
   const WorkoutGroupWorkoutsScreen({
@@ -24,7 +25,8 @@ class WorkoutGroupWorkoutsScreen extends StatefulWidget {
       _WorkoutGroupWorkoutsScreenState();
 }
 
-class _WorkoutGroupWorkoutsScreenState extends State<WorkoutGroupWorkoutsScreen> {
+class _WorkoutGroupWorkoutsScreenState
+    extends State<WorkoutGroupWorkoutsScreen> {
   static const _uuid = Uuid();
   late Future<List<_GroupWorkout>> _workouts;
 
@@ -34,9 +36,7 @@ class _WorkoutGroupWorkoutsScreenState extends State<WorkoutGroupWorkoutsScreen>
     _reload();
   }
 
-  void _reload() {
-    _workouts = _loadWorkouts();
-  }
+  void _reload() => _workouts = _loadWorkouts();
 
   Future<List<_GroupWorkout>> _loadWorkouts() async {
     final references = await RepositoryRegistry
@@ -57,20 +57,18 @@ class _WorkoutGroupWorkoutsScreenState extends State<WorkoutGroupWorkoutsScreen>
     final existing = await RepositoryRegistry
         .workoutGroupWorkoutReferenceRepository
         .getReferences(widget.workoutGroupId);
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     final selected = await showModalBottomSheet<List<WorkoutExercise>>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => _WorkoutLibraryPicker(
-        attachedWorkoutIds: existing.map((reference) => reference.workoutExerciseId).toSet(),
+        attachedWorkoutIds: existing
+            .map((reference) => reference.workoutExerciseId)
+            .toSet(),
       ),
     );
-    if (selected == null || selected.isEmpty) {
-      return;
-    }
-
+    if (selected == null || selected.isEmpty) return;
     var nextOrder = await RepositoryRegistry
         .workoutGroupWorkoutReferenceRepository
         .getNextDisplayOrder(widget.workoutGroupId);
@@ -84,50 +82,42 @@ class _WorkoutGroupWorkoutsScreenState extends State<WorkoutGroupWorkoutsScreen>
       if (!exists) {
         await RepositoryRegistry.workoutGroupWorkoutReferenceRepository
             .saveReference(
-          WorkoutGroupWorkoutReference(
-            id: _uuid.v4(),
-            workoutGroupId: widget.workoutGroupId,
-            workoutExerciseId: workout.id,
-            displayOrder: nextOrder++,
-          ),
-        );
+              WorkoutGroupWorkoutReference(
+                id: _uuid.v4(),
+                workoutGroupId: widget.workoutGroupId,
+                workoutExerciseId: workout.id,
+                displayOrder: nextOrder++,
+              ),
+            );
       }
     }
-    if (mounted) {
-      setState(_reload);
-    }
+    if (mounted) setState(_reload);
   }
 
   Future<void> _createWorkout() async {
     final created = await Navigator.of(context).push<WorkoutExercise>(
       MaterialPageRoute(builder: (_) => const CreateWorkoutFlowScreen()),
     );
-    if (created == null) {
-      return;
-    }
-
+    if (created == null) return;
     final order = await RepositoryRegistry
         .workoutGroupWorkoutReferenceRepository
         .getNextDisplayOrder(widget.workoutGroupId);
-    await RepositoryRegistry.workoutGroupWorkoutReferenceRepository.saveReference(
-      WorkoutGroupWorkoutReference(
-        id: _uuid.v4(),
-        workoutGroupId: widget.workoutGroupId,
-        workoutExerciseId: created.id,
-        displayOrder: order,
-      ),
-    );
-    if (mounted) {
-      setState(_reload);
-    }
+    await RepositoryRegistry.workoutGroupWorkoutReferenceRepository
+        .saveReference(
+          WorkoutGroupWorkoutReference(
+            id: _uuid.v4(),
+            workoutGroupId: widget.workoutGroupId,
+            workoutExerciseId: created.id,
+            displayOrder: order,
+          ),
+        );
+    if (mounted) setState(_reload);
   }
 
   Future<void> _editWorkout(WorkoutExercise workout) async {
     final exercise = await RepositoryRegistry.exerciseRepository
         .getExerciseById(workout.exerciseId);
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     final updated = await Navigator.of(context).push<WorkoutExercise>(
       MaterialPageRoute(
         builder: (_) => EditWorkoutExerciseScreen(
@@ -136,47 +126,41 @@ class _WorkoutGroupWorkoutsScreenState extends State<WorkoutGroupWorkoutsScreen>
         ),
       ),
     );
-    if (updated == null) {
-      return;
-    }
-    await RepositoryRegistry.workoutExerciseRepository
-        .saveWorkoutExercise(updated);
-    if (mounted) {
-      setState(_reload);
-    }
+    if (updated == null) return;
+    await RepositoryRegistry.workoutExerciseRepository.saveWorkoutExercise(
+      updated,
+    );
+    if (mounted) setState(_reload);
   }
 
   Future<void> _removeWorkout(_GroupWorkout groupWorkout) async {
     final confirmed = await AppDeleteConfirmationDialog.show(
       context,
-      title: 'Remove Workout',
-      message: 'Remove this workout from ${widget.workoutGroupName}? It remains in the Workout Library.',
+      title: 'Remove From Training Block',
+      message:
+          'Remove this workout from ${widget.workoutGroupName}? It remains in the Workout Library.',
       deleteButtonText: 'Remove',
     );
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
     await RepositoryRegistry.workoutGroupWorkoutReferenceRepository
         .archiveReference(groupWorkout.reference.id);
-    if (mounted) {
-      setState(_reload);
-    }
+    if (mounted) setState(_reload);
   }
 
-  Future<void> _move(List<_GroupWorkout> workouts, int index, int direction) async {
+  Future<void> _move(
+    List<_GroupWorkout> workouts,
+    int index,
+    int direction,
+  ) async {
     final target = index + direction;
-    if (target < 0 || target >= workouts.length) {
-      return;
-    }
+    if (target < 0 || target >= workouts.length) return;
     final current = workouts[index].reference;
     final other = workouts[target].reference;
     await RepositoryRegistry.workoutGroupWorkoutReferenceRepository
         .saveReference(current.copyWith(displayOrder: other.displayOrder));
     await RepositoryRegistry.workoutGroupWorkoutReferenceRepository
         .saveReference(other.copyWith(displayOrder: current.displayOrder));
-    if (mounted) {
-      setState(_reload);
-    }
+    if (mounted) setState(_reload);
   }
 
   Future<String> _exerciseName(WorkoutExercise workout) async {
@@ -189,86 +173,237 @@ class _WorkoutGroupWorkoutsScreenState extends State<WorkoutGroupWorkoutsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.workoutGroupName)),
-      body: FutureBuilder<List<_GroupWorkout>>(
-        future: _workouts,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final workouts = snapshot.data ?? const <_GroupWorkout>[];
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _attachFromLibrary,
-                        icon: const Icon(Icons.library_add_outlined),
-                        label: const Text('Add from Library'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: _createWorkout,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create New'),
-                      ),
-                    ),
-                  ],
+      body: RitmoCyberpunkBackground(
+        child: FutureBuilder<List<_GroupWorkout>>(
+          future: _workouts,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(
+                child: CircularProgressIndicator(color: ritmoCyan),
+              );
+            }
+            final workouts = snapshot.data ?? const <_GroupWorkout>[];
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+              children: [
+                const RitmoHudSectionHeading(title: 'TRAINING BLOCK'),
+                const SizedBox(height: 8),
+                const RitmoHierarchyPath(items: ['PROGRAM', 'DAY', 'GROUP']),
+                const SizedBox(height: 18),
+                _GroupActionChoice(
+                  icon: Icons.library_add_outlined,
+                  title: 'ADD FROM ARSENAL',
+                  subtitle: 'Use an existing Workout Library workout.',
+                  onTap: _attachFromLibrary,
                 ),
-              ),
-              Expanded(
-                child: workouts.isEmpty
-                    ? const AppEmptyState(
-                        title: 'No workouts in this group',
-                        message: 'Add a workout from the library or create a new one.',
-                        icon: Icons.fitness_center_outlined,
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: workouts.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final groupWorkout = workouts[index];
-                          return Card(
-                            child: ListTile(
-                              onTap: () => _editWorkout(groupWorkout.workout),
-                              title: FutureBuilder<String>(
-                                future: _exerciseName(groupWorkout.workout),
-                                builder: (_, name) => Text(name.data ?? 'Loading...'),
-                              ),
-                              subtitle: Text('Workout ${index + 1}'),
-                              trailing: Wrap(
-                                spacing: 0,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Move up',
-                                    onPressed: index == 0 ? null : () => _move(workouts, index, -1),
-                                    icon: const Icon(Icons.arrow_upward),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Move down',
-                                    onPressed: index == workouts.length - 1 ? null : () => _move(workouts, index, 1),
-                                    icon: const Icon(Icons.arrow_downward),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Remove from group',
-                                    onPressed: () => _removeWorkout(groupWorkout),
-                                    icon: const Icon(Icons.remove_circle_outline),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                const SizedBox(height: 10),
+                _GroupActionChoice(
+                  icon: Icons.add_circle_outline,
+                  title: 'CREATE NEW WORKOUT',
+                  subtitle: 'Build a new workout and add it to this group.',
+                  onTap: _createWorkout,
+                  glowStrength: 0.4,
+                ),
+                const SizedBox(height: 20),
+                if (workouts.isEmpty)
+                  const RitmoHudPanel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'NO WORKOUTS IN THIS BLOCK',
+                          style: TextStyle(
+                            color: Color(0xFFD8FCFF),
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text('Add from the Arsenal or create a new workout.'),
+                      ],
+                    ),
+                  )
+                else
+                  ...workouts.asMap().entries.map(
+                    (entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _GroupWorkoutCard(
+                        groupWorkout: entry.value,
+                        index: entry.key,
+                        lastIndex: workouts.length - 1,
+                        nameFuture: _exerciseName(entry.value.workout),
+                        onEdit: () => _editWorkout(entry.value.workout),
+                        onMoveUp: () => _move(workouts, entry.key, -1),
+                        onMoveDown: () => _move(workouts, entry.key, 1),
+                        onRemove: () => _removeWorkout(entry.value),
                       ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupActionChoice extends StatelessWidget {
+  const _GroupActionChoice({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.glowStrength = 0.2,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final double glowStrength;
+
+  @override
+  Widget build(BuildContext context) {
+    return RitmoHudPanel(
+      glowStrength: glowStrength,
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Icon(icon, color: ritmoCyan),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Color(0xFFD8FCFF),
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(subtitle),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: ritmoCyan),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupWorkoutCard extends StatelessWidget {
+  const _GroupWorkoutCard({
+    required this.groupWorkout,
+    required this.index,
+    required this.lastIndex,
+    required this.nameFuture,
+    required this.onEdit,
+    required this.onMoveUp,
+    required this.onMoveDown,
+    required this.onRemove,
+  });
+
+  final _GroupWorkout groupWorkout;
+  final int index;
+  final int lastIndex;
+  final Future<String> nameFuture;
+  final VoidCallback onEdit;
+  final VoidCallback onMoveUp;
+  final VoidCallback onMoveDown;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final workout = groupWorkout.workout;
+    final metadata = <String>[];
+    if (workout.sets != null) {
+      metadata.add('${workout.sets} SETS');
+    }
+    if (workout.repetitions != null) {
+      metadata.add('${workout.repetitions} REPS');
+    }
+    if (workout.durationInSeconds != null) {
+      metadata.add('${workout.durationInSeconds}s');
+    }
+    if (workout.restInSeconds != null) {
+      metadata.add('${workout.restInSeconds}s REST');
+    }
+    if (workout.sequenceDefinition != null) {
+      metadata.add('${workout.sequenceDefinition!.steps.length} STEPS');
+    }
+    return RitmoHudPanel(
+      glowStrength: 0.15,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'WORKOUT ${(index + 1).toString().padLeft(2, '0')}',
+            style: const TextStyle(
+              color: ritmoOrange,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.05,
+            ),
+          ),
+          const SizedBox(height: 5),
+          FutureBuilder<String>(
+            future: nameFuture,
+            builder: (_, snapshot) => Text(
+              snapshot.data ?? 'Loading workout...',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+          ),
+          if (metadata.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(metadata.join(' / ')),
+          ],
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 4,
+            children: [
+              IconButton(
+                tooltip: 'Move up',
+                onPressed: index == 0 ? null : onMoveUp,
+                icon: const Icon(Icons.arrow_upward),
+              ),
+              IconButton(
+                tooltip: 'Move down',
+                onPressed: index == lastIndex ? null : onMoveDown,
+                icon: const Icon(Icons.arrow_downward),
+              ),
+              IconButton(
+                tooltip: 'Edit workout',
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined),
+              ),
+              IconButton(
+                tooltip: 'Remove from group',
+                onPressed: onRemove,
+                color: const Color(0xFFF08A7A),
+                icon: const Icon(Icons.remove_circle_outline),
               ),
             ],
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -295,64 +430,85 @@ class _WorkoutLibraryPickerState extends State<_WorkoutLibraryPicker> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: FutureBuilder<List<WorkoutExercise>>(
-        future: RepositoryRegistry.workoutExerciseRepository.getAllWorkoutExercises(),
-        builder: (context, snapshot) {
-          final workouts = (snapshot.data ?? const <WorkoutExercise>[])
-              .where((workout) => !widget.attachedWorkoutIds.contains(workout.id))
-              .toList();
-          return SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.72,
-            child: Column(
-              children: [
-                const ListTile(title: Text('Add from Workout Library')),
-                Expanded(
-                  child: snapshot.connectionState != ConnectionState.done
-                      ? const Center(child: CircularProgressIndicator())
-                      : workouts.isEmpty
-                          ? const AppEmptyState(
-                              title: 'No available workouts',
-                              message: 'Create a workout in the Workout Library first.',
-                            )
-                          : ListView.builder(
-                              itemCount: workouts.length,
-                              itemBuilder: (context, index) {
-                                final workout = workouts[index];
-                                return CheckboxListTile(
-                                  value: _selectedIds.contains(workout.id),
-                                  title: FutureBuilder<String>(
-                                    future: RepositoryRegistry.exerciseRepository
-                                        .getExerciseById(workout.exerciseId)
-                                        .then((exercise) => exercise?.name ?? 'Unknown workout'),
-                                    builder: (_, name) => Text(name.data ?? 'Loading...'),
-                                  ),
-                                  onChanged: (selected) => setState(() {
-                                    if (selected ?? false) {
-                                      _selectedIds.add(workout.id);
-                                    } else {
-                                      _selectedIds.remove(workout.id);
-                                    }
-                                  }),
-                                );
-                              },
-                            ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: FilledButton(
-                    onPressed: _selectedIds.isEmpty
-                        ? null
-                        : () => Navigator.of(context).pop(
-                              workouts.where((workout) => _selectedIds.contains(workout.id)).toList(),
-                            ),
-                    child: const Text('Add selected workouts'),
+    return RitmoCyberpunkBackground(
+      child: SafeArea(
+        child: FutureBuilder<List<WorkoutExercise>>(
+          future: RepositoryRegistry.workoutExerciseRepository
+              .getAllWorkoutExercises(),
+          builder: (context, snapshot) {
+            final workouts = (snapshot.data ?? const <WorkoutExercise>[])
+                .where(
+                  (workout) => !widget.attachedWorkoutIds.contains(workout.id),
+                )
+                .toList(growable: false);
+            return SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.76,
+              child: Column(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: RitmoHudSectionHeading(title: 'ADD FROM ARSENAL'),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                  Expanded(
+                    child: snapshot.connectionState != ConnectionState.done
+                        ? const Center(
+                            child: CircularProgressIndicator(color: ritmoCyan),
+                          )
+                        : workouts.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No available workouts in the Arsenal.',
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: workouts.length,
+                            itemBuilder: (context, index) {
+                              final workout = workouts[index];
+                              return CheckboxListTile(
+                                value: _selectedIds.contains(workout.id),
+                                activeColor: ritmoCyan,
+                                title: FutureBuilder<String>(
+                                  future: RepositoryRegistry.exerciseRepository
+                                      .getExerciseById(workout.exerciseId)
+                                      .then(
+                                        (exercise) =>
+                                            exercise?.name ?? 'Unknown workout',
+                                      ),
+                                  builder: (_, name) =>
+                                      Text(name.data ?? 'Loading workout...'),
+                                ),
+                                onChanged: (selected) => setState(() {
+                                  if (selected ?? false) {
+                                    _selectedIds.add(workout.id);
+                                  } else {
+                                    _selectedIds.remove(workout.id);
+                                  }
+                                }),
+                              );
+                            },
+                          ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: RitmoActionButton(
+                      label: 'ADD SELECTED WORKOUTS',
+                      onPressed: _selectedIds.isEmpty
+                          ? null
+                          : () => Navigator.of(context).pop(
+                              workouts
+                                  .where(
+                                    (workout) =>
+                                        _selectedIds.contains(workout.id),
+                                  )
+                                  .toList(growable: false),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

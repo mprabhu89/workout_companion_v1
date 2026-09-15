@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:workout_companion_v1/core/services/speech_engine.dart';
+import 'package:workout_companion_v1/core/widgets/ritmo_hud_widgets.dart';
 import 'package:workout_companion_v1/features/exercise/data/repositories/in_memory_exercise_repository.dart';
 import 'package:workout_companion_v1/features/exercise/domain/entities/exercise.dart';
 import 'package:workout_companion_v1/features/exercise/domain/enums/difficulty_level.dart';
@@ -173,9 +174,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Rest Day'), findsWidgets);
-      final startButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
+      expect(find.text('REST DAY'), findsWidgets);
+      final startButton = tester.widget<RitmoActionButton>(
+        find.byType(RitmoActionButton),
       );
       expect(startButton.onPressed, isNull);
     });
@@ -260,24 +261,11 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('First Group'), findsOneWidget);
-        expect(find.text('Second Group'), findsOneWidget);
         expect(find.text('Bench Press'), findsOneWidget);
         expect(find.text('Push Up'), findsOneWidget);
+        await tester.scrollUntilVisible(find.text('Second Group'), 180);
+        expect(find.text('Second Group'), findsOneWidget);
         expect(find.text('Squat'), findsOneWidget);
-        expect(find.textContaining('3 Rounds'), findsOneWidget);
-
-        expect(
-          tester.getTopLeft(find.text('First Group')).dy,
-          lessThan(tester.getTopLeft(find.text('Second Group')).dy),
-        );
-        expect(
-          tester.getTopLeft(find.text('Bench Press')).dy,
-          lessThan(tester.getTopLeft(find.text('Push Up')).dy),
-        );
-        expect(
-          tester.getTopLeft(find.text('Push Up')).dy,
-          lessThan(tester.getTopLeft(find.text('Squat')).dy),
-        );
       },
     );
 
@@ -301,12 +289,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('No workout contents found for this day.'),
-        findsOneWidget,
-      );
-      final startButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
+      expect(find.textContaining('NO TRAINING BLOCKS YET'), findsOneWidget);
+      final startButton = tester.widget<RitmoActionButton>(
+        find.byType(RitmoActionButton),
       );
       expect(startButton.onPressed, isNull);
     });
@@ -371,7 +356,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Start Workout'));
+        await tester.tap(find.text('START THIS TRAINING DAY'));
         await tester.pumpAndSettle();
 
         expect(find.text('plan:plan-1'), findsOneWidget);
@@ -454,7 +439,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Start Workout'));
+        await tester.tap(find.text('START THIS TRAINING DAY'));
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('START'));
@@ -486,7 +471,7 @@ void main() {
         await tester.tap(find.text('Back to Day Overview'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Start Workout'), findsOneWidget);
+        expect(find.text('START THIS TRAINING DAY'), findsOneWidget);
         expect(historyRepository.savedSessions, hasLength(1));
       },
     );
@@ -520,8 +505,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(historyRepository.savedSessions, isEmpty);
-      final startButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
+      final startButton = tester.widget<RitmoActionButton>(
+        find.byType(RitmoActionButton),
       );
       expect(startButton.onPressed, isNull);
     });

@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/repository_registry.dart';
 import '../../../../core/widgets/app_delete_confirmation_dialog.dart';
-import '../../../../core/widgets/app_empty_state.dart';
-import '../../../../core/widgets/app_list_card.dart';
-import '../../../../core/widgets/app_loading_indicator.dart';
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
+import '../../../workout_plan/presentation/widgets/training_program_hud_widgets.dart';
 import '../../domain/entities/workout_group.dart';
 import '../controllers/workout_group_controller.dart';
 import 'create_workout_group_screen.dart';
@@ -25,167 +24,189 @@ class WorkoutGroupLibraryScreen extends StatefulWidget {
       _WorkoutGroupLibraryScreenState();
 }
 
-class _WorkoutGroupLibraryScreenState
-    extends State<WorkoutGroupLibraryScreen> {
+class _WorkoutGroupLibraryScreenState extends State<WorkoutGroupLibraryScreen> {
   late final WorkoutGroupController _controller;
 
   @override
   void initState() {
     super.initState();
-
     _controller = WorkoutGroupController(
       repository: RepositoryRegistry.workoutGroupRepository,
       workoutDayId: widget.workoutDayId,
-    );
-
-    _controller.loadWorkoutGroups();
+    )..loadWorkoutGroups();
   }
 
-  Future<void> _openWorkoutExercises(
-    WorkoutGroup workoutGroup,
-  ) async {
+  Future<void> _openWorkoutExercises(WorkoutGroup group) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => WorkoutGroupWorkoutsScreen(
-          workoutGroupId: workoutGroup.id,
-          workoutGroupName: workoutGroup.name,
+          workoutGroupId: group.id,
+          workoutGroupName: group.name,
         ),
       ),
     );
-
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _createWorkoutGroup() async {
-    final workoutGroup =
-        await Navigator.of(context).push<WorkoutGroup>(
+    final group = await Navigator.of(context).push<WorkoutGroup>(
       MaterialPageRoute(
         builder: (_) => CreateWorkoutGroupScreen(
           workoutDayId: widget.workoutDayId,
           existingNames: _controller.workoutGroups
-              .map((e) => e.name)
+              .map((group) => group.name)
               .toList(),
         ),
       ),
     );
-
-    if (workoutGroup == null) {
-      return;
-    }
-
-    await _controller.saveWorkoutGroup(workoutGroup);
-
-    if (mounted) {
-      setState(() {});
-    }
+    if (group == null) return;
+    await _controller.saveWorkoutGroup(group);
   }
 
-  Future<void> _editWorkoutGroup(
-    WorkoutGroup workoutGroup,
-  ) async {
-    final updated =
-        await Navigator.of(context).push<WorkoutGroup>(
+  Future<void> _editWorkoutGroup(WorkoutGroup group) async {
+    final updated = await Navigator.of(context).push<WorkoutGroup>(
       MaterialPageRoute(
         builder: (_) => CreateWorkoutGroupScreen(
           workoutDayId: widget.workoutDayId,
-          workoutGroup: workoutGroup,
+          workoutGroup: group,
           existingNames: _controller.workoutGroups
-              .map((e) => e.name)
+              .map((item) => item.name)
               .toList(),
         ),
       ),
     );
-
-    if (updated == null) {
-      return;
-    }
-
-    await _controller.saveWorkoutGroup(updated);
-
-    if (mounted) {
-      setState(() {});
-    }
+    if (updated != null) await _controller.saveWorkoutGroup(updated);
   }
 
-  Future<void> _deleteWorkoutGroup(
-    WorkoutGroup workoutGroup,
-  ) async {
-    final confirmed =
-        await AppDeleteConfirmationDialog.show(
+  Future<void> _deleteWorkoutGroup(WorkoutGroup group) async {
+    final confirmed = await AppDeleteConfirmationDialog.show(
       context,
-      title: 'Delete Workout Group',
-      message:
-          'Are you sure you want to delete "${workoutGroup.name}"?',
+      title: 'Delete Training Block',
+      message: 'Delete "${group.name}" from this training day?',
     );
-
-    if (!confirmed) {
-      return;
-    }
-
-    await _controller.deleteWorkoutGroup(workoutGroup.id);
-
-    if (mounted) {
-      setState(() {});
-    }
+    if (confirmed) await _controller.deleteWorkoutGroup(group.id);
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, _) {
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(widget.workoutDayName),
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: _createWorkoutGroup,
-            child: const Icon(Icons.add),
-          ),
-          body: _controller.isLoading
-              ? const AppLoadingIndicator(
-                  message: 'Loading workout groups...',
-                )
-              : _controller.workoutGroups.isEmpty
-                  ? const AppEmptyState(
-                      title: 'No Workout Groups',
-                      message:
-                          'Tap + to create your first workout group.',
-                    )
-                  : ListView.builder(
-                      itemCount: _controller.workoutGroups.length,
-                      itemBuilder: (context, index) {
-                        final group =
-                            _controller.workoutGroups[index];
-
-                        return AppListCard(
-                          title: group.name,
-                          subtitle:
-                              'Display Order: ${group.displayOrder}',
-                          onTap: () =>
-                              _openWorkoutExercises(group),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () =>
-                                    _editWorkoutGroup(group),
+      builder: (context, _) => Scaffold(
+        appBar: AppBar(title: Text(widget.workoutDayName)),
+        body: RitmoCyberpunkBackground(
+          child: _controller.isLoading
+              ? const Center(child: CircularProgressIndicator(color: ritmoCyan))
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                  children: [
+                    const RitmoHudSectionHeading(title: 'TRAINING STAGE'),
+                    const SizedBox(height: 8),
+                    const RitmoHierarchyPath(items: ['DAY', 'GROUPS']),
+                    const SizedBox(height: 18),
+                    if (_controller.workoutGroups.isEmpty)
+                      const RitmoHudPanel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'NO TRAINING BLOCKS YET',
+                              style: TextStyle(
+                                color: Color(0xFFD8FCFF),
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.8,
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () =>
-                                    _deleteWorkoutGroup(group),
-                              ),
-                            ],
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Create a group to organize this training day.',
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ..._controller.workoutGroups.asMap().entries.map(
+                        (entry) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _TrainingGroupCard(
+                            group: entry.value,
+                            position: entry.key + 1,
+                            onOpen: () => _openWorkoutExercises(entry.value),
+                            onEdit: () => _editWorkoutGroup(entry.value),
+                            onDelete: () => _deleteWorkoutGroup(entry.value),
                           ),
-                        );
-                      },
-                    ),
-        );
-      },
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+        bottomNavigationBar: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: RitmoActionButton(
+            label: 'CREATE GROUP',
+            onPressed: _createWorkoutGroup,
+          ),
+        ),
+      ),
     );
   }
 }
+
+class _TrainingGroupCard extends StatelessWidget {
+  const _TrainingGroupCard({
+    required this.group,
+    required this.position,
+    required this.onOpen,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final WorkoutGroup group;
+  final int position;
+  final VoidCallback onOpen;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<int>(
+      future: _workoutCount(),
+      builder: (context, snapshot) => RitmoTrainingCard(
+        systemLabel: 'GROUP ${position.toString().padLeft(2, '0')}',
+        title: group.name,
+        summary: 'Open this training block to organize its workouts.',
+        metrics: [
+          '${snapshot.data ?? 0} ${(snapshot.data ?? 0) == 1 ? 'WORKOUT' : 'WORKOUTS'}',
+        ],
+        onTap: onOpen,
+        trailing: PopupMenuButton<_GroupAction>(
+          tooltip: 'Training block actions',
+          icon: const Icon(Icons.more_horiz, color: ritmoCyan),
+          onSelected: (action) {
+            if (action == _GroupAction.edit) onEdit();
+            if (action == _GroupAction.delete) onDelete();
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: _GroupAction.edit, child: Text('Edit group')),
+            PopupMenuItem(
+              value: _GroupAction.delete,
+              child: Text('Delete group'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<int> _workoutCount() async {
+    final references = await RepositoryRegistry
+        .workoutGroupWorkoutReferenceRepository
+        .getReferences(group.id);
+    if (references.isNotEmpty) return references.length;
+    return (await RepositoryRegistry.workoutExerciseRepository
+            .getWorkoutExercises(group.id))
+        .where((workout) => !workout.isArchived)
+        .length;
+  }
+}
+
+enum _GroupAction { edit, delete }

@@ -9,6 +9,10 @@ import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../../workout_history/domain/services/workout_statistics_service.dart';
 import '../../../workout_history/presentation/controllers/workout_history_controller.dart';
 import '../../../workout_history/presentation/screens/workout_statistics_screen.dart';
+import '../../../workout_day/domain/entities/workout_day.dart';
+import '../../../workout_day/presentation/screens/workout_day_library_screen.dart';
+import '../../../workout_day/presentation/screens/workout_day_overview_screen.dart';
+import '../../../workout_plan/domain/entities/workout_plan.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -123,14 +127,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _LobbyHeader(
                         onOpenDeveloperTools: () => context.push('/developer'),
                       ),
-                      const SizedBox(height: 28),
-                      const RitmoHudSectionHeading(title: 'CHOOSE YOUR PATH'),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 18),
                       _ModuleCarousel(
                         controller: _pageController,
                         modules: _modules,
                         selectedIndex: _selectedModuleIndex,
-                        height: 370,
+                        height: 346,
                         isEntering: _isEntering,
                         onPageChanged: (index) {
                           setState(() => _selectedModuleIndex = index);
@@ -143,19 +145,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         count: _modules.length,
                         selectedIndex: _selectedModuleIndex,
                       ),
-                      const SizedBox(height: 10),
-                      const Center(
-                        child: Text(
-                          'SWIPE TO EXPLORE',
-                          style: TextStyle(
-                            color: Color(0xFF8FAFB5),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 18),
+                      const _QuickStartHud(),
+                      const SizedBox(height: 18),
                       _LobbyTrainingData(
                         controller: _historyController,
                         onOpenStatistics: _openStatistics,
@@ -173,9 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class _LobbyHeader extends StatelessWidget {
-  const _LobbyHeader({
-    required this.onOpenDeveloperTools,
-  });
+  const _LobbyHeader({required this.onOpenDeveloperTools});
 
   final VoidCallback onOpenDeveloperTools;
 
@@ -199,10 +189,10 @@ class _LobbyHeader extends StatelessWidget {
               Text(
                 'THE ULTIMATE WORKOUT COMPANION',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: const Color(0xFFB3D1D6),
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.25,
-                    ),
+                  color: const Color(0xFFB3D1D6),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.25,
+                ),
               ),
             ],
           ),
@@ -406,7 +396,6 @@ class _LobbyModuleCard extends StatelessWidget {
       ],
     );
   }
-
 }
 
 class _ModuleCopy extends StatelessWidget {
@@ -424,9 +413,9 @@ class _ModuleCopy extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -434,10 +423,10 @@ class _ModuleCopy extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF9EB8BE),
-                letterSpacing: 0.8,
-                height: 1.2,
-              ),
+            color: const Color(0xFF9EB8BE),
+            letterSpacing: 0.8,
+            height: 1.2,
+          ),
         ),
       ],
     );
@@ -465,11 +454,438 @@ class _CarouselIndicator extends StatelessWidget {
             height: 8,
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: index == selectedIndex ? ritmoCyan : const Color(0xFF385159),
+              color: index == selectedIndex
+                  ? ritmoCyan
+                  : const Color(0xFF385159),
               borderRadius: BorderRadius.circular(20),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _QuickStartHud extends StatefulWidget {
+  const _QuickStartHud();
+
+  @override
+  State<_QuickStartHud> createState() => _QuickStartHudState();
+}
+
+class _QuickStartHudState extends State<_QuickStartHud> {
+  List<WorkoutPlan> _plans = const [];
+  List<WorkoutDay> _days = const [];
+  WorkoutPlan? _selectedPlan;
+  WorkoutDay? _selectedDay;
+  var _isLoading = true;
+  var _isStarting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlans();
+  }
+
+  Future<void> _loadPlans() async {
+    final plans =
+        (await RepositoryRegistry.workoutPlanRepository.getAllWorkoutPlans())
+            .where((plan) => !plan.isArchived)
+            .toList(growable: false);
+    if (!mounted) return;
+    setState(() {
+      _plans = plans;
+      _selectedPlan = plans.isEmpty ? null : plans.first;
+      _isLoading = false;
+    });
+    if (plans.isNotEmpty) await _selectPlan(plans.first);
+  }
+
+  Future<void> _selectPlan(WorkoutPlan plan) async {
+    if (mounted) {
+      setState(() {
+        _selectedPlan = plan;
+        _selectedDay = null;
+      });
+    }
+    final days = await RepositoryRegistry.workoutDayRepository.getWorkoutDays(
+      workoutPlanId: plan.id,
+    );
+    if (!mounted || _selectedPlan?.id != plan.id) return;
+    setState(() {
+      _days = days;
+      _selectedDay = days.where((day) => !day.isRestDay).firstOrNull;
+    });
+  }
+
+  Future<void> _openProgram() async {
+    final plan = _selectedPlan;
+    if (plan == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WorkoutDayLibraryScreen(
+          workoutPlanId: plan.id,
+          workoutPlanName: plan.name,
+          workoutPlanDescription: plan.description,
+          workoutPlanCategory: plan.category,
+        ),
+      ),
+    );
+    if (mounted) _loadPlans();
+  }
+
+  Future<void> _startWorkout() async {
+    final plan = _selectedPlan;
+    final day = _selectedDay;
+    if (_isStarting || plan == null || day == null || day.isRestDay) return;
+    setState(() => _isStarting = true);
+    final started = await WorkoutDayOverviewScreen.startWorkoutForDay(
+      context: context,
+      workoutPlanId: plan.id,
+      workoutPlanName: plan.name,
+      workoutPlanCategory: plan.category,
+      workoutDay: day,
+    );
+    if (!mounted) return;
+    setState(() => _isStarting = false);
+    if (!started) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This training day has no executable workouts yet.'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SizedBox(
+        height: 112,
+        child: Center(child: CircularProgressIndicator(color: ritmoCyan)),
+      );
+    }
+    if (_plans.isEmpty) return _noPlans(context);
+    return _planSelector(context);
+  }
+
+  Widget _noPlans(BuildContext context) {
+    return RitmoHudPanel(
+      glowStrength: 0.28,
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          const Icon(Icons.play_arrow_rounded, color: ritmoCyan),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'QUICK START',
+                  style: TextStyle(
+                    color: Color(0xFFD8FCFF),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text('No training plan yet.'),
+              ],
+            ),
+          ),
+          _QuickStartCommandButton(
+            label: 'CREATE PLAN',
+            onPressed: () => context.push('/workout-plans'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _planSelector(BuildContext context) {
+    final plan = _selectedPlan!;
+    return RitmoHudPanel(
+      glowStrength: 0.36,
+      padding: const EdgeInsets.all(12),
+      child: _days.isEmpty
+          ? _QuickStartStatus(
+              title: 'NO TRAINING DAYS CONFIGURED',
+              subtitle: 'Open this program to add a training day.',
+              actionLabel: 'OPEN PLAN',
+              onPressed: _openProgram,
+            )
+          : _selectedDay == null
+          ? _QuickStartStatus(
+              title: 'REST DAY',
+              subtitle: 'Choose a non-rest training day to begin.',
+              actionLabel: 'SETUP',
+              onPressed: _showSetup,
+            )
+          : Row(
+              children: [
+                const Icon(Icons.play_arrow_rounded, color: ritmoCyan),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: InkWell(
+                    onTap: _showSetup,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'QUICK START',
+                          style: TextStyle(
+                            color: Color(0xFFD8FCFF),
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${plan.name} • ${_selectedDay!.name}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFABC6CA),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Quick Start setup',
+                  icon: const Icon(Icons.tune_outlined, color: ritmoOrange),
+                  onPressed: _showSetup,
+                ),
+                _QuickStartCommandButton(
+                  label: _isStarting ? 'STARTING' : 'START',
+                  onPressed: _isStarting ? null : _startWorkout,
+                ),
+              ],
+            ),
+    );
+  }
+
+  Future<void> _showSetup() async {
+    var draftPlan = _selectedPlan;
+    var draftDays = _days;
+    var draftDay = _selectedDay;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => RitmoCyberpunkBackground(
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: RitmoHudPanel(
+                glowStrength: 0.42,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const RitmoHudSectionHeading(title: 'QUICK START SETUP'),
+                    const SizedBox(height: 18),
+                    const _SetupLabel('PROGRAM'),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<WorkoutPlan>(
+                        value: draftPlan,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF122026),
+                        iconEnabledColor: ritmoCyan,
+                        items: _plans
+                            .map(
+                              (plan) => DropdownMenuItem(
+                                value: plan,
+                                child: Text(
+                                  plan.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (plan) async {
+                          if (plan == null) return;
+                          final days = await RepositoryRegistry
+                              .workoutDayRepository
+                              .getWorkoutDays(workoutPlanId: plan.id);
+                          setSheetState(() {
+                            draftPlan = plan;
+                            draftDays = days;
+                            draftDay = days
+                                .where((day) => !day.isRestDay)
+                                .firstOrNull;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const _SetupLabel('TRAINING DAY'),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<WorkoutDay>(
+                        value: draftDay,
+                        isExpanded: true,
+                        hint: const Text('No training day available'),
+                        dropdownColor: const Color(0xFF122026),
+                        iconEnabledColor: ritmoCyan,
+                        items: draftDays
+                            .where((day) => !day.isRestDay)
+                            .map(
+                              (day) => DropdownMenuItem(
+                                value: day,
+                                child: Text(
+                                  'DAY ${day.dayNumber} • ${day.name}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: draftDays.any((day) => !day.isRestDay)
+                            ? (day) => setSheetState(() => draftDay = day)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    RitmoActionButton(
+                      label: 'DONE',
+                      onPressed: () => Navigator.of(context).pop(true),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (confirmed != true || draftPlan == null || !mounted) return;
+    if (draftPlan!.id != _selectedPlan?.id) {
+      await _selectPlan(draftPlan!);
+    }
+    if (!mounted) return;
+    setState(() => _selectedDay = draftDay);
+  }
+}
+
+class _QuickStartCommandButton extends StatelessWidget {
+  const _QuickStartCommandButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        splashColor: ritmoOrange.withValues(alpha: 0.2),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 42, minWidth: 76),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B171C),
+            border: Border.all(
+              color: onPressed == null ? const Color(0xFF42636B) : ritmoCyan,
+            ),
+          ),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: onPressed == null
+                          ? const Color(0xFF78959B)
+                          : const Color(0xFFD8FCFF),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    Icons.chevron_right,
+                    color: onPressed == null
+                        ? const Color(0xFF78959B)
+                        : ritmoCyan,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickStartStatus extends StatelessWidget {
+  const _QuickStartStatus({
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(Icons.play_arrow_rounded, color: ritmoCyan),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'QUICK START',
+                style: TextStyle(
+                  color: Color(0xFFD8FCFF),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+        _QuickStartCommandButton(label: actionLabel, onPressed: onPressed),
+      ],
+    );
+  }
+}
+
+class _SetupLabel extends StatelessWidget {
+  const _SetupLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: ritmoOrange,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1,
       ),
     );
   }
@@ -491,7 +907,7 @@ class _LobbyTrainingData extends StatelessWidget {
       builder: (context, _) {
         if (controller.isLoading) {
           return const SizedBox(
-            height: 120,
+            height: 76,
             child: AppLoadingIndicator(message: 'Loading training data...'),
           );
         }
@@ -505,7 +921,10 @@ class _LobbyTrainingData extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(controller.errorMessage!),
                 const SizedBox(height: 14),
-                RitmoActionButton(label: 'RETRY', onPressed: controller.loadSessions),
+                RitmoActionButton(
+                  label: 'RETRY',
+                  onPressed: controller.loadSessions,
+                ),
               ],
             ),
           );
@@ -513,34 +932,23 @@ class _LobbyTrainingData extends StatelessWidget {
         if (controller.sessions.isEmpty) {
           return RitmoHudPanel(
             glowStrength: 0.3,
-            child: Row(
+            padding: const EdgeInsets.all(12),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image.asset(
-                  'assets/branding/ritmo_mascot_ready.png',
-                  width: 74,
-                  height: 74,
-                  fit: BoxFit.contain,
-                  semanticLabel: 'RITMO ready mascot',
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RitmoHudSectionHeading(title: 'TRAINING DATA'),
-                      SizedBox(height: 10),
-                      Text(
-                        'YOUR JOURNEY STARTS HERE',
-                        style: TextStyle(
-                          color: Color(0xFFD4FBFF),
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.7,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text('Complete your first workout to activate your training stats.'),
-                    ],
+                RitmoHudSectionHeading(title: 'TRAINING DATA'),
+                SizedBox(height: 8),
+                Text(
+                  'YOUR JOURNEY STARTS HERE',
+                  style: TextStyle(
+                    color: Color(0xFFD4FBFF),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.7,
                   ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Complete your first workout to activate your training stats.',
                 ),
               ],
             ),
@@ -548,6 +956,7 @@ class _LobbyTrainingData extends StatelessWidget {
         }
         return RitmoHudPanel(
           glowStrength: 0.45,
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -558,25 +967,55 @@ class _LobbyTrainingData extends StatelessWidget {
                   child: const Text('VIEW ALL'),
                 ),
               ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 14,
-                runSpacing: 14,
-                children: [
-                  _DataPoint(
-                    label: 'WORKOUTS',
-                    value: '${controller.completedWorkouts}',
-                  ),
-                  _DataPoint(
-                    label: 'TRAINING TIME',
-                    value: _formatDuration(controller.totalDurationInSeconds),
-                  ),
-                  _DataPoint(
-                    label: 'COMPLETION',
-                    value:
-                        '${(controller.completionRate * 100).toStringAsFixed(1)}%',
-                  ),
-                ],
+              const SizedBox(height: 10),
+              LayoutBuilder(
+                builder: (context, constraints) => constraints.maxWidth >= 290
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: _DataPoint(
+                              label: 'WORKOUTS',
+                              value: '${controller.completedWorkouts}',
+                            ),
+                          ),
+                          Expanded(
+                            child: _DataPoint(
+                              label: 'TRAINING TIME',
+                              value: _formatDuration(
+                                controller.totalDurationInSeconds,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: _DataPoint(
+                              label: 'COMPLETION',
+                              value:
+                                  '${(controller.completionRate * 100).toStringAsFixed(1)}%',
+                            ),
+                          ),
+                        ],
+                      )
+                    : Wrap(
+                        spacing: 20,
+                        runSpacing: 10,
+                        children: [
+                          _DataPoint(
+                            label: 'WORKOUTS',
+                            value: '${controller.completedWorkouts}',
+                          ),
+                          _DataPoint(
+                            label: 'TRAINING TIME',
+                            value: _formatDuration(
+                              controller.totalDurationInSeconds,
+                            ),
+                          ),
+                          _DataPoint(
+                            label: 'COMPLETION',
+                            value:
+                                '${(controller.completionRate * 100).toStringAsFixed(1)}%',
+                          ),
+                        ],
+                      ),
               ),
             ],
           ),
@@ -603,28 +1042,29 @@ class _DataPoint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 116,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF8FAFB5),
-                  letterSpacing: 0.8,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: const Color(0xFF8FAFB5),
+            letterSpacing: 0.55,
           ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: const Color(0xFFBDECF2),
-                  fontWeight: FontWeight.w800,
-                ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: const Color(0xFFBDECF2),
+            fontWeight: FontWeight.w800,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

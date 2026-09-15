@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/repository_registry.dart';
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../../exercise/domain/entities/exercise.dart';
 import '../../../exercise/domain/repositories/exercise_repository.dart';
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
@@ -8,10 +9,11 @@ import '../../../workout_exercise/domain/repositories/workout_exercise_repositor
 import '../../../workout_group/domain/entities/workout_group.dart';
 import '../../../workout_group/domain/repositories/workout_group_repository.dart';
 import '../../../workout_group_workout_reference/domain/repositories/workout_group_workout_reference_repository.dart';
+import '../../../workout_plan/domain/enums/workout_plan_category.dart';
+import '../../../workout_plan/presentation/widgets/training_program_hud_widgets.dart';
 import '../../../workout_session/domain/entities/workout_session.dart';
 import '../../../workout_session/domain/services/workout_session_builder.dart';
 import '../../../workout_session/presentation/screens/workout_execution_screen.dart';
-import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 import '../../domain/entities/workout_day.dart';
 
 class WorkoutDayOverviewScreen extends StatefulWidget {
@@ -38,19 +40,54 @@ class WorkoutDayOverviewScreen extends StatefulWidget {
   final WorkoutGroupWorkoutReferenceRepository? referenceRepository;
   final ExerciseRepository? exerciseRepository;
   final WorkoutSessionBuilder? sessionBuilder;
-  final Widget Function(WorkoutSession session)?
-      executionScreenBuilder;
+  final Widget Function(WorkoutSession session)? executionScreenBuilder;
+
+  /// The shared launch path for Day Overview and Dashboard Quick Start.
+  static Future<bool> startWorkoutForDay({
+    required BuildContext context,
+    required String workoutPlanId,
+    required String workoutPlanName,
+    required WorkoutDay workoutDay,
+    WorkoutPlanCategory? workoutPlanCategory,
+    WorkoutSessionBuilder? sessionBuilder,
+    Widget Function(WorkoutSession session)? executionScreenBuilder,
+  }) async {
+    if (workoutDay.isRestDay) return false;
+    final builder =
+        sessionBuilder ??
+        WorkoutSessionBuilder(
+          workoutGroupRepository: RepositoryRegistry.workoutGroupRepository,
+          workoutExerciseRepository:
+              RepositoryRegistry.workoutExerciseRepository,
+          referenceRepository:
+              RepositoryRegistry.workoutGroupWorkoutReferenceRepository,
+        );
+    final session = await builder.build(
+      workoutDayId: workoutDay.id,
+      workoutPlanId: workoutPlanId,
+      workoutPlanName: workoutPlanName,
+      workoutPlanCategory: workoutPlanCategory,
+      workoutDayName: workoutDay.name,
+    );
+    if (!context.mounted || session.workoutExercises.isEmpty) return false;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            executionScreenBuilder?.call(session) ??
+            WorkoutExecutionScreen(session: session),
+      ),
+    );
+    return true;
+  }
 
   @override
   State<WorkoutDayOverviewScreen> createState() =>
       _WorkoutDayOverviewScreenState();
 }
 
-class _WorkoutDayOverviewScreenState
-    extends State<WorkoutDayOverviewScreen> {
+class _WorkoutDayOverviewScreenState extends State<WorkoutDayOverviewScreen> {
   late final WorkoutGroupRepository _workoutGroupRepository;
-  late final WorkoutExerciseRepository
-      _workoutExerciseRepository;
+  late final WorkoutExerciseRepository _workoutExerciseRepository;
   late final ExerciseRepository _exerciseRepository;
   late final WorkoutGroupWorkoutReferenceRepository _referenceRepository;
   late final WorkoutSessionBuilder _sessionBuilder;
@@ -59,12 +96,10 @@ class _WorkoutDayOverviewScreenState
   bool _isStarting = false;
   List<_WorkoutGroupSection> _groupSections = const [];
 
-  int get _totalExecutableExercises => _groupSections
-      .fold<int>(
-        0,
-        (count, section) =>
-            count + section.workoutExercises.length,
-      );
+  int get _totalExecutableExercises => _groupSections.fold<int>(
+    0,
+    (count, section) => count + section.workoutExercises.length,
+  );
 
   bool get _canStartWorkout =>
       !widget.workoutDay.isRestDay &&
@@ -81,57 +116,50 @@ class _WorkoutDayOverviewScreenState
         widget.workoutExerciseRepository ??
         RepositoryRegistry.workoutExerciseRepository;
     _exerciseRepository =
-        widget.exerciseRepository ??
-        RepositoryRegistry.exerciseRepository;
-    _referenceRepository = widget.referenceRepository ??
+        widget.exerciseRepository ?? RepositoryRegistry.exerciseRepository;
+    _referenceRepository =
+        widget.referenceRepository ??
         RepositoryRegistry.workoutGroupWorkoutReferenceRepository;
     _sessionBuilder =
         widget.sessionBuilder ??
         WorkoutSessionBuilder(
-          workoutGroupRepository:
-              _workoutGroupRepository,
-          workoutExerciseRepository:
-              _workoutExerciseRepository,
+          workoutGroupRepository: _workoutGroupRepository,
+          workoutExerciseRepository: _workoutExerciseRepository,
           referenceRepository: _referenceRepository,
         );
     _loadOverview();
   }
 
   Future<void> _loadOverview() async {
-    final groups = await _workoutGroupRepository
-        .getWorkoutGroups(widget.workoutDay.id);
+    final groups = await _workoutGroupRepository.getWorkoutGroups(
+      widget.workoutDay.id,
+    );
     final exercises = await _exerciseRepository.getExercises();
     final exercisesById = {
       for (final exercise in exercises) exercise.id: exercise,
     };
-
     final sections = <_WorkoutGroupSection>[];
-
     for (final group in groups) {
       final references = await _referenceRepository.getReferences(group.id);
       final workoutExercises = references.isEmpty
           ? await _workoutExerciseRepository.getWorkoutExercises(group.id)
-          : await Future.wait(references.map((reference) async =>
-              _workoutExerciseRepository.getWorkoutExerciseById(
-                reference.workoutExerciseId,
-              ))).then((items) => items.whereType<WorkoutExercise>().toList());
-      final visibleExercises = workoutExercises
-          .where((exercise) => !exercise.isArchived)
-          .toList(growable: false);
-
+          : (await Future.wait(
+              references.map(
+                (reference) => _workoutExerciseRepository
+                    .getWorkoutExerciseById(reference.workoutExerciseId),
+              ),
+            )).whereType<WorkoutExercise>().toList(growable: false);
       sections.add(
         _WorkoutGroupSection(
           workoutGroup: group,
-          workoutExercises: visibleExercises,
+          workoutExercises: workoutExercises
+              .where((exercise) => !exercise.isArchived)
+              .toList(growable: false),
           exercisesById: exercisesById,
         ),
       );
     }
-
-    if (!mounted) {
-      return;
-    }
-
+    if (!mounted) return;
     setState(() {
       _groupSections = sections;
       _isLoading = false;
@@ -139,139 +167,124 @@ class _WorkoutDayOverviewScreenState
   }
 
   Future<void> _startWorkout() async {
-    if (!_canStartWorkout) {
-      return;
-    }
-
-    setState(() {
-      _isStarting = true;
-    });
-
-    final session = await _sessionBuilder.build(
-      workoutDayId: widget.workoutDay.id,
+    if (!_canStartWorkout) return;
+    setState(() => _isStarting = true);
+    final started = await WorkoutDayOverviewScreen.startWorkoutForDay(
+      context: context,
       workoutPlanId: widget.workoutPlanId,
       workoutPlanName: widget.workoutPlanName,
       workoutPlanCategory: widget.workoutPlanCategory,
-      workoutDayName: widget.workoutDay.name,
+      workoutDay: widget.workoutDay,
+      sessionBuilder: _sessionBuilder,
+      executionScreenBuilder: widget.executionScreenBuilder,
     );
-
-    if (!mounted) {
-      return;
+    if (!mounted) return;
+    setState(() => _isStarting = false);
+    if (!started && !widget.workoutDay.isRestDay) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No executable workouts are available for this training day.',
+          ),
+        ),
+      );
     }
-
-    setState(() {
-      _isStarting = false;
-    });
-
-    if (session.workoutExercises.isEmpty) {
-      return;
-    }
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            widget.executionScreenBuilder?.call(session) ??
-            WorkoutExecutionScreen(session: session),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final workoutDay = widget.workoutDay;
-
+    final day = widget.workoutDay;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(workoutDay.name),
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
+      appBar: AppBar(title: Text(day.name)),
+      body: RitmoCyberpunkBackground(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: ritmoCyan))
+            : SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                  children: [
+                    const RitmoHudSectionHeading(title: 'TRAINING STAGE'),
+                    const SizedBox(height: 8),
+                    const RitmoHierarchyPath(
+                      items: ['PROGRAM', 'DAY', 'GROUPS'],
+                    ),
+                    const SizedBox(height: 16),
+                    RitmoHudPanel(
+                      glowStrength: 0.28,
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             widget.workoutPlanName,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: ritmoCyan,
+                                  fontWeight: FontWeight.w800,
+                                ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Text(
-                            'Day ${workoutDay.dayNumber} • ${workoutDay.name}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium,
+                            'DAY ${day.dayNumber.toString().padLeft(2, '0')} / ${day.name}',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
                           ),
-                          if (workoutDay.description
-                              .trim()
-                              .isNotEmpty) ...[
+                          if (day.description.trim().isNotEmpty) ...[
                             const SizedBox(height: 8),
-                            Text(
-                              workoutDay.description.trim(),
-                            ),
+                            Text(day.description.trim()),
                           ],
-                          if (workoutDay.isRestDay) ...[
+                          if (day.isRestDay) ...[
                             const SizedBox(height: 12),
                             const Text(
-                              'Rest Day',
+                              'REST DAY',
                               style: TextStyle(
-                                fontWeight:
-                                    FontWeight.bold,
+                                color: ritmoOrange,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 4),
                             const Text(
-                              'This day is marked as a rest day. No workout session will be started.',
+                              'This stage is set aside for recovery. No workout session will start.',
                             ),
                           ],
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (!workoutDay.isRestDay &&
-                      _groupSections.isEmpty)
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
+                    const SizedBox(height: 18),
+                    if (!day.isRestDay && _groupSections.isEmpty)
+                      const RitmoHudPanel(
                         child: Text(
-                          'No workout contents found for this day.',
+                          'NO TRAINING BLOCKS YET\nAdd groups and workouts to prepare this day.',
                         ),
                       ),
-                    ),
-                  if (!workoutDay.isRestDay)
-                    ..._groupSections.map(
-                      (section) => _WorkoutGroupCard(
-                        section: section,
+                    if (!day.isRestDay)
+                      ..._groupSections.asMap().entries.map(
+                        (entry) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _WorkoutGroupCard(
+                            section: entry.value,
+                            position: entry.key + 1,
+                          ),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
+      ),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.all(16),
-        child: FilledButton.icon(
+        minimum: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: RitmoActionButton(
+          label: day.isRestDay
+              ? 'REST DAY'
+              : _totalExecutableExercises == 0
+              ? 'NO WORKOUTS AVAILABLE'
+              : _isStarting
+              ? 'STARTING TRAINING...'
+              : 'START THIS TRAINING DAY',
           onPressed: _canStartWorkout ? _startWorkout : null,
-          icon: const Icon(Icons.play_arrow),
-          label: Text(
-            workoutDay.isRestDay
-                ? 'Rest Day'
-                : _totalExecutableExercises == 0
-                    ? 'No Exercises Available'
-                    : _isStarting
-                        ? 'Starting Workout...'
-                        : 'Start Workout',
-          ),
         ),
       ),
     );
@@ -279,93 +292,91 @@ class _WorkoutDayOverviewScreenState
 }
 
 class _WorkoutGroupCard extends StatelessWidget {
-  const _WorkoutGroupCard({
-    required this.section,
-  });
+  const _WorkoutGroupCard({required this.section, required this.position});
 
   final _WorkoutGroupSection section;
+  final int position;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              section.workoutGroup.name,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium,
+    return RitmoHudPanel(
+      glowStrength: 0.2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'GROUP ${position.toString().padLeft(2, '0')}',
+            style: const TextStyle(
+              color: ritmoOrange,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.05,
             ),
-            const SizedBox(height: 12),
-            if (section.workoutExercises.isEmpty)
-              const Text('No exercises in this group.')
-            else
-              ...section.workoutExercises.map(
-                (workoutExercise) => Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: 12,
-                  ),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      section.exerciseNameFor(
-                        workoutExercise,
+          ),
+          const SizedBox(height: 5),
+          Text(
+            section.workoutGroup.name,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${section.workoutExercises.length} ${section.workoutExercises.length == 1 ? 'WORKOUT' : 'WORKOUTS'}',
+          ),
+          const SizedBox(height: 12),
+          if (section.workoutExercises.isEmpty)
+            const Text('No active workouts in this training block.')
+          else
+            ...section.workoutExercises.map(
+              (workout) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  color: const Color(0x6617252B),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        section.exerciseNameFor(workout),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFFD8FCFF),
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    subtitle: Text(
-                      _buildExerciseSummary(
-                        workoutExercise,
-                      ),
-                    ),
+                      const SizedBox(height: 3),
+                      Text(_buildExerciseSummary(workout)),
+                    ],
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
 
-  String _buildExerciseSummary(
-    WorkoutExercise workoutExercise,
-  ) {
+  String _buildExerciseSummary(WorkoutExercise workout) {
     final parts = <String>[];
-
-    if (workoutExercise.sets != null) {
-      parts.add('${workoutExercise.sets} Sets');
+    if (workout.sets != null) {
+      parts.add('${workout.sets} SETS');
     }
-
-    if (workoutExercise.repetitions != null) {
-      parts.add(
-        '${workoutExercise.repetitions} Reps',
-      );
+    if (workout.repetitions != null) {
+      parts.add('${workout.repetitions} REPS');
     }
-
-    if (workoutExercise.durationInSeconds != null) {
-      parts.add(
-        '${workoutExercise.durationInSeconds} sec',
-      );
+    if (workout.durationInSeconds != null) {
+      parts.add('${workout.durationInSeconds}s');
     }
-
-    if (workoutExercise.restInSeconds != null) {
-      parts.add(
-        'Rest ${workoutExercise.restInSeconds}s',
-      );
+    if (workout.restInSeconds != null) {
+      parts.add('${workout.restInSeconds}s REST');
     }
-
-    if (workoutExercise.sessionRepetitions > 1) {
-      parts.add(
-        '${workoutExercise.sessionRepetitions} Rounds',
-      );
+    if (workout.sequenceDefinition != null) {
+      parts.add('${workout.sequenceDefinition!.steps.length} STEPS');
     }
-
-    return parts.isEmpty
-        ? 'Workout exercise'
-        : parts.join(' • ');
+    return parts.isEmpty ? 'WORKOUT CONFIGURED' : parts.join(' / ');
   }
 }
 
@@ -380,11 +391,6 @@ class _WorkoutGroupSection {
   final List<WorkoutExercise> workoutExercises;
   final Map<String, Exercise> exercisesById;
 
-  String exerciseNameFor(
-    WorkoutExercise workoutExercise,
-  ) {
-    return exercisesById[workoutExercise.exerciseId]
-            ?.name ??
-        'Unknown Exercise';
-  }
+  String exerciseNameFor(WorkoutExercise workout) =>
+      exercisesById[workout.exerciseId]?.name ?? 'Unknown Workout';
 }
