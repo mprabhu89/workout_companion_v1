@@ -90,7 +90,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Progress'));
+    await tester.fling(find.byType(PageView), const Offset(-500, 0), 1200);
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(PageView), const Offset(-500, 0), 1200);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('lobby-card-Progress')),
+        matching: find.text('ENTER'),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
     await tester.pumpAndSettle();
 
     expect(find.text('Progress'), findsOneWidget);

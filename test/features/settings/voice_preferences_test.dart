@@ -426,9 +426,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.drag(find.byType(ListView).first, const Offset(0, -240));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Settings'));
+      for (var index = 0; index < 4; index += 1) {
+        await tester.fling(find.byType(PageView), const Offset(-500, 0), 1200);
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const Key('lobby-card-Settings')),
+          matching: find.text('ENTER'),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
 
       expect(find.text('Settings'), findsOneWidget);
