@@ -208,8 +208,8 @@ void main() {
     await tester.tap(find.text('+ CREATE WORKOUT'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Name Your Workout'), findsOneWidget);
-    expect(find.text('Next: Define Exercise'), findsOneWidget);
+    expect(find.text('NAME YOUR WORKOUT'), findsNWidgets(2));
+    expect(find.text('NEXT: DEFINE EXERCISE'), findsOneWidget);
   });
 }
 

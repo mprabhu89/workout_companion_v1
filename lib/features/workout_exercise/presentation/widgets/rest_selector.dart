@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
+import 'workout_builder_hud.dart';
+
 class RestSelector extends StatelessWidget {
   const RestSelector({super.key, required this.value, required this.onChanged});
 
@@ -21,36 +24,40 @@ class RestSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Rest Between Sets',
-              style: Theme.of(context).textTheme.titleMedium,
+    return RitmoHudPanel(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'REST BETWEEN SETS',
+            style: const TextStyle(
+              color: ritmoCyan,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.1,
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              initialValue: value,
-              decoration: const InputDecoration(border: OutlineInputBorder()),
-              items: _restOptions
-                  .map(
-                    (seconds) => DropdownMenuItem<int>(
-                      value: seconds,
-                      child: Text(_formatDuration(seconds)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (selected) {
-                if (selected != null) {
-                  onChanged(selected);
-                }
-              },
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<int>(
+            initialValue: value,
+            dropdownColor: const Color(0xFF102027),
+            style: const TextStyle(color: Color(0xFFF0FCFE)),
+            decoration: ritmoHudInputDecoration(label: 'RECOVERY TIME'),
+            items: _restOptions
+                .map(
+                  (seconds) => DropdownMenuItem<int>(
+                    value: seconds,
+                    child: Text(_formatDuration(seconds)),
+                  ),
+                )
+                .toList(),
+            onChanged: (selected) {
+              if (selected != null) {
+                onChanged(selected);
+              }
+            },
+          ),
+        ],
       ),
     );
   }

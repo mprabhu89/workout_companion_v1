@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../../workout_session/domain/services/workout_sequence_executor.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/entities/workout_sequence_definition.dart';
@@ -67,78 +68,98 @@ class WorkoutSequenceEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final steps = _steps;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Sequence Definition',
-                    style: Theme.of(context).textTheme.titleMedium,
+    return RitmoHudPanel(
+      padding: const EdgeInsets.all(16),
+      glowStrength: steps.isEmpty ? 0.08 : 0.18,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const RitmoHudSectionHeading(title: 'SEQUENCE DEFINITION'),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'EXECUTION PROTOCOL',
+                  style: TextStyle(
+                    color: Color(0xFFA8C7CD),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.05,
                   ),
                 ),
-                FilledButton.icon(
-                  key: const Key('sequence_editor_add_step_button'),
-                  onPressed: () => _addStep(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Step'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Ordered workout guidance steps for this workout exercise.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 16),
-            if (steps.isEmpty)
+              ),
               Text(
-                'No sequence steps added.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              )
-            else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 360),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: steps.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    return _SequenceStepTile(
-                      index: index,
-                      step: steps[index],
-                      stepCount: steps.length,
-                      onMoveUp: index > 0
-                          ? () => _moveStep(index, index - 1)
-                          : null,
-                      onMoveDown: index < steps.length - 1
-                          ? () => _moveStep(index, index + 1)
-                          : null,
-                      onEdit: () => _editStep(context, index),
-                      onDelete: () => _deleteStep(index),
-                    );
-                  },
+                '${steps.length} ${steps.length == 1 ? 'STEP' : 'STEPS'}',
+                style: const TextStyle(
+                  color: ritmoOrange,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.9,
                 ),
               ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            key: const Key('sequence_editor_add_step_button'),
+            onPressed: () => _addStep(context),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ritmoCyan,
+              side: const BorderSide(color: ritmoCyan),
+              minimumSize: const Size.fromHeight(44),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('+ ADD STEP'),
+          ),
+          const SizedBox(height: 16),
+          if (steps.isEmpty)
+            const _SequenceEmptyState()
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 440),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: steps.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  return _SequenceStepTile(
+                    index: index,
+                    step: steps[index],
+                    stepCount: steps.length,
+                    onMoveUp: index > 0
+                        ? () => _moveStep(index, index - 1)
+                        : null,
+                    onMoveDown: index < steps.length - 1
+                        ? () => _moveStep(index, index + 1)
+                        : null,
+                    onEdit: () => _editStep(context, index),
+                    onDelete: () => _deleteStep(index),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }
 
   Future<void> _addStep(BuildContext context) async {
-    final step = await showDialog<WorkoutSequenceStep>(
+    final type = await showModalBottomSheet<WorkoutSequenceStepType>(
       context: context,
-      builder: (context) => WorkoutSequenceStepDialog(),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _SequenceTypePicker(),
     );
-
-    if (step == null) {
+    if (type == null || !context.mounted) {
       return;
     }
+
+    final step = await showDialog<WorkoutSequenceStep>(
+      context: context,
+      builder: (context) => WorkoutSequenceStepDialog(initialType: type),
+    );
+    if (step == null) return;
 
     final steps = _steps..add(step);
     _updateSequence(steps);
@@ -179,9 +200,14 @@ class WorkoutSequenceEditor extends StatelessWidget {
 }
 
 class WorkoutSequenceStepDialog extends StatefulWidget {
-  const WorkoutSequenceStepDialog({super.key, this.initialStep});
+  const WorkoutSequenceStepDialog({
+    super.key,
+    this.initialStep,
+    this.initialType,
+  });
 
   final WorkoutSequenceStep? initialStep;
+  final WorkoutSequenceStepType? initialType;
 
   @override
   State<WorkoutSequenceStepDialog> createState() =>
@@ -202,7 +228,10 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
     super.initState();
     final initialStep = widget.initialStep;
 
-    _stepType = initialStep?.type ?? WorkoutSequenceStepType.guide;
+    _stepType =
+        initialStep?.type ??
+        widget.initialType ??
+        WorkoutSequenceStepType.guide;
     _guideController = TextEditingController(text: initialStep?.text ?? '');
     _countController = TextEditingController(
       text: initialStep?.count?.toString() ?? '',
@@ -231,7 +260,8 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
     final isEditing = widget.initialStep != null;
 
     return AlertDialog(
-      title: Text(isEditing ? 'Edit Sequence Step' : 'Add Sequence Step'),
+      backgroundColor: const Color(0xFF102027),
+      title: Text(isEditing ? 'Edit Sequence Step' : 'Configure Sequence Step'),
       content: SingleChildScrollView(
         child: SizedBox(
           width: 360,
@@ -473,6 +503,95 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
   }
 }
 
+class _SequenceEmptyState extends StatelessWidget {
+  const _SequenceEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 10),
+      child: Text(
+        'No sequence steps added. Build the execution protocol one step at a time.',
+        style: TextStyle(color: Color(0xFFA8C7CD), height: 1.35),
+      ),
+    );
+  }
+}
+
+class _SequenceTypePicker extends StatelessWidget {
+  const _SequenceTypePicker();
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      heightFactor: 0.86,
+      child: SafeArea(
+        child: Material(
+          color: const Color(0xFF102027),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: ritmoCyan)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ADD SEQUENCE STEP',
+                  style: TextStyle(
+                    color: ritmoCyan,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView(
+                    children: WorkoutSequenceStepType.values
+                        .map((type) => _SequenceTypeOption(type: type))
+                        .toList(growable: false),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SequenceTypeOption extends StatelessWidget {
+  const _SequenceTypeOption({required this.type});
+
+  final WorkoutSequenceStepType type;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = _SequenceStepVisual.forType(type);
+    return ListTile(
+      key: Key('sequence_type_picker_${type.name}'),
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(visual.icon, color: visual.accent),
+      title: Text(
+        visual.label,
+        style: const TextStyle(
+          color: Color(0xFFF0FCFE),
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      subtitle: Text(
+        visual.description,
+        style: const TextStyle(color: Color(0xFFA8C7CD)),
+      ),
+      onTap: () => Navigator.of(context).pop(type),
+    );
+  }
+}
+
 class _SequenceStepTile extends StatelessWidget {
   const _SequenceStepTile({
     required this.index,
@@ -494,76 +613,91 @@ class _SequenceStepTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final visual = _SequenceStepVisual.forType(step.type);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final actions = _actions();
-            final content = _stepContent(context);
+    return RitmoHudPanel(
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+      glowStrength: step.type == WorkoutSequenceStepType.counter ? 0.16 : 0.05,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final actions = _actions(visual.accent);
+          final content = _stepContent(context, visual);
 
-            if (constraints.maxWidth >= 540) {
-              return Row(
-                children: [
-                  _stepNumber(),
-                  const SizedBox(width: 12),
-                  Expanded(child: content),
-                  const SizedBox(width: 8),
-                  actions,
-                ],
-              );
-            }
-
-            // On phones, keep the full text column on its own row and place
-            // the touch targets below it rather than squeezing text vertically.
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (constraints.maxWidth >= 540) {
+            return Row(
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _stepNumber(),
-                    const SizedBox(width: 12),
-                    Expanded(child: content),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Align(alignment: Alignment.centerRight, child: actions),
+                _stepNumber(visual),
+                const SizedBox(width: 12),
+                Expanded(child: content),
+                const SizedBox(width: 8),
+                actions,
               ],
             );
-          },
-        ),
+          }
+
+          // On phones, keep the full text column on its own row and place
+          // the touch targets below it rather than squeezing text vertically.
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _stepNumber(visual),
+                  const SizedBox(width: 12),
+                  Expanded(child: content),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Align(alignment: Alignment.centerRight, child: actions),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _stepNumber() {
-    return CircleAvatar(
-      radius: 22,
-      child: Text('${index + 1}'),
+  Widget _stepNumber(_SequenceStepVisual visual) {
+    return Container(
+      width: 42,
+      height: 42,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: visual.accent.withValues(alpha: 0.14),
+        border: Border.all(color: visual.accent.withValues(alpha: 0.68)),
+      ),
+      child: Text(
+        '${index + 1}'.padLeft(2, '0'),
+        style: TextStyle(color: visual.accent, fontWeight: FontWeight.w900),
+      ),
     );
   }
 
-  Widget _stepContent(BuildContext context) {
+  Widget _stepContent(BuildContext context, _SequenceStepVisual visual) {
     final isGuide = step.type == WorkoutSequenceStepType.guide;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          _stepTypeLabel(),
-          key: Key('sequence_step_type_$index'),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleSmall,
+        Row(
+          children: [
+            Icon(visual.icon, color: visual.accent, size: 17),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                visual.label,
+                key: Key('sequence_step_type_$index'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: visual.accent,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.45,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 2),
         Text(
@@ -571,57 +705,40 @@ class _SequenceStepTile extends StatelessWidget {
           key: Key('sequence_step_summary_$index'),
           maxLines: isGuide ? 2 : 1,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFD0E2E5)),
         ),
       ],
     );
   }
 
-  Widget _actions() {
+  Widget _actions(Color accent) {
     return Wrap(
       spacing: 0,
       children: [
         IconButton(
           onPressed: onMoveUp,
-          icon: const Icon(Icons.arrow_upward),
+          icon: Icon(Icons.arrow_upward, color: accent),
           tooltip: 'Move Up',
         ),
         IconButton(
           onPressed: onMoveDown,
-          icon: const Icon(Icons.arrow_downward),
+          icon: Icon(Icons.arrow_downward, color: accent),
           tooltip: 'Move Down',
         ),
         IconButton(
           onPressed: onEdit,
-          icon: const Icon(Icons.edit_outlined),
+          icon: Icon(Icons.edit_outlined, color: accent),
           tooltip: 'Edit Step',
         ),
         IconButton(
           onPressed: onDelete,
-          icon: const Icon(Icons.delete_outline),
+          icon: const Icon(Icons.delete_outline, color: Color(0xFFE27A7A)),
           tooltip: 'Delete Step',
         ),
       ],
     );
-  }
-
-  String _stepTypeLabel() {
-    switch (step.type) {
-      case WorkoutSequenceStepType.guide:
-        return 'Guide';
-      case WorkoutSequenceStepType.count:
-        return 'Count';
-      case WorkoutSequenceStepType.countSeconds:
-        return 'Count Seconds';
-      case WorkoutSequenceStepType.counter:
-        return 'Reps - Counter';
-      case WorkoutSequenceStepType.relax:
-        return 'Relax';
-      case WorkoutSequenceStepType.sequenceBreak:
-        return 'Break';
-      case WorkoutSequenceStepType.end:
-        return 'End';
-    }
   }
 
   String _stepSummary() {
@@ -653,6 +770,83 @@ class _SequenceStepTile extends StatelessWidget {
         return 'Ends the current repetition block';
       case WorkoutSequenceStepType.end:
         return 'End workout';
+    }
+  }
+}
+
+class _SequenceStepVisual {
+  const _SequenceStepVisual({
+    required this.label,
+    required this.description,
+    required this.icon,
+    required this.iconLabel,
+    required this.accent,
+  });
+
+  final String label;
+  final String description;
+  final IconData icon;
+  final String iconLabel;
+  final Color accent;
+
+  static _SequenceStepVisual forType(WorkoutSequenceStepType type) {
+    switch (type) {
+      case WorkoutSequenceStepType.guide:
+        return const _SequenceStepVisual(
+          label: 'Guide',
+          description: 'Speak an instruction',
+          icon: Icons.record_voice_over_outlined,
+          iconLabel: '•',
+          accent: ritmoCyan,
+        );
+      case WorkoutSequenceStepType.count:
+        return const _SequenceStepVisual(
+          label: 'Count',
+          description: 'Natural coach counting',
+          icon: Icons.format_list_numbered,
+          iconLabel: '•',
+          accent: ritmoCyan,
+        );
+      case WorkoutSequenceStepType.countSeconds:
+        return const _SequenceStepVisual(
+          label: 'Count Seconds',
+          description: 'Timed one-second counting',
+          icon: Icons.timer_outlined,
+          iconLabel: '•',
+          accent: ritmoCyan,
+        );
+      case WorkoutSequenceStepType.counter:
+        return const _SequenceStepVisual(
+          label: 'Reps - Counter',
+          description: 'Repeat a sequence block',
+          icon: Icons.loop,
+          iconLabel: '×',
+          accent: ritmoOrange,
+        );
+      case WorkoutSequenceStepType.relax:
+        return const _SequenceStepVisual(
+          label: 'Relax',
+          description: 'Silent timed recovery',
+          icon: Icons.self_improvement_outlined,
+          iconLabel: '•',
+          accent: Color(0xFF7AD4C7),
+        );
+      case WorkoutSequenceStepType.sequenceBreak:
+        return const _SequenceStepVisual(
+          label: 'Break',
+          description: 'Exit repetition block',
+          icon: Icons.subdirectory_arrow_right,
+          iconLabel: '•',
+          accent: ritmoOrange,
+        );
+      case WorkoutSequenceStepType.end:
+        return const _SequenceStepVisual(
+          label: 'End',
+          description: 'Finish the sequence',
+          icon: Icons.flag_outlined,
+          iconLabel: '•',
+          accent: Color(0xFFB3D1D6),
+        );
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/entities/workout_sequence_definition.dart';
 import '../../domain/entities/workout_target_type.dart';
@@ -27,6 +28,7 @@ class WorkoutExerciseForm extends StatelessWidget {
     required this.onTargetTypeChanged,
     required this.onSequenceChanged,
     this.onChangeExercise,
+    this.builderHeader,
   });
 
   final WorkoutExercise workoutExercise;
@@ -54,11 +56,17 @@ class WorkoutExerciseForm extends StatelessWidget {
 
   final VoidCallback? onChangeExercise;
 
+  final Widget? builderHeader;
+
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
       children: [
+        ?builderHeader,
+        if (builderHeader != null) const SizedBox(height: 24),
+        const RitmoHudSectionHeading(title: 'WORKOUT PARAMETERS'),
+        const SizedBox(height: 14),
         ExerciseHeaderCard(
           exerciseName: exerciseName,
           onChangeExercise: onChangeExercise,

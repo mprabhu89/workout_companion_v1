@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/entities/workout_sequence_definition.dart';
 import '../../domain/entities/workout_target_type.dart';
 import '../widgets/workout_exercise_form.dart';
+import '../widgets/workout_builder_hud.dart';
 import '../widgets/workout_sequence_editor.dart';
 
 class CreateWorkoutExerciseScreen extends StatefulWidget {
@@ -79,53 +81,73 @@ class _CreateWorkoutExerciseScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Workout Exercise')),
-      body: SafeArea(
-        child: WorkoutExerciseForm(
-          workoutExercise: _buildWorkoutExercise(),
-          exerciseName: widget.exerciseName,
-          sets: _sets,
-          restSeconds: _restSeconds,
-          targetType: _targetType,
-          targetValueController: _targetValueController,
-          notesController: _notesController,
-          sequenceDefinition: _sequenceDefinition,
-          onSetsChanged: (value) {
-            setState(() {
-              _sets = value;
-            });
-          },
-          onRestChanged: (value) {
-            setState(() {
-              _restSeconds = value;
-            });
-          },
-          onTargetTypeChanged: (value) {
-            setState(() {
-              _targetType = value;
-              _targetValueController.clear();
-            });
-          },
-          onSequenceChanged: (value) {
-            setState(() {
-              _sequenceDefinition = value;
-            });
-          },
-          onChangeExercise: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Exercise selection will be connected next.'),
-              ),
-            );
-          },
+      backgroundColor: const Color(0xFF05090C),
+      appBar: AppBar(
+        title: const Text('CREATE WORKOUT'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: RitmoCyberpunkBackground(
+        child: SafeArea(
+          child: WorkoutExerciseForm(
+            workoutExercise: _buildWorkoutExercise(),
+            exerciseName: widget.exerciseName,
+            sets: _sets,
+            restSeconds: _restSeconds,
+            targetType: _targetType,
+            targetValueController: _targetValueController,
+            notesController: _notesController,
+            sequenceDefinition: _sequenceDefinition,
+            builderHeader: const WorkoutBuilderHeader(
+              stage: 3,
+              title: 'WORKOUT PARAMETERS',
+              subtitle: 'Set the parameters for your workout.',
+              stageLabel: 'CONFIGURE',
+            ),
+            onSetsChanged: (value) {
+              setState(() {
+                _sets = value;
+              });
+            },
+            onRestChanged: (value) {
+              setState(() {
+                _restSeconds = value;
+              });
+            },
+            onTargetTypeChanged: (value) {
+              setState(() {
+                _targetType = value;
+                _targetValueController.clear();
+              });
+            },
+            onSequenceChanged: (value) {
+              setState(() {
+                _sequenceDefinition = value;
+              });
+            },
+          ),
         ),
       ),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.all(16),
-        child: FilledButton.icon(
-          onPressed: _saveWorkoutExercise,
-          icon: const Icon(Icons.save),
-          label: const Text('Save Workout Exercise'),
+        minimum: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'WORKOUT READY',
+              style: TextStyle(
+                color: ritmoCyan,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            RitmoActionButton(
+              label: 'SAVE WORKOUT',
+              onPressed: _saveWorkoutExercise,
+            ),
+          ],
         ),
       ),
     );

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
+
 class SetsSelector extends StatelessWidget {
   const SetsSelector({
     super.key,
@@ -16,45 +18,46 @@ class SetsSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Text(
-              'Sets',
-              style: Theme.of(context).textTheme.titleMedium,
+    return RitmoHudPanel(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Text(
+            'SETS',
+            style: const TextStyle(
+              color: ritmoCyan,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.1,
             ),
+          ),
 
-            const Spacer(),
+          const Spacer(),
 
-            IconButton(
-              onPressed: value > min
-                  ? () => onChanged(value - 1)
-                  : null,
-              icon: const Icon(Icons.remove_circle_outline),
-            ),
+          IconButton(
+            onPressed: value > min ? () => onChanged(value - 1) : null,
+            icon: const Icon(Icons.remove_circle_outline),
+            color: ritmoCyan,
+          ),
 
-            SizedBox(
-              width: 56,
-              child: Center(
-                child: Text(
-                  '$value',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall,
+          SizedBox(
+            width: 56,
+            child: Center(
+              child: Text(
+                '$value',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: const Color(0xFFF0FCFE),
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),
+          ),
 
-            IconButton(
-              onPressed: value < max
-                  ? () => onChanged(value + 1)
-                  : null,
-              icon: const Icon(Icons.add_circle_outline),
-            ),
-          ],
-        ),
+          IconButton(
+            onPressed: value < max ? () => onChanged(value + 1) : null,
+            icon: const Icon(Icons.add_circle_outline),
+            color: ritmoCyan,
+          ),
+        ],
       ),
     );
   }

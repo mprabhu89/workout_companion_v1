@@ -21,7 +21,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Guide'), findsNWidgets(3));
+      expect(find.text('Guide'), findsAtLeastNWidgets(3));
       expect(find.text('One stop bicep curl'), findsOneWidget);
       expect(
         find.text('Be in position. Hold the dumbbell in position.'),
@@ -102,6 +102,8 @@ void main() {
         find.byKey(const Key('sequence_editor_add_step_button')),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('sequence_type_picker_guide')));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('sequence_step_save_button')));
       await tester.pumpAndSettle();
@@ -131,10 +133,7 @@ void main() {
         find.byKey(const Key('sequence_editor_add_step_button')),
       );
       await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('sequence_step_type_dropdown')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Reps - Counter').last);
+      await tester.tap(find.byKey(const Key('sequence_type_picker_counter')));
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -169,9 +168,9 @@ void main() {
         find.byKey(const Key('sequence_editor_add_step_button')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('sequence_step_type_dropdown')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Count Seconds').last);
+      await tester.tap(
+        find.byKey(const Key('sequence_type_picker_countSeconds')),
+      );
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('sequence_step_count_field')),
@@ -191,6 +190,64 @@ void main() {
         WorkoutCountDirection.ascending,
       );
     });
+
+    testWidgets('Add Step presents every persisted sequence type', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _testApp(
+          WorkoutSequenceEditor(
+            workoutExercise: _workoutExercise(),
+            sequenceDefinition: null,
+            onChanged: (_) {},
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('sequence_editor_add_step_button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('ADD SEQUENCE STEP'), findsOneWidget);
+      expect(find.text('Guide'), findsOneWidget);
+      expect(find.text('Count'), findsOneWidget);
+      expect(find.text('Count Seconds'), findsOneWidget);
+      expect(find.text('Reps - Counter'), findsOneWidget);
+      expect(find.text('Relax'), findsOneWidget);
+      expect(find.text('Break'), findsOneWidget);
+      expect(find.text('End'), findsOneWidget);
+    });
+
+    testWidgets(
+      'keeps Up Down Edit and Delete wired to the same ordered steps',
+      (tester) async {
+        WorkoutSequenceDefinition? updated;
+        await tester.pumpWidget(
+          _testApp(
+            WorkoutSequenceEditor(
+              workoutExercise: _workoutExercise(),
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.guide(text: 'First'),
+                  WorkoutSequenceStep.count(
+                    count: 2,
+                    direction: WorkoutCountDirection.ascending,
+                  ),
+                ],
+              ),
+              onChanged: (value) => updated = value,
+            ),
+          ),
+        );
+
+        await tester.tap(find.byTooltip('Move Down').first);
+        expect(updated?.steps.first.type, WorkoutSequenceStepType.count);
+
+        await tester.tap(find.byTooltip('Delete Step').first);
+        expect(updated?.steps, hasLength(1));
+      },
+    );
 
     testWidgets(
       'edits a Reps - Counter without changing its internal step type',

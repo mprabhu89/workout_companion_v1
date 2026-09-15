@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/workout_target_type.dart';
+import 'workout_builder_hud.dart';
 
 class TargetValueEditor extends StatelessWidget {
   const TargetValueEditor({
@@ -14,12 +15,7 @@ class TargetValueEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: _buildEditor(),
-      ),
-    );
+    return WorkoutBuilderSection(title: 'TARGET VALUE', child: _buildEditor());
   }
 
   Widget _buildEditor() {
@@ -28,10 +24,9 @@ class TargetValueEditor extends StatelessWidget {
         return TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Repetitions',
-            hintText: 'e.g. 12',
-            border: OutlineInputBorder(),
+          decoration: ritmoHudInputDecoration(
+            label: 'REPETITIONS',
+            hint: 'e.g. 12',
           ),
         );
 
@@ -39,10 +34,9 @@ class TargetValueEditor extends StatelessWidget {
         return TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Duration (seconds)',
-            hintText: 'e.g. 45',
-            border: OutlineInputBorder(),
+          decoration: ritmoHudInputDecoration(
+            label: 'DURATION (SECONDS)',
+            hint: 'e.g. 45',
           ),
         );
 
@@ -50,10 +44,9 @@ class TargetValueEditor extends StatelessWidget {
         return TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Distance (meters)',
-            hintText: 'e.g. 400',
-            border: OutlineInputBorder(),
+          decoration: ritmoHudInputDecoration(
+            label: 'DISTANCE (METERS)',
+            hint: 'e.g. 400',
           ),
         );
 
@@ -61,20 +54,18 @@ class TargetValueEditor extends StatelessWidget {
         return TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Calories',
-            hintText: 'e.g. 150',
-            border: OutlineInputBorder(),
+          decoration: ritmoHudInputDecoration(
+            label: 'CALORIES',
+            hint: 'e.g. 150',
           ),
         );
 
       case WorkoutTargetType.custom:
         return TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Custom Target',
-            hintText: 'Describe the target',
-            border: OutlineInputBorder(),
+          decoration: ritmoHudInputDecoration(
+            label: 'CUSTOM TARGET',
+            hint: 'Describe the target',
           ),
         );
     }

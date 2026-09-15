@@ -6,7 +6,9 @@ import 'package:workout_companion_v1/features/workout_exercise/presentation/scre
 
 void main() {
   group('Create workout flow', () {
-    testWidgets('starts with free workout naming instead of Select Exercise', (tester) async {
+    testWidgets('starts with free workout naming instead of Select Exercise', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: CreateWorkoutFlowScreen(
@@ -16,12 +18,17 @@ void main() {
         ),
       );
 
-      expect(find.text('Name Your Workout'), findsOneWidget);
-      expect(find.text('Next: Define Exercise'), findsOneWidget);
+      expect(find.text('CREATE WORKOUT'), findsNWidgets(2));
+      expect(find.text('WORKOUT BUILDER'), findsOneWidget);
+      expect(find.text('01 // IDENTITY'), findsOneWidget);
+      expect(find.text('NAME YOUR WORKOUT'), findsNWidgets(2));
+      expect(find.text('NEXT: DEFINE EXERCISE'), findsOneWidget);
       expect(find.text('Select Exercise'), findsNothing);
     });
 
-    testWidgets('requires a workout name before defining an exercise', (tester) async {
+    testWidgets('requires a workout name before defining an exercise', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: CreateWorkoutFlowScreen(
@@ -31,69 +38,93 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Next: Define Exercise'));
+      await tester.tap(find.text('NEXT: DEFINE EXERCISE'));
       await tester.pump();
 
       expect(find.text('Workout name is required.'), findsOneWidget);
-      expect(find.text('Define Exercise'), findsNothing);
+      expect(find.text('DEFINE EXERCISE'), findsNothing);
     });
 
-    testWidgets('creates a custom exercise and canonical workout only after save', (tester) async {
-      final exercises = InMemoryExerciseRepository();
-      final workouts = InMemoryWorkoutExerciseRepository();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: CreateWorkoutFlowScreen(
-            exerciseRepository: exercises,
-            workoutExerciseRepository: workouts,
+    testWidgets(
+      'creates a custom exercise and canonical workout only after save',
+      (tester) async {
+        final exercises = InMemoryExerciseRepository();
+        final workouts = InMemoryWorkoutExerciseRepository();
+        await tester.pumpWidget(
+          MaterialApp(
+            home: CreateWorkoutFlowScreen(
+              exerciseRepository: exercises,
+              workoutExerciseRepository: workouts,
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.enterText(find.byType(TextField).first, 'My Karate Punch Drill');
-      await tester.tap(find.text('Next: Define Exercise'));
-      await tester.pumpAndSettle();
-      expect(find.text('Define Exercise'), findsOneWidget);
-      expect(find.text('My Karate Punch Drill'), findsOneWidget);
+        await tester.enterText(
+          find.byType(TextField).first,
+          'My Karate Punch Drill',
+        );
+        await tester.tap(find.text('NEXT: DEFINE EXERCISE'));
+        await tester.pumpAndSettle();
+        expect(find.text('02 // EXERCISE'), findsOneWidget);
+        expect(find.text('DEFINE EXERCISE'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('CLASSIFICATION'),
+          240,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text('CLASSIFICATION'), findsOneWidget);
+        expect(find.text('My Karate Punch Drill'), findsOneWidget);
 
-      await tester.tap(find.text('Next: Configure Workout'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Save Workout Exercise'));
-      await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.text('NEXT: CONFIGURE'),
+          240,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.text('NEXT: CONFIGURE'));
+        await tester.pumpAndSettle();
+        expect(find.text('03 // CONFIGURE'), findsOneWidget);
+        await tester.tap(find.text('SAVE WORKOUT'));
+        await tester.pumpAndSettle();
 
-      final savedWorkout = (await workouts.getAllWorkoutExercises()).single;
-      final savedExercise = (await exercises.getExercises())
-          .singleWhere((exercise) => exercise.name == 'My Karate Punch Drill');
-      expect(savedExercise.name, 'My Karate Punch Drill');
-      expect(savedExercise.isCustom, isTrue);
-      expect(savedWorkout.exerciseId, savedExercise.id);
-      expect(savedWorkout.workoutGroupId, isNull);
-    });
+        final savedWorkout = (await workouts.getAllWorkoutExercises()).single;
+        final savedExercise = (await exercises.getExercises()).singleWhere(
+          (exercise) => exercise.name == 'My Karate Punch Drill',
+        );
+        expect(savedExercise.name, 'My Karate Punch Drill');
+        expect(savedExercise.isCustom, isTrue);
+        expect(savedWorkout.exerciseId, savedExercise.id);
+        expect(savedWorkout.workoutGroupId, isNull);
+      },
+    );
 
-    testWidgets('cancelling before save does not create an exercise or workout', (tester) async {
-      final exercises = InMemoryExerciseRepository();
-      final workouts = InMemoryWorkoutExerciseRepository();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: CreateWorkoutFlowScreen(
-            exerciseRepository: exercises,
-            workoutExerciseRepository: workouts,
+    testWidgets(
+      'cancelling before save does not create an exercise or workout',
+      (tester) async {
+        final exercises = InMemoryExerciseRepository();
+        final workouts = InMemoryWorkoutExerciseRepository();
+        await tester.pumpWidget(
+          MaterialApp(
+            home: CreateWorkoutFlowScreen(
+              exerciseRepository: exercises,
+              workoutExerciseRepository: workouts,
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.enterText(find.byType(TextField).first, 'Morning Push-up');
-      await tester.tap(find.text('Next: Define Exercise'));
-      await tester.pumpAndSettle();
-      await tester.pageBack();
-      await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField).first, 'Morning Push-up');
+        await tester.tap(find.text('NEXT: DEFINE EXERCISE'));
+        await tester.pumpAndSettle();
+        await tester.pageBack();
+        await tester.pumpAndSettle();
 
-      expect(
-        (await exercises.getExercises())
-            .where((exercise) => exercise.name == 'Morning Push-up'),
-        isEmpty,
-      );
-      expect(await workouts.getAllWorkoutExercises(), isEmpty);
-    });
+        expect(
+          (await exercises.getExercises()).where(
+            (exercise) => exercise.name == 'Morning Push-up',
+          ),
+          isEmpty,
+        );
+        expect(await workouts.getAllWorkoutExercises(), isEmpty);
+      },
+    );
   });
 }
