@@ -41,10 +41,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Overall Completion'), findsOneWidget);
-    expect(find.text('2 / 3'), findsOneWidget);
+    expect(find.text('PERFORMANCE HUD'), findsOneWidget);
+    expect(find.text('TRAINING SUMMARY'), findsOneWidget);
+    expect(find.text('2/3 PLANNED'), findsOneWidget);
     expect(find.text('67%'), findsNWidgets(2));
-    expect(find.text('Actual Sessions'), findsOneWidget);
+    expect(find.text('ACTUAL SESSIONS'), findsOneWidget);
+    expect(find.text('TRAINING ACTIVITY'), findsOneWidget);
     expect(find.text('Strength Plan'), findsOneWidget);
 
     await tester.tap(find.text('Strength Plan'));
@@ -72,7 +74,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('No active workout plans'), findsOneWidget);
+    expect(find.text('BUILD YOUR PERFORMANCE DATA'), findsOneWidget);
   });
 
   testWidgets('Dashboard opens Progress', (tester) async {
@@ -103,9 +105,105 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pumpAndSettle();
 
-    expect(find.text('Progress'), findsOneWidget);
-    expect(find.text('No active workout plans'), findsOneWidget);
+    expect(find.text('PROGRESS'), findsOneWidget);
+    expect(find.text('BUILD YOUR PERFORMANCE DATA'), findsOneWidget);
   });
+
+  testWidgets('derives recent activity bars from completed session dates', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final historyRepository = InMemoryWorkoutHistoryRepository();
+    final now = DateUtils.dateOnly(
+      DateTime.now(),
+    ).add(const Duration(hours: 12));
+    await historyRepository.saveSession(_sessionAt('today-1', now));
+    await historyRepository.saveSession(
+      _sessionAt('today-2', now.subtract(const Duration(hours: 1))),
+    );
+    await historyRepository.saveSession(
+      _sessionAt('yesterday', now.subtract(const Duration(days: 1))),
+    );
+    final controller = WorkoutProgressController(
+      workoutPlanRepository: InMemoryWorkoutPlanRepository(),
+      workoutDayRepository: InMemoryWorkoutDayRepository(),
+      workoutHistoryRepository: historyRepository,
+      progressService: const WorkoutProgressService(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: ProgressScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    final todayKey = Key('activity-count-${_dayKey(now)}');
+    final yesterdayKey = Key(
+      'activity-count-${_dayKey(now.subtract(const Duration(days: 1)))}',
+    );
+    expect(
+      find.text('3 COMPLETED SESSIONS IN THE LAST 7 DAYS'),
+      findsOneWidget,
+    );
+    expect(find.byKey(todayKey), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(todayKey)).data, '2');
+    expect(find.byKey(yesterdayKey), findsOneWidget);
+
+    RepositoryRegistry.workoutHistoryRepository = historyRepository;
+    await tester.tap(find.text('VIEW HISTORY'));
+    await tester.pumpAndSettle();
+    expect(find.text('TRAINING ARCHIVE'), findsOneWidget);
+  });
+
+  testWidgets('keeps the Performance HUD within a narrow portrait viewport', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final historyRepository = InMemoryWorkoutHistoryRepository();
+    await historyRepository.saveSession(
+      _sessionAt(
+        'narrow',
+        DateUtils.dateOnly(DateTime.now()).add(const Duration(hours: 12)),
+      ),
+    );
+    final controller = WorkoutProgressController(
+      workoutPlanRepository: InMemoryWorkoutPlanRepository(),
+      workoutDayRepository: InMemoryWorkoutDayRepository(),
+      workoutHistoryRepository: historyRepository,
+      progressService: const WorkoutProgressService(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: ProgressScreen(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+}
+
+CompletedWorkoutSession _sessionAt(String id, DateTime completedAt) {
+  return CompletedWorkoutSession(
+    id: id,
+    workoutPlanId: 'historic-plan',
+    workoutPlanName: 'Historic Plan',
+    workoutDayId: 'historic-day',
+    workoutDayName: 'Historic Day',
+    startedAt: completedAt.subtract(const Duration(minutes: 20)),
+    completedAt: completedAt,
+    durationInSeconds: 1200,
+    completedExercises: 2,
+    totalExercises: 2,
+    wasCompleted: true,
+  );
+}
+
+String _dayKey(DateTime dateTime) {
+  final date = DateUtils.dateOnly(dateTime.toLocal());
+  return date.toIso8601String().substring(0, 10);
 }
 
 Future<void> _seedProgressData({

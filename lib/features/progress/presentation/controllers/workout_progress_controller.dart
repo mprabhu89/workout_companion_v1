@@ -4,6 +4,7 @@ import '../../domain/models/workout_progress.dart';
 import '../../domain/services/workout_progress_service.dart';
 import '../../../workout_day/domain/entities/workout_day.dart';
 import '../../../workout_day/domain/repositories/workout_day_repository.dart';
+import '../../../workout_history/domain/entities/completed_workout_session.dart';
 import '../../../workout_history/domain/repositories/workout_history_repository.dart';
 import '../../../workout_plan/domain/repositories/workout_plan_repository.dart';
 
@@ -33,10 +34,12 @@ class WorkoutProgressController extends ChangeNotifier {
   final WorkoutProgressService _progressService;
 
   WorkoutProgressSummary? _summary;
+  List<CompletedWorkoutSession> _sessions = const [];
   bool _isLoading = false;
   String? _errorMessage;
 
   WorkoutProgressSummary? get summary => _summary;
+  List<CompletedWorkoutSession> get sessions => List.unmodifiable(_sessions);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -47,8 +50,7 @@ class WorkoutProgressController extends ChangeNotifier {
 
     try {
       final workoutPlans = await _workoutPlanRepository.getAllWorkoutPlans();
-      final workoutSessions = await _workoutHistoryRepository
-          .getCompletedSessions();
+      _sessions = await _workoutHistoryRepository.getCompletedSessions();
       final daysByPlanId = <String, List<WorkoutDay>>{};
 
       for (final plan in workoutPlans.where((plan) => !plan.isArchived)) {
@@ -60,7 +62,7 @@ class WorkoutProgressController extends ChangeNotifier {
       _summary = _progressService.calculate(
         workoutPlans: workoutPlans,
         workoutDaysByPlanId: daysByPlanId,
-        workoutSessions: workoutSessions,
+        workoutSessions: _sessions,
       );
     } catch (error) {
       _errorMessage = 'Unable to load progress: $error';
