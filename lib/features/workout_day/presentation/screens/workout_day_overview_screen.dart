@@ -9,11 +9,7 @@ import '../../../workout_exercise/domain/repositories/workout_exercise_repositor
 import '../../../workout_group/domain/entities/workout_group.dart';
 import '../../../workout_group/domain/repositories/workout_group_repository.dart';
 import '../../../workout_group_workout_reference/domain/repositories/workout_group_workout_reference_repository.dart';
-import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 import '../../../workout_plan/presentation/widgets/training_program_hud_widgets.dart';
-import '../../../workout_session/domain/entities/workout_session.dart';
-import '../../../workout_session/domain/services/workout_session_builder.dart';
-import '../../../workout_session/presentation/screens/workout_execution_screen.dart';
 import '../../domain/entities/workout_day.dart';
 
 class WorkoutDayOverviewScreen extends StatefulWidget {
@@ -22,64 +18,19 @@ class WorkoutDayOverviewScreen extends StatefulWidget {
     required this.workoutPlanId,
     required this.workoutPlanName,
     required this.workoutDay,
-    this.workoutPlanCategory,
     this.workoutGroupRepository,
     this.workoutExerciseRepository,
     this.referenceRepository,
     this.exerciseRepository,
-    this.sessionBuilder,
-    this.executionScreenBuilder,
   });
 
   final String workoutPlanId;
   final String workoutPlanName;
-  final WorkoutPlanCategory? workoutPlanCategory;
   final WorkoutDay workoutDay;
   final WorkoutGroupRepository? workoutGroupRepository;
   final WorkoutExerciseRepository? workoutExerciseRepository;
   final WorkoutGroupWorkoutReferenceRepository? referenceRepository;
   final ExerciseRepository? exerciseRepository;
-  final WorkoutSessionBuilder? sessionBuilder;
-  final Widget Function(WorkoutSession session)? executionScreenBuilder;
-
-  /// The shared launch path for Day Overview and Dashboard Quick Start.
-  static Future<bool> startWorkoutForDay({
-    required BuildContext context,
-    required String workoutPlanId,
-    required String workoutPlanName,
-    required WorkoutDay workoutDay,
-    WorkoutPlanCategory? workoutPlanCategory,
-    WorkoutSessionBuilder? sessionBuilder,
-    Widget Function(WorkoutSession session)? executionScreenBuilder,
-  }) async {
-    if (workoutDay.isRestDay) return false;
-    final builder =
-        sessionBuilder ??
-        WorkoutSessionBuilder(
-          workoutGroupRepository: RepositoryRegistry.workoutGroupRepository,
-          workoutExerciseRepository:
-              RepositoryRegistry.workoutExerciseRepository,
-          referenceRepository:
-              RepositoryRegistry.workoutGroupWorkoutReferenceRepository,
-        );
-    final session = await builder.build(
-      workoutDayId: workoutDay.id,
-      workoutPlanId: workoutPlanId,
-      workoutPlanName: workoutPlanName,
-      workoutPlanCategory: workoutPlanCategory,
-      workoutDayName: workoutDay.name,
-    );
-    if (!context.mounted || session.workoutExercises.isEmpty) return false;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            executionScreenBuilder?.call(session) ??
-            WorkoutExecutionScreen(session: session),
-      ),
-    );
-    return true;
-  }
-
   @override
   State<WorkoutDayOverviewScreen> createState() =>
       _WorkoutDayOverviewScreenState();
@@ -90,21 +41,8 @@ class _WorkoutDayOverviewScreenState extends State<WorkoutDayOverviewScreen> {
   late final WorkoutExerciseRepository _workoutExerciseRepository;
   late final ExerciseRepository _exerciseRepository;
   late final WorkoutGroupWorkoutReferenceRepository _referenceRepository;
-  late final WorkoutSessionBuilder _sessionBuilder;
-
   bool _isLoading = true;
-  bool _isStarting = false;
   List<_WorkoutGroupSection> _groupSections = const [];
-
-  int get _totalExecutableExercises => _groupSections.fold<int>(
-    0,
-    (count, section) => count + section.workoutExercises.length,
-  );
-
-  bool get _canStartWorkout =>
-      !widget.workoutDay.isRestDay &&
-      _totalExecutableExercises > 0 &&
-      !_isStarting;
 
   @override
   void initState() {
@@ -120,13 +58,6 @@ class _WorkoutDayOverviewScreenState extends State<WorkoutDayOverviewScreen> {
     _referenceRepository =
         widget.referenceRepository ??
         RepositoryRegistry.workoutGroupWorkoutReferenceRepository;
-    _sessionBuilder =
-        widget.sessionBuilder ??
-        WorkoutSessionBuilder(
-          workoutGroupRepository: _workoutGroupRepository,
-          workoutExerciseRepository: _workoutExerciseRepository,
-          referenceRepository: _referenceRepository,
-        );
     _loadOverview();
   }
 
@@ -164,31 +95,6 @@ class _WorkoutDayOverviewScreenState extends State<WorkoutDayOverviewScreen> {
       _groupSections = sections;
       _isLoading = false;
     });
-  }
-
-  Future<void> _startWorkout() async {
-    if (!_canStartWorkout) return;
-    setState(() => _isStarting = true);
-    final started = await WorkoutDayOverviewScreen.startWorkoutForDay(
-      context: context,
-      workoutPlanId: widget.workoutPlanId,
-      workoutPlanName: widget.workoutPlanName,
-      workoutPlanCategory: widget.workoutPlanCategory,
-      workoutDay: widget.workoutDay,
-      sessionBuilder: _sessionBuilder,
-      executionScreenBuilder: widget.executionScreenBuilder,
-    );
-    if (!mounted) return;
-    setState(() => _isStarting = false);
-    if (!started && !widget.workoutDay.isRestDay) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No executable workouts are available for this training day.',
-          ),
-        ),
-      );
-    }
   }
 
   @override
@@ -273,19 +179,6 @@ class _WorkoutDayOverviewScreenState extends State<WorkoutDayOverviewScreen> {
                   ],
                 ),
               ),
-      ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-        child: RitmoActionButton(
-          label: day.isRestDay
-              ? 'REST DAY'
-              : _totalExecutableExercises == 0
-              ? 'NO WORKOUTS AVAILABLE'
-              : _isStarting
-              ? 'STARTING TRAINING...'
-              : 'START THIS TRAINING DAY',
-          onPressed: _canStartWorkout ? _startWorkout : null,
-        ),
       ),
     );
   }

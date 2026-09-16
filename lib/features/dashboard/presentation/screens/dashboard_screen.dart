@@ -11,8 +11,8 @@ import '../../../workout_history/presentation/controllers/workout_history_contro
 import '../../../workout_history/presentation/screens/workout_statistics_screen.dart';
 import '../../../workout_day/domain/entities/workout_day.dart';
 import '../../../workout_day/presentation/screens/workout_day_library_screen.dart';
-import '../../../workout_day/presentation/screens/workout_day_overview_screen.dart';
 import '../../../workout_plan/domain/entities/workout_plan.dart';
+import '../../../workout_session/presentation/services/workout_day_training_launcher.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -29,6 +29,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   static const _modules = <_LobbyModule>[
     _LobbyModule(
+      title: 'Start Training',
+      subtitle: 'ENTER TRAINING MODE',
+      route: '/start-training',
+      assetPath: 'assets/branding/ritmo_mascot_ready.png',
+      icon: Icons.play_circle_outline,
+    ),
+    _LobbyModule(
       title: 'Workout Library',
       subtitle: 'BUILD YOUR TRAINING ARSENAL',
       route: '/workout-library',
@@ -43,18 +50,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       icon: Icons.account_tree_outlined,
     ),
     _LobbyModule(
-      title: 'Progress',
-      subtitle: 'TRACK. IMPROVE. LEVEL UP.',
-      route: '/progress',
-      assetPath: 'assets/branding/ritmo_mascot_success.png',
-      icon: Icons.insights_outlined,
-    ),
-    _LobbyModule(
       title: 'History',
       subtitle: 'EVERY WORKOUT COUNTS.',
       route: '/workout-history',
       assetPath: 'assets/branding/ritmo_mascot_success.png',
       icon: Icons.history_outlined,
+    ),
+    _LobbyModule(
+      title: 'Progress',
+      subtitle: 'TRACK. IMPROVE. LEVEL UP.',
+      route: '/progress',
+      assetPath: 'assets/branding/ritmo_mascot_success.png',
+      icon: Icons.insights_outlined,
     ),
     _LobbyModule(
       title: 'Settings',
@@ -262,9 +269,9 @@ class _ModuleCarousel extends StatelessWidget {
                   final distance = (page - index).abs().clamp(0.0, 1.0);
                   final emphasis = 1 - distance;
                   return Opacity(
-                    opacity: lerpDouble(0.55, 1, emphasis)!,
+                    opacity: lerpDouble(0.42, 1, emphasis)!,
                     child: Transform.scale(
-                      scale: lerpDouble(0.9, 1, emphasis)!,
+                      scale: lerpDouble(0.87, 1, emphasis)!,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: _LobbyModuleCard(
@@ -357,7 +364,7 @@ class _LobbyModuleCard extends StatelessWidget {
       selected: emphasis > 0.95,
       label: module.title,
       child: RitmoHudPanel(
-        glowStrength: emphasis,
+        glowStrength: lerpDouble(0.08, 1, emphasis)!,
         padding: const EdgeInsets.all(18),
         child: _portraitContent(context),
       ),
@@ -539,7 +546,7 @@ class _QuickStartHudState extends State<_QuickStartHud> {
     final day = _selectedDay;
     if (_isStarting || plan == null || day == null || day.isRestDay) return;
     setState(() => _isStarting = true);
-    final started = await WorkoutDayOverviewScreen.startWorkoutForDay(
+    final started = await WorkoutDayTrainingLauncher().launch(
       context: context,
       workoutPlanId: plan.id,
       workoutPlanName: plan.name,

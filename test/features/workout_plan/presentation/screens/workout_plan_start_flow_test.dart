@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:workout_companion_v1/core/services/speech_engine.dart';
-import 'package:workout_companion_v1/core/widgets/ritmo_hud_widgets.dart';
 import 'package:workout_companion_v1/features/exercise/data/repositories/in_memory_exercise_repository.dart';
 import 'package:workout_companion_v1/features/exercise/domain/entities/exercise.dart';
 import 'package:workout_companion_v1/features/exercise/domain/enums/difficulty_level.dart';
@@ -25,9 +24,9 @@ import 'package:workout_companion_v1/features/workout_plan/domain/entities/worko
 import 'package:workout_companion_v1/features/workout_plan/domain/enums/workout_plan_category.dart';
 import 'package:workout_companion_v1/features/workout_plan/domain/enums/workout_plan_difficulty.dart';
 import 'package:workout_companion_v1/features/workout_plan/presentation/screens/workout_plan_library_screen.dart';
-import 'package:workout_companion_v1/features/workout_session/domain/entities/workout_session.dart';
 import 'package:workout_companion_v1/features/workout_session/domain/services/voice_coach_service.dart';
 import 'package:workout_companion_v1/features/workout_session/presentation/screens/workout_execution_screen.dart';
+import 'package:workout_companion_v1/features/workout_session/presentation/services/workout_day_training_launcher.dart';
 
 void main() {
   group('Workout plan start flow', () {
@@ -175,10 +174,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('REST DAY'), findsWidgets);
-      final startButton = tester.widget<RitmoActionButton>(
-        find.byType(RitmoActionButton),
-      );
-      expect(startButton.onPressed, isNull);
+      expect(find.text('START WORKOUT'), findsNothing);
+      expect(find.text('START TRAINING'), findsNothing);
     });
 
     testWidgets(
@@ -269,7 +266,9 @@ void main() {
       },
     );
 
-    testWidgets('empty non-rest day cannot start workout', (tester) async {
+    testWidgets('empty non-rest day shows the authoring empty state', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: WorkoutDayOverviewScreen(
@@ -290,14 +289,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('NO TRAINING BLOCKS YET'), findsOneWidget);
-      final startButton = tester.widget<RitmoActionButton>(
-        find.byType(RitmoActionButton),
-      );
-      expect(startButton.onPressed, isNull);
+      expect(find.text('START THIS TRAINING DAY'), findsNothing);
     });
 
     testWidgets(
-      'start workout builds session from selected day with correct plan and day metadata',
+      'day overview remains structural authoring and cannot launch training',
       (tester) async {
         final groupRepository = InMemoryWorkoutGroupRepository();
         final workoutExerciseRepository = InMemoryWorkoutExerciseRepository();
@@ -349,26 +345,19 @@ void main() {
               workoutGroupRepository: groupRepository,
               workoutExerciseRepository: workoutExerciseRepository,
               exerciseRepository: exerciseRepository,
-              executionScreenBuilder: (session) =>
-                  _SessionCaptureScreen(session: session),
             ),
           ),
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('START THIS TRAINING DAY'));
-        await tester.pumpAndSettle();
-
-        expect(find.text('plan:plan-1'), findsOneWidget);
-        expect(find.text('planName:Power Plan'), findsOneWidget);
-        expect(find.text('day:day-1'), findsOneWidget);
-        expect(find.text('dayName:Push Day'), findsOneWidget);
-        expect(find.text('order:exercise-1,exercise-2'), findsOneWidget);
+        expect(find.text('Main Group'), findsOneWidget);
+        expect(find.text('START THIS TRAINING DAY'), findsNothing);
+        expect(find.text('START TRAINING'), findsNothing);
       },
     );
 
     testWidgets(
-      'start workout uses existing execution flow and completion history keeps correct metadata',
+      'shared training launcher uses existing execution and completion history behavior',
       (tester) async {
         final groupRepository = InMemoryWorkoutGroupRepository();
         final workoutExerciseRepository = InMemoryWorkoutExerciseRepository();
@@ -415,31 +404,39 @@ void main() {
           ),
         );
 
+        final launcher = WorkoutDayTrainingLauncher(
+          workoutGroupRepository: groupRepository,
+          workoutExerciseRepository: workoutExerciseRepository,
+          executionScreenBuilder: (session) => WorkoutExecutionScreen(
+            session: session,
+            voiceCoach: VoiceCoachService(speechEngine: speechEngine),
+            workoutHistoryRepository: historyRepository,
+          ),
+        );
+        final day = _day(
+          id: 'day-1',
+          workoutPlanId: 'plan-1',
+          dayNumber: 1,
+          name: 'Push Day',
+        );
         await tester.pumpWidget(
           MaterialApp(
-            home: WorkoutDayOverviewScreen(
-              workoutPlanId: 'plan-1',
-              workoutPlanName: 'Power Plan',
-              workoutDay: _day(
-                id: 'day-1',
-                workoutPlanId: 'plan-1',
-                dayNumber: 1,
-                name: 'Push Day',
-              ),
-              workoutGroupRepository: groupRepository,
-              workoutExerciseRepository: workoutExerciseRepository,
-              exerciseRepository: exerciseRepository,
-              executionScreenBuilder: (session) => WorkoutExecutionScreen(
-                session: session,
-                voiceCoach: VoiceCoachService(speechEngine: speechEngine),
-                workoutHistoryRepository: historyRepository,
+            home: Builder(
+              builder: (context) => FilledButton(
+                onPressed: () => launcher.launch(
+                  context: context,
+                  workoutPlanId: 'plan-1',
+                  workoutPlanName: 'Power Plan',
+                  workoutDay: day,
+                ),
+                child: const Text('START TRAINING'),
               ),
             ),
           ),
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('START THIS TRAINING DAY'));
+        await tester.tap(find.text('START TRAINING'));
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('START'));
@@ -471,14 +468,12 @@ void main() {
         await tester.tap(find.text('Back to Day Overview'));
         await tester.pumpAndSettle();
 
-        expect(find.text('START THIS TRAINING DAY'), findsOneWidget);
+        expect(find.text('START TRAINING'), findsOneWidget);
         expect(historyRepository.savedSessions, hasLength(1));
       },
     );
 
-    testWidgets('rest day creates no history record', (tester) async {
-      final historyRepository = _FakeWorkoutHistoryRepository();
-
+    testWidgets('rest day overview has no execution action', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: WorkoutDayOverviewScreen(
@@ -494,21 +489,13 @@ void main() {
             workoutGroupRepository: InMemoryWorkoutGroupRepository(),
             workoutExerciseRepository: InMemoryWorkoutExerciseRepository(),
             exerciseRepository: InMemoryExerciseRepository(),
-            executionScreenBuilder: (session) => WorkoutExecutionScreen(
-              session: session,
-              voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
-              workoutHistoryRepository: historyRepository,
-            ),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(historyRepository.savedSessions, isEmpty);
-      final startButton = tester.widget<RitmoActionButton>(
-        find.byType(RitmoActionButton),
-      );
-      expect(startButton.onPressed, isNull);
+      expect(find.text('REST DAY'), findsOneWidget);
+      expect(find.text('START THIS TRAINING DAY'), findsNothing);
     });
   });
 }
@@ -580,29 +567,6 @@ Exercise _exercise({required String id, required String name}) {
     equipment: EquipmentType.bodyweight,
     difficulty: DifficultyLevel.beginner,
   );
-}
-
-class _SessionCaptureScreen extends StatelessWidget {
-  const _SessionCaptureScreen({required this.session});
-
-  final WorkoutSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Text('plan:${session.workoutPlanId}'),
-          Text('planName:${session.workoutPlanName}'),
-          Text('day:${session.workoutDayId}'),
-          Text('dayName:${session.workoutDayName}'),
-          Text(
-            'order:${session.workoutExercises.map((e) => e.exerciseId).join(',')}',
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _FakeSpeechEngine implements SpeechEngine {

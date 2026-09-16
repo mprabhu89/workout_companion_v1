@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:workout_companion_v1/core/services/speech_engine.dart';
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_exercise.dart';
+import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_sequence_definition.dart';
+import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_sequence_step.dart';
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_target_type.dart';
 import 'package:workout_companion_v1/features/workout_history/domain/entities/completed_workout_session.dart';
 import 'package:workout_companion_v1/features/workout_history/domain/repositories/workout_history_repository.dart';
@@ -13,6 +15,158 @@ import 'package:workout_companion_v1/features/workout_session/presentation/contr
 import 'package:workout_companion_v1/features/workout_session/presentation/screens/workout_execution_screen.dart';
 
 void main() {
+  testWidgets('renders the active training HUD and paused overlay', (
+    tester,
+  ) async {
+    final controller = WorkoutSessionController(
+      session: WorkoutSession(
+        workoutExercises: [_exercise(sessionRepetitions: 2)],
+        currentExerciseRound: 2,
+        status: WorkoutSessionStatus.exercising,
+      ),
+      voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutExecutionScreen(
+          session: controller.session,
+          controller: controller,
+          voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+          workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('RITMO // ACTIVE TRAINING'), findsOneWidget);
+    expect(find.text('VOICE // ON'), findsOneWidget);
+    expect(find.text('WORKOUT PROGRESS'), findsOneWidget);
+    expect(find.text('II  PAUSE'), findsOneWidget);
+
+    await tester.tap(find.text('II  PAUSE'));
+    await tester.pump();
+    expect(find.text('TRAINING PAUSED'), findsOneWidget);
+    expect(find.text('RESUME TRAINING'), findsOneWidget);
+
+    await tester.tap(find.text('RESUME TRAINING'));
+    await tester.pump();
+    expect(find.text('TRAINING PAUSED'), findsNothing);
+  });
+
+  testWidgets(
+    'keeps the active training HUD within a narrow portrait viewport',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [_exercise()],
+          status: WorkoutSessionStatus.exercising,
+        ),
+        voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkoutExecutionScreen(
+            session: controller.session,
+            controller: controller,
+            voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+            workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'renders Guide, timed count, and Counter iteration from runtime events',
+    (tester) async {
+      final guideSpeech = _PendingSpeechEngine();
+      final guideController = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _exercise(
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.counter(repetitionCount: 2),
+                  WorkoutSequenceStep.guide(text: 'Hold steady'),
+                  WorkoutSequenceStep.sequenceBreak(),
+                  WorkoutSequenceStep.end(),
+                ],
+              ),
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(speechEngine: guideSpeech),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkoutExecutionScreen(
+            session: guideController.session,
+            controller: guideController,
+            voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+            workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+          ),
+        ),
+      );
+      guideController.startCountdown();
+      await tester.pump();
+
+      expect(find.text('GUIDANCE'), findsOneWidget);
+      expect(find.text('Hold steady'), findsOneWidget);
+      expect(find.text('REP 1 / 2  //  SEQUENCE LOOP ACTIVE'), findsOneWidget);
+
+      guideSpeech.completeSpeech();
+      guideController.dispose();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+
+      final timedController = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [
+            _exercise(
+              sequenceDefinition: WorkoutSequenceDefinition(
+                steps: [
+                  WorkoutSequenceStep.countSeconds(
+                    count: 3,
+                    direction: WorkoutCountDirection.descending,
+                  ),
+                  WorkoutSequenceStep.end(),
+                ],
+              ),
+            ),
+          ],
+        ),
+        voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkoutExecutionScreen(
+            session: timedController.session,
+            controller: timedController,
+            voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+            workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+          ),
+        ),
+      );
+      timedController.startCountdown();
+      await tester.pump();
+
+      expect(find.text('TIMED COUNT'), findsOneWidget);
+      expect(find.text('03'), findsOneWidget);
+      timedController.dispose();
+    },
+  );
+
   testWidgets(
     'shows round progress when session repetition is greater than 1',
     (tester) async {
@@ -155,9 +309,7 @@ void main() {
       MaterialApp(
         home: WorkoutExecutionScreen(
           session: _completedSession(),
-          voiceCoach: VoiceCoachService(
-            speechEngine: _ThrowingSpeechEngine(),
-          ),
+          voiceCoach: VoiceCoachService(speechEngine: _ThrowingSpeechEngine()),
           workoutHistoryRepository: historyRepository,
         ),
       ),
@@ -224,7 +376,10 @@ void main() {
   });
 }
 
-WorkoutExercise _exercise({int sessionRepetitions = 1}) {
+WorkoutExercise _exercise({
+  int sessionRepetitions = 1,
+  WorkoutSequenceDefinition? sequenceDefinition,
+}) {
   return WorkoutExercise(
     id: 'workout-exercise-1',
     workoutGroupId: 'group-1',
@@ -235,6 +390,7 @@ WorkoutExercise _exercise({int sessionRepetitions = 1}) {
     durationInSeconds: 30,
     restInSeconds: 0,
     sessionRepetitions: sessionRepetitions,
+    sequenceDefinition: sequenceDefinition,
   );
 }
 

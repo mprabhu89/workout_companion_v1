@@ -115,7 +115,6 @@ class _WorkoutDayLibraryScreenState extends State<WorkoutDayLibraryScreen> {
             WorkoutDayOverviewScreen(
               workoutPlanId: widget.workoutPlanId,
               workoutPlanName: widget.workoutPlanName,
-              workoutPlanCategory: widget.workoutPlanCategory,
               workoutDay: day,
             ),
       ),

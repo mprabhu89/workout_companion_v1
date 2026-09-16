@@ -106,7 +106,11 @@ void main() {
         2: (rate: 0.6, delay: const Duration(milliseconds: 350)),
       };
 
-      for (var index = 0; index < VoicePreferences.voicePaceMultipliers.length; index++) {
+      for (
+        var index = 0;
+        index < VoicePreferences.voicePaceMultipliers.length;
+        index++
+      ) {
         final preferences = VoicePreferences(
           speechRate: VoicePreferences.speechRateForVoicePaceIndex(index),
         );
@@ -426,7 +430,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      for (var index = 0; index < 4; index += 1) {
+      for (var index = 0; index < 5; index += 1) {
         await tester.fling(find.byType(PageView), const Offset(-500, 0), 1200);
         await tester.pumpAndSettle();
       }

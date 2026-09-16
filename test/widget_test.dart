@@ -31,6 +31,7 @@ void main() {
       expect(find.text('03'), findsNothing);
       expect(find.text('04'), findsNothing);
       expect(find.text('05'), findsNothing);
+      expect(find.text('06'), findsNothing);
       expect(find.text('SWIPE TO EXPLORE'), findsNothing);
       expect(find.byTooltip('Previous module'), findsNothing);
       expect(find.byTooltip('Next module'), findsOneWidget);
@@ -53,14 +54,16 @@ void main() {
 
     await tester.tap(find.byTooltip('Next module'));
     await tester.pumpAndSettle();
-    expect(find.text('Workout Plans'), findsWidgets);
+    expect(find.text('Workout Library'), findsWidgets);
     expect(find.byTooltip('Previous module'), findsOneWidget);
     expect(find.byTooltip('Next module'), findsOneWidget);
 
     await tester.fling(find.byType(PageView), const Offset(-500, 0), 1200);
     await tester.pumpAndSettle();
-    expect(find.text('Progress'), findsWidgets);
+    expect(find.text('Workout Plans'), findsWidgets);
 
+    await tester.tap(find.byTooltip('Next module'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Next module'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Next module'));
@@ -70,27 +73,25 @@ void main() {
     expect(find.byTooltip('Next module'), findsNothing);
   });
 
-  testWidgets('ENTER opens the selected module through its existing route', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(_testApp());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'ENTER opens the Start Training terminal through its existing route',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(_testApp());
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Next module'));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const Key('lobby-card-Workout Plans')),
-        matching: find.text('ENTER'),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const Key('lobby-card-Start Training')),
+          matching: find.text('ENTER'),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
 
-    expect(find.text('WORKOUT PLANS'), findsWidgets);
-    expect(find.text('TRAINING PROGRAMS'), findsOneWidget);
-    expect(find.text('BUILD YOUR FIRST PROGRAM'), findsOneWidget);
-  });
+      expect(find.text('START TRAINING'), findsWidgets);
+      expect(find.text('NO TRAINING PROGRAMS AVAILABLE'), findsOneWidget);
+    },
+  );
 
   testWidgets('Dashboard keeps developer tools secondary', (
     WidgetTester tester,

@@ -10,6 +10,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/workout_history/presentation/screens/workout_history_screen.dart';
 import '../../features/workout_exercise/presentation/screens/workout_library_screen.dart';
 import '../../features/workout_plan/presentation/screens/workout_plan_library_screen.dart';
+import '../../features/workout_session/presentation/screens/start_training_screen.dart';
 
 GoRouter createAppRouter({
   StartupVideoPlayerFactory? startupVideoPlayerFactory,
@@ -41,6 +42,11 @@ GoRouter createAppRouter({
       GoRoute(
         path: '/workout-plans',
         builder: (context, state) => const WorkoutPlanLibraryScreen(),
+      ),
+
+      GoRoute(
+        path: '/start-training',
+        builder: (context, state) => const StartTrainingScreen(),
       ),
 
       GoRoute(

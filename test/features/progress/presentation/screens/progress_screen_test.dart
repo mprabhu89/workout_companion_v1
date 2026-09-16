@@ -90,10 +90,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.fling(find.byType(PageView), const Offset(-500, 0), 1200);
-    await tester.pumpAndSettle();
-    await tester.fling(find.byType(PageView), const Offset(-500, 0), 1200);
-    await tester.pumpAndSettle();
+    for (var index = 0; index < 4; index += 1) {
+      await tester.fling(find.byType(PageView), const Offset(-500, 0), 1200);
+      await tester.pumpAndSettle();
+    }
     await tester.tap(
       find.descendant(
         of: find.byKey(const Key('lobby-card-Progress')),
