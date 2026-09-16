@@ -15,6 +15,139 @@ import 'package:workout_companion_v1/features/workout_session/presentation/contr
 import 'package:workout_companion_v1/features/workout_session/presentation/screens/workout_execution_screen.dart';
 
 void main() {
+  testWidgets(
+    'keeps the screen awake throughout active and paused training, then releases on disposal',
+    (tester) async {
+      final keepAwake = _FakeKeepAwake();
+      final controller = WorkoutSessionController(
+        session: WorkoutSession(
+          workoutExercises: [_exercise()],
+          status: WorkoutSessionStatus.exercising,
+        ),
+        voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkoutExecutionScreen(
+            session: controller.session,
+            controller: controller,
+            voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+            workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+            enableKeepScreenAwake: keepAwake.enable,
+            disableKeepScreenAwake: keepAwake.disable,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(keepAwake.enableCount, 1);
+      expect(keepAwake.disableCount, 0);
+
+      await tester.tap(find.text('II  PAUSE'));
+      await tester.pump();
+      await tester.tap(find.text('RESUME TRAINING'));
+      await tester.pump();
+
+      expect(keepAwake.enableCount, 1);
+      expect(keepAwake.disableCount, 0);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      expect(keepAwake.disableCount, 1);
+    },
+  );
+
+  testWidgets('releases keep-awake after completion replaces active training', (
+    tester,
+  ) async {
+    final keepAwake = _FakeKeepAwake();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutExecutionScreen(
+          session: _completedSession(),
+          voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+          workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+          enableKeepScreenAwake: keepAwake.enable,
+          disableKeepScreenAwake: keepAwake.disable,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(keepAwake.enableCount, 1);
+    expect(keepAwake.disableCount, 1);
+    expect(find.text('Workout Complete'), findsOneWidget);
+  });
+
+  testWidgets('manual End Workout releases keep-awake after confirmation', (
+    tester,
+  ) async {
+    final keepAwake = _FakeKeepAwake();
+    final controller = WorkoutSessionController(
+      session: WorkoutSession(
+        workoutExercises: [_exercise()],
+        status: WorkoutSessionStatus.exercising,
+      ),
+      voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutExecutionScreen(
+          session: controller.session,
+          controller: controller,
+          voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+          workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+          enableKeepScreenAwake: keepAwake.enable,
+          disableKeepScreenAwake: keepAwake.disable,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('II  PAUSE'));
+    await tester.pump();
+    await tester.tap(find.text('END WORKOUT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('End Workout'));
+    await tester.pumpAndSettle();
+
+    expect(keepAwake.disableCount, 1);
+    expect(find.text('Workout Complete'), findsOneWidget);
+  });
+
+  testWidgets('keep-awake platform failures do not interrupt active training', (
+    tester,
+  ) async {
+    final controller = WorkoutSessionController(
+      session: WorkoutSession(
+        workoutExercises: [_exercise()],
+        status: WorkoutSessionStatus.exercising,
+      ),
+      voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutExecutionScreen(
+          session: controller.session,
+          controller: controller,
+          voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+          workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+          enableKeepScreenAwake: () => Future<void>.error('Unavailable'),
+          disableKeepScreenAwake: () => Future<void>.error('Unavailable'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('RITMO // ACTIVE TRAINING'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders the active training HUD and paused overlay', (
     tester,
   ) async {
@@ -323,6 +456,7 @@ void main() {
   testWidgets('active workout requires confirmation before leaving', (
     tester,
   ) async {
+    final keepAwake = _FakeKeepAwake();
     final controller = WorkoutSessionController(
       session: WorkoutSession(
         workoutExercises: [_exercise()],
@@ -346,6 +480,8 @@ void main() {
                         speechEngine: _FakeSpeechEngine(),
                       ),
                       workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+                      enableKeepScreenAwake: keepAwake.enable,
+                      disableKeepScreenAwake: keepAwake.disable,
                     ),
                   ),
                 ),
@@ -373,7 +509,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Open Workout'), findsOneWidget);
+    expect(keepAwake.disableCount, 1);
   });
+}
+
+class _FakeKeepAwake {
+  var enableCount = 0;
+  var disableCount = 0;
+
+  Future<void> enable() async {
+    enableCount += 1;
+  }
+
+  Future<void> disable() async {
+    disableCount += 1;
+  }
 }
 
 WorkoutExercise _exercise({

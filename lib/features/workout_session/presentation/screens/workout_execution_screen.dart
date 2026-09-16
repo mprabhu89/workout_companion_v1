@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../../core/di/repository_registry.dart';
 import '../../../../core/widgets/ritmo_hud_widgets.dart';
@@ -23,12 +24,16 @@ class WorkoutExecutionScreen extends StatefulWidget {
     this.controller,
     this.voiceCoach,
     this.workoutHistoryRepository,
+    this.enableKeepScreenAwake,
+    this.disableKeepScreenAwake,
   });
 
   final WorkoutSession session;
   final WorkoutSessionController? controller;
   final VoiceCoachService? voiceCoach;
   final WorkoutHistoryRepository? workoutHistoryRepository;
+  final Future<void> Function()? enableKeepScreenAwake;
+  final Future<void> Function()? disableKeepScreenAwake;
 
   @override
   State<WorkoutExecutionScreen> createState() => _WorkoutExecutionScreenState();
@@ -51,6 +56,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(_setKeepScreenAwake(enabled: true));
     _ownsVoiceCoach = widget.voiceCoach == null;
     _voiceCoach = widget.voiceCoach ?? RepositoryRegistry.createVoiceCoach();
     _voicePreferencesStore = RepositoryRegistry.voicePreferencesStore;
@@ -73,6 +79,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   @override
   void dispose() {
+    unawaited(_setKeepScreenAwake(enabled: false));
     _controller.removeListener(_refresh);
     _voicePreferencesStore.removeListener(_onVoicePreferencesChanged);
     if (_ownsController) {
@@ -82,6 +89,16 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       unawaited(_voiceCoach.dispose());
     }
     super.dispose();
+  }
+
+  Future<void> _setKeepScreenAwake({required bool enabled}) async {
+    try {
+      await (enabled
+          ? widget.enableKeepScreenAwake ?? WakelockPlus.enable
+          : widget.disableKeepScreenAwake ?? WakelockPlus.disable)();
+    } catch (_) {
+      // Screen-awake support is optional and must never affect training.
+    }
   }
 
   void _refresh() {
