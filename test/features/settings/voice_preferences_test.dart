@@ -365,7 +365,7 @@ void main() {
     );
 
     testWidgets(
-      'Settings renders saved values and updates enabled preference',
+      'Settings renders the Control Center and updates voice preferences',
       (tester) async {
         final store = VoicePreferencesStore(
           repository: _MemoryRepository(
@@ -387,20 +387,38 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Voice Coach'), findsOneWidget);
-        expect(find.text('RITMO Auto - Recommended'), findsOneWidget);
-        expect(find.text('1.5x'), findsOneWidget);
-        expect(find.text('1.20'), findsOneWidget);
-        expect(find.text('75%'), findsOneWidget);
-
+        expect(find.text('SETTINGS'), findsOneWidget);
+        expect(find.text('CONTROL CENTER'), findsOneWidget);
+        expect(find.text('VOICE COACH'), findsOneWidget);
+        expect(find.text('COACH CONFIGURATION'), findsOneWidget);
+        expect(find.text('RITMO AUTO'), findsOneWidget);
+        expect(find.text('CHOOSE MY COACH'), findsOneWidget);
         await tester.tap(find.byType(Switch));
         await tester.pumpAndSettle();
 
         expect(controller.preferences.isEnabled, isFalse);
 
-        await tester.tap(find.text('Coach Voice'));
+        await tester.scrollUntilVisible(
+          find.byKey(const Key('voice-pace-control')),
+          240,
+        );
+        expect(find.text('1.5x'), findsWidgets);
+        expect(find.text('1.20'), findsOneWidget);
+        expect(find.text('75%'), findsOneWidget);
+
+        await tester.drag(find.byType(Scrollable), const Offset(0, 1000));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Zen'));
+
+        await tester.tap(find.byKey(const Key('coach-mode-fixed')));
+        await tester.pumpAndSettle();
+        expect(find.text('COACH PROFILES'), findsOneWidget);
+        for (final profile in CoachVoiceProfile.values) {
+          expect(find.text(profile.displayName.toUpperCase()), findsOneWidget);
+        }
+
+        await tester.ensureVisible(find.text('ZEN'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('ZEN'));
         await tester.pumpAndSettle();
 
         expect(
@@ -413,6 +431,91 @@ void main() {
         );
       },
     );
+
+    testWidgets('Settings keeps the five discrete Voice Pace values readable', (
+      tester,
+    ) async {
+      final controller = VoicePreferencesController(
+        preferencesStore: VoicePreferencesStore(
+          repository: _MemoryRepository(),
+        ),
+        voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: SettingsScreen(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('voice-pace-control')),
+        240,
+      );
+      expect(find.text('VOICE PACE'), findsOneWidget);
+      for (final pace in const ['0.25x', '0.5x', '1x', '1.5x', '2x']) {
+        expect(find.text(pace), findsWidgets);
+      }
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('voice-pace-control')),
+          matching: find.byType(Slider),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Settings remains usable in a narrow portrait viewport', (
+      tester,
+    ) async {
+      final controller = VoicePreferencesController(
+        preferencesStore: VoicePreferencesStore(
+          repository: _MemoryRepository(
+            value: VoicePreferences(
+              coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+              selectedCoachVoice: CoachVoiceProfile.valkyrie,
+            ),
+          ),
+        ),
+        voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+      );
+      await tester.binding.setSurfaceSize(const Size(320, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        MaterialApp(home: SettingsScreen(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('CONTROL CENTER'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Settings renders fixed coach profiles on a narrow device', (
+      tester,
+    ) async {
+      final controller = VoicePreferencesController(
+        preferencesStore: VoicePreferencesStore(
+          repository: _MemoryRepository(
+            value: VoicePreferences(
+              coachVoiceMode: CoachVoiceMode.chooseMyCoach,
+            ),
+          ),
+        ),
+        voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+      );
+      await tester.binding.setSurfaceSize(const Size(280, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        MaterialApp(home: SettingsScreen(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+
+      for (final profile in CoachVoiceProfile.values) {
+        expect(find.text(profile.displayName.toUpperCase()), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets('Dashboard opens Settings', (tester) async {
       final engine = _FakeSpeechEngine();
@@ -443,8 +546,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
 
-      expect(find.text('Settings'), findsOneWidget);
-      expect(find.text('Voice Coach Enabled'), findsOneWidget);
+      expect(find.text('SETTINGS'), findsOneWidget);
+      expect(find.text('CONTROL CENTER'), findsOneWidget);
     });
   });
 }
