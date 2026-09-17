@@ -81,7 +81,7 @@ class _WorkoutGroupLibraryScreenState extends State<WorkoutGroupLibraryScreen> {
   Future<void> _deleteWorkoutGroup(WorkoutGroup group) async {
     final confirmed = await AppDeleteConfirmationDialog.show(
       context,
-      title: 'Delete Training Block',
+      title: 'Delete Session',
       message: 'Delete "${group.name}" from this training day?',
     );
     if (confirmed) await _controller.deleteWorkoutGroup(group.id);
@@ -101,7 +101,7 @@ class _WorkoutGroupLibraryScreenState extends State<WorkoutGroupLibraryScreen> {
                   children: [
                     const RitmoHudSectionHeading(title: 'TRAINING STAGE'),
                     const SizedBox(height: 8),
-                    const RitmoHierarchyPath(items: ['DAY', 'GROUPS']),
+                    const RitmoHierarchyPath(items: ['DAY', 'SESSIONS']),
                     const SizedBox(height: 18),
                     if (_controller.workoutGroups.isEmpty)
                       const RitmoHudPanel(
@@ -109,7 +109,7 @@ class _WorkoutGroupLibraryScreenState extends State<WorkoutGroupLibraryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'NO TRAINING BLOCKS YET',
+                              'NO SESSIONS YET',
                               style: TextStyle(
                                 color: Color(0xFFD8FCFF),
                                 fontWeight: FontWeight.w900,
@@ -118,7 +118,7 @@ class _WorkoutGroupLibraryScreenState extends State<WorkoutGroupLibraryScreen> {
                             ),
                             SizedBox(height: 6),
                             Text(
-                              'Create a group to organize this training day.',
+                              'Create a Session to organize this training day.',
                             ),
                           ],
                         ),
@@ -142,7 +142,7 @@ class _WorkoutGroupLibraryScreenState extends State<WorkoutGroupLibraryScreen> {
         bottomNavigationBar: SafeArea(
           minimum: const EdgeInsets.fromLTRB(20, 8, 20, 20),
           child: RitmoActionButton(
-            label: 'CREATE GROUP',
+            label: 'ADD SESSION',
             onPressed: _createWorkoutGroup,
           ),
         ),
@@ -171,25 +171,28 @@ class _TrainingGroupCard extends StatelessWidget {
     return FutureBuilder<int>(
       future: _workoutCount(),
       builder: (context, snapshot) => RitmoTrainingCard(
-        systemLabel: 'GROUP ${position.toString().padLeft(2, '0')}',
+        systemLabel: 'SESSION ${position.toString().padLeft(2, '0')}',
         title: group.name,
-        summary: 'Open this training block to organize its workouts.',
+        summary: 'Open this training Session to organize its workouts.',
         metrics: [
           '${snapshot.data ?? 0} ${(snapshot.data ?? 0) == 1 ? 'WORKOUT' : 'WORKOUTS'}',
         ],
         onTap: onOpen,
         trailing: PopupMenuButton<_GroupAction>(
-          tooltip: 'Training block actions',
+          tooltip: 'Training Session actions',
           icon: const Icon(Icons.more_horiz, color: ritmoCyan),
           onSelected: (action) {
             if (action == _GroupAction.edit) onEdit();
             if (action == _GroupAction.delete) onDelete();
           },
           itemBuilder: (_) => const [
-            PopupMenuItem(value: _GroupAction.edit, child: Text('Edit group')),
+            PopupMenuItem(
+              value: _GroupAction.edit,
+              child: Text('Edit Session'),
+            ),
             PopupMenuItem(
               value: _GroupAction.delete,
-              child: Text('Delete group'),
+              child: Text('Delete Session'),
             ),
           ],
         ),

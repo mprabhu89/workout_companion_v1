@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:workout_companion_v1/core/widgets/ritmo_hud_widgets.dart';
 import 'package:workout_companion_v1/core/services/speech_engine.dart';
 import 'package:workout_companion_v1/features/exercise/data/repositories/in_memory_exercise_repository.dart';
 import 'package:workout_companion_v1/features/exercise/domain/entities/exercise.dart';
@@ -17,6 +18,7 @@ import 'package:workout_companion_v1/features/workout_exercise/domain/entities/w
 import 'package:workout_companion_v1/features/workout_exercise/domain/entities/workout_target_type.dart';
 import 'package:workout_companion_v1/features/workout_group/data/repositories/in_memory_workout_group_repository.dart';
 import 'package:workout_companion_v1/features/workout_group/domain/entities/workout_group.dart';
+import 'package:workout_companion_v1/features/workout_group_workout_reference/data/repositories/in_memory_workout_group_workout_reference_repository.dart';
 import 'package:workout_companion_v1/features/workout_history/domain/entities/completed_workout_session.dart';
 import 'package:workout_companion_v1/features/workout_history/domain/repositories/workout_history_repository.dart';
 import 'package:workout_companion_v1/features/workout_plan/data/repositories/in_memory_workout_plan_repository.dart';
@@ -179,6 +181,72 @@ void main() {
     });
 
     testWidgets(
+      'day overview manages existing WorkoutGroups as named Sessions',
+      (tester) async {
+        final groupRepository = InMemoryWorkoutGroupRepository();
+        final referenceRepository =
+            InMemoryWorkoutGroupWorkoutReferenceRepository();
+        final workoutExerciseRepository = InMemoryWorkoutExerciseRepository();
+        final exerciseRepository = InMemoryExerciseRepository();
+        final day = _day(
+          id: 'day-sessions',
+          workoutPlanId: 'plan-1',
+          dayNumber: 1,
+          name: 'Training Day',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: WorkoutDayOverviewScreen(
+              workoutPlanId: 'plan-1',
+              workoutPlanName: 'Plan',
+              workoutDay: day,
+              workoutGroupRepository: groupRepository,
+              workoutExerciseRepository: workoutExerciseRepository,
+              referenceRepository: referenceRepository,
+              exerciseRepository: exerciseRepository,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('SESSIONS'), findsOneWidget);
+        expect(find.text('NO SESSIONS YET'), findsOneWidget);
+        expect(find.text('ADD SESSION'), findsOneWidget);
+        expect(find.text('START TRAINING'), findsNothing);
+
+        await tester.tap(find.text('ADD SESSION'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextFormField).first, 'Morning');
+        await tester.tap(find.byType(RitmoActionButton));
+        await tester.pumpAndSettle();
+
+        expect(find.text('SESSION 01'), findsOneWidget);
+        expect(find.text('Morning'), findsOneWidget);
+        expect(await groupRepository.getWorkoutGroups(day.id), hasLength(1));
+
+        await tester.tap(find.byTooltip('Session actions'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Edit Session'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextFormField).first, 'Evening');
+        await tester.tap(find.byType(RitmoActionButton));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Evening'), findsOneWidget);
+        await tester.tap(find.byTooltip('Session actions'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Delete Session').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Delete Session'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('NO SESSIONS YET'), findsOneWidget);
+        expect(await groupRepository.getWorkoutGroups(day.id), isEmpty);
+      },
+    );
+
+    testWidgets(
       'day overview displays ordered workout groups and exercises under the correct groups',
       (tester) async {
         final groupRepository = InMemoryWorkoutGroupRepository();
@@ -288,7 +356,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('NO TRAINING BLOCKS YET'), findsOneWidget);
+      expect(find.textContaining('NO SESSIONS YET'), findsOneWidget);
       expect(find.text('START THIS TRAINING DAY'), findsNothing);
     });
 

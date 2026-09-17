@@ -33,10 +33,18 @@ class _WorkoutGroupWorkoutsScreenState
   @override
   void initState() {
     super.initState();
-    _reload();
+    _workouts = _loadWorkouts();
   }
 
-  void _reload() => _workouts = _loadWorkouts();
+  /// Replaces the rendered snapshot only after the membership read completes.
+  /// This keeps the Session list synchronized when a child route returns.
+  Future<void> _refreshWorkouts() async {
+    final refreshed = await _loadWorkouts();
+    if (!mounted) return;
+    setState(() {
+      _workouts = Future.value(refreshed);
+    });
+  }
 
   Future<List<_GroupWorkout>> _loadWorkouts() async {
     final references = await RepositoryRegistry
@@ -72,6 +80,7 @@ class _WorkoutGroupWorkoutsScreenState
     var nextOrder = await RepositoryRegistry
         .workoutGroupWorkoutReferenceRepository
         .getNextDisplayOrder(widget.workoutGroupId);
+    var attachedAny = false;
     for (final workout in selected) {
       final exists = await RepositoryRegistry
           .workoutGroupWorkoutReferenceRepository
@@ -89,9 +98,12 @@ class _WorkoutGroupWorkoutsScreenState
                 displayOrder: nextOrder++,
               ),
             );
+        attachedAny = true;
       }
     }
-    if (mounted) setState(_reload);
+    if (attachedAny) {
+      await _refreshWorkouts();
+    }
   }
 
   Future<void> _createWorkout() async {
@@ -111,7 +123,7 @@ class _WorkoutGroupWorkoutsScreenState
             displayOrder: order,
           ),
         );
-    if (mounted) setState(_reload);
+    await _refreshWorkouts();
   }
 
   Future<void> _editWorkout(WorkoutExercise workout) async {
@@ -130,13 +142,13 @@ class _WorkoutGroupWorkoutsScreenState
     await RepositoryRegistry.workoutExerciseRepository.saveWorkoutExercise(
       updated,
     );
-    if (mounted) setState(_reload);
+    await _refreshWorkouts();
   }
 
   Future<void> _removeWorkout(_GroupWorkout groupWorkout) async {
     final confirmed = await AppDeleteConfirmationDialog.show(
       context,
-      title: 'Remove From Training Block',
+      title: 'Remove From Session',
       message:
           'Remove this workout from ${widget.workoutGroupName}? It remains in the Workout Library.',
       deleteButtonText: 'Remove',
@@ -144,7 +156,7 @@ class _WorkoutGroupWorkoutsScreenState
     if (!confirmed) return;
     await RepositoryRegistry.workoutGroupWorkoutReferenceRepository
         .archiveReference(groupWorkout.reference.id);
-    if (mounted) setState(_reload);
+    await _refreshWorkouts();
   }
 
   Future<void> _move(
@@ -160,7 +172,7 @@ class _WorkoutGroupWorkoutsScreenState
         .saveReference(current.copyWith(displayOrder: other.displayOrder));
     await RepositoryRegistry.workoutGroupWorkoutReferenceRepository
         .saveReference(other.copyWith(displayOrder: current.displayOrder));
-    if (mounted) setState(_reload);
+    await _refreshWorkouts();
   }
 
   Future<String> _exerciseName(WorkoutExercise workout) async {
@@ -186,13 +198,13 @@ class _WorkoutGroupWorkoutsScreenState
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
               children: [
-                const RitmoHudSectionHeading(title: 'TRAINING BLOCK'),
+                const RitmoHudSectionHeading(title: 'TRAINING SESSION'),
                 const SizedBox(height: 8),
-                const RitmoHierarchyPath(items: ['PROGRAM', 'DAY', 'GROUP']),
+                const RitmoHierarchyPath(items: ['PROGRAM', 'DAY', 'SESSION']),
                 const SizedBox(height: 18),
                 _GroupActionChoice(
                   icon: Icons.library_add_outlined,
-                  title: 'ADD FROM ARSENAL',
+                  title: 'ADD FROM WORKOUT LIBRARY',
                   subtitle: 'Use an existing Workout Library workout.',
                   onTap: _attachFromLibrary,
                 ),
@@ -200,7 +212,7 @@ class _WorkoutGroupWorkoutsScreenState
                 _GroupActionChoice(
                   icon: Icons.add_circle_outline,
                   title: 'CREATE NEW WORKOUT',
-                  subtitle: 'Build a new workout and add it to this group.',
+                  subtitle: 'Build a new workout and add it to this Session.',
                   onTap: _createWorkout,
                   glowStrength: 0.4,
                 ),
@@ -211,7 +223,7 @@ class _WorkoutGroupWorkoutsScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'NO WORKOUTS IN THIS BLOCK',
+                          'SESSION READY',
                           style: TextStyle(
                             color: Color(0xFFD8FCFF),
                             fontWeight: FontWeight.w900,
@@ -219,7 +231,9 @@ class _WorkoutGroupWorkoutsScreenState
                           ),
                         ),
                         SizedBox(height: 6),
-                        Text('Add from the Arsenal or create a new workout.'),
+                        Text(
+                          'Add workouts from your Workout Library or create a new workout.',
+                        ),
                       ],
                     ),
                   )
@@ -396,7 +410,7 @@ class _GroupWorkoutCard extends StatelessWidget {
                 icon: const Icon(Icons.edit_outlined),
               ),
               IconButton(
-                tooltip: 'Remove from group',
+                tooltip: 'Remove from Session',
                 onPressed: onRemove,
                 color: const Color(0xFFF08A7A),
                 icon: const Icon(Icons.remove_circle_outline),
@@ -447,7 +461,9 @@ class _WorkoutLibraryPickerState extends State<_WorkoutLibraryPicker> {
                 children: [
                   const Padding(
                     padding: EdgeInsets.all(20),
-                    child: RitmoHudSectionHeading(title: 'ADD FROM ARSENAL'),
+                    child: RitmoHudSectionHeading(
+                      title: 'ADD FROM WORKOUT LIBRARY',
+                    ),
                   ),
                   Expanded(
                     child: snapshot.connectionState != ConnectionState.done
@@ -464,26 +480,31 @@ class _WorkoutLibraryPickerState extends State<_WorkoutLibraryPicker> {
                             itemCount: workouts.length,
                             itemBuilder: (context, index) {
                               final workout = workouts[index];
-                              return CheckboxListTile(
-                                value: _selectedIds.contains(workout.id),
-                                activeColor: ritmoCyan,
-                                title: FutureBuilder<String>(
-                                  future: RepositoryRegistry.exerciseRepository
-                                      .getExerciseById(workout.exerciseId)
-                                      .then(
-                                        (exercise) =>
-                                            exercise?.name ?? 'Unknown workout',
-                                      ),
-                                  builder: (_, name) =>
-                                      Text(name.data ?? 'Loading workout...'),
+                              return Material(
+                                color: Colors.transparent,
+                                child: CheckboxListTile(
+                                  value: _selectedIds.contains(workout.id),
+                                  activeColor: ritmoCyan,
+                                  title: FutureBuilder<String>(
+                                    future: RepositoryRegistry
+                                        .exerciseRepository
+                                        .getExerciseById(workout.exerciseId)
+                                        .then(
+                                          (exercise) =>
+                                              exercise?.name ??
+                                              'Unknown workout',
+                                        ),
+                                    builder: (_, name) =>
+                                        Text(name.data ?? 'Loading workout...'),
+                                  ),
+                                  onChanged: (selected) => setState(() {
+                                    if (selected ?? false) {
+                                      _selectedIds.add(workout.id);
+                                    } else {
+                                      _selectedIds.remove(workout.id);
+                                    }
+                                  }),
                                 ),
-                                onChanged: (selected) => setState(() {
-                                  if (selected ?? false) {
-                                    _selectedIds.add(workout.id);
-                                  } else {
-                                    _selectedIds.remove(workout.id);
-                                  }
-                                }),
                               );
                             },
                           ),

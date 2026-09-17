@@ -330,10 +330,7 @@ class _StartTrainingScreenState extends State<StartTrainingScreen> {
               const SizedBox(height: 14),
               Row(
                 children: [
-                  _BriefMetric(
-                    label: 'TRAINING BLOCKS',
-                    value: '${_blocks.length}',
-                  ),
+                  _BriefMetric(label: 'SESSIONS', value: '${_blocks.length}'),
                   const SizedBox(width: 18),
                   _BriefMetric(label: 'WORKOUTS', value: '$_workoutCount'),
                 ],
@@ -468,7 +465,7 @@ class _TrainingBlockCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'BLOCK ${position.toString().padLeft(2, '0')}',
+            'SESSION ${position.toString().padLeft(2, '0')}',
             style: const TextStyle(
               color: ritmoOrange,
               fontWeight: FontWeight.w900,

@@ -55,6 +55,8 @@ void main() {
       expect(find.text('START TRAINING'), findsWidgets);
       expect(find.text('TRAINING TERMINAL'), findsOneWidget);
       expect(find.text('TRAINING BRIEFING'), findsOneWidget);
+      expect(find.text('SESSIONS'), findsOneWidget);
+      expect(find.text('SESSION 01'), findsOneWidget);
       expect(find.text('Warm Up'), findsOneWidget);
       expect(find.text('Main Block'), findsOneWidget);
       expect(
@@ -63,8 +65,8 @@ void main() {
       );
       expect(find.text('CREATE PLAN'), findsNothing);
       expect(find.text('CREATE DAY'), findsNothing);
-      expect(find.text('CREATE GROUP'), findsNothing);
-      expect(find.text('ADD FROM ARSENAL'), findsNothing);
+      expect(find.text('ADD SESSION'), findsNothing);
+      expect(find.text('ADD FROM WORKOUT LIBRARY'), findsNothing);
 
       await tester.tap(find.byKey(const Key('start-training-launch')));
       await tester.pumpAndSettle();

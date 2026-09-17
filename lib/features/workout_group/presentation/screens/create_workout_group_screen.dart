@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../domain/entities/workout_group.dart';
 
 class CreateWorkoutGroupScreen extends StatefulWidget {
@@ -22,8 +23,7 @@ class CreateWorkoutGroupScreen extends StatefulWidget {
       _CreateWorkoutGroupScreenState();
 }
 
-class _CreateWorkoutGroupScreenState
-    extends State<CreateWorkoutGroupScreen> {
+class _CreateWorkoutGroupScreenState extends State<CreateWorkoutGroupScreen> {
   static const _uuid = Uuid();
 
   final _formKey = GlobalKey<FormState>();
@@ -57,13 +57,12 @@ class _CreateWorkoutGroupScreenState
     final name = value?.trim() ?? '';
 
     if (name.isEmpty) {
-      return 'Workout group name is required';
+      return 'Session name is required';
     }
 
     final normalized = name.toLowerCase();
 
-    final currentName =
-        widget.workoutGroup?.name.trim().toLowerCase();
+    final currentName = widget.workoutGroup?.name.trim().toLowerCase();
 
     final exists = widget.existingNames.any((candidate) {
       final value = candidate.trim().toLowerCase();
@@ -76,7 +75,7 @@ class _CreateWorkoutGroupScreenState
     });
 
     if (exists) {
-      return 'A workout group with this name already exists';
+      return 'A Session with this name already exists';
     }
 
     return null;
@@ -87,8 +86,7 @@ class _CreateWorkoutGroupScreenState
       return;
     }
 
-    final displayOrder =
-        int.tryParse(_displayOrderController.text.trim()) ?? 1;
+    final displayOrder = int.tryParse(_displayOrderController.text.trim()) ?? 1;
 
     Navigator.of(context).pop(
       WorkoutGroup(
@@ -104,45 +102,56 @@ class _CreateWorkoutGroupScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF05090C),
       appBar: AppBar(
-        title: Text(
-          _isEditing
-              ? 'Edit Workout Group'
-              : 'Create Workout Group',
-        ),
+        backgroundColor: const Color(0xFF071216),
+        title: Text(_isEditing ? 'EDIT SESSION' : 'CREATE SESSION'),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Workout Group Name',
-                  ),
-                  validator: _validateName,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _displayOrderController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Display Order',
-                  ),
-                ),
-                const SizedBox(height: 32),
-                FilledButton(
-                  onPressed: _save,
-                  child: Text(
+      body: RitmoCyberpunkBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                children: [
+                  const RitmoHudSectionHeading(title: 'TRAINING SESSION'),
+                  const SizedBox(height: 8),
+                  Text(
                     _isEditing
-                        ? 'Update Workout Group'
-                        : 'Create Workout Group',
+                        ? 'Update this Session for the training day.'
+                        : 'Name a Session to organize this training day.',
+                    style: const TextStyle(color: Color(0xFFA8C2C7)),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 18),
+                  RitmoHudPanel(
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'SESSION NAME',
+                          ),
+                          validator: _validateName,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _displayOrderController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'DISPLAY ORDER',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  RitmoActionButton(
+                    label: _isEditing ? 'UPDATE SESSION' : 'CREATE SESSION',
+                    onPressed: _save,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

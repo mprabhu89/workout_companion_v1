@@ -167,7 +167,9 @@ class _WorkoutPlanLibraryScreenState extends State<WorkoutPlanLibraryScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text('Organize workouts into training days and groups.'),
+                const Text(
+                  'Organize workouts into training days and Sessions.',
+                ),
               ],
             ),
           )

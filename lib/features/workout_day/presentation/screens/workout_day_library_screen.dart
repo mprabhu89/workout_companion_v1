@@ -231,7 +231,7 @@ class _TrainingDayCard extends StatelessWidget {
           metrics: day.isRestDay
               ? const ['REST DAY']
               : [
-                  '${counts.groups} ${counts.groups == 1 ? 'GROUP' : 'GROUPS'}',
+                  '${counts.groups} ${counts.groups == 1 ? 'SESSION' : 'SESSIONS'}',
                   '${counts.workouts} ${counts.workouts == 1 ? 'WORKOUT' : 'WORKOUTS'}',
                 ],
           onTap: onOpen,
@@ -254,7 +254,7 @@ class _TrainingDayCard extends StatelessWidget {
             itemBuilder: (_) => const [
               PopupMenuItem(
                 value: _DayAction.manageGroups,
-                child: Text('Manage groups'),
+                child: Text('Manage Sessions'),
               ),
               PopupMenuItem(value: _DayAction.edit, child: Text('Edit day')),
               PopupMenuItem(
