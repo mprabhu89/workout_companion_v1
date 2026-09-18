@@ -52,11 +52,11 @@ void main() {
     await tester.tap(find.text('Strength Plan'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Plan Progress'), findsOneWidget);
-    expect(find.text('Completed 2 times'), findsOneWidget);
-    expect(find.text('Completed'), findsOneWidget);
-    expect(find.text('Not Completed'), findsOneWidget);
-    expect(find.text('Rest Day'), findsOneWidget);
+    expect(find.text('PLAN PROGRESS'), findsOneWidget);
+    expect(find.text('PERFORMANCE HUD'), findsOneWidget);
+    expect(find.text('PLANNED COMPLETION'), findsOneWidget);
+    expect(find.text('ACTUAL SESSIONS'), findsOneWidget);
+    expect(find.text('TRAINING DAYS'), findsOneWidget);
   });
 
   testWidgets('renders a safe empty state without planned workouts', (

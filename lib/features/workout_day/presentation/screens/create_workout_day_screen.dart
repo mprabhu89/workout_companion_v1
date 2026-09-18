@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
+
 import '../../domain/entities/workout_day.dart';
 
 class CreateWorkoutDayScreen extends StatefulWidget {
@@ -16,12 +18,10 @@ class CreateWorkoutDayScreen extends StatefulWidget {
   final WorkoutDay? workoutDay;
 
   @override
-  State<CreateWorkoutDayScreen> createState() =>
-      _CreateWorkoutDayScreenState();
+  State<CreateWorkoutDayScreen> createState() => _CreateWorkoutDayScreenState();
 }
 
-class _CreateWorkoutDayScreenState
-    extends State<CreateWorkoutDayScreen> {
+class _CreateWorkoutDayScreenState extends State<CreateWorkoutDayScreen> {
   static const Uuid _uuid = Uuid();
 
   final _formKey = GlobalKey<FormState>();
@@ -70,8 +70,7 @@ class _CreateWorkoutDayScreenState
 
     final normalized = name.toLowerCase();
 
-    final currentName =
-        widget.workoutDay?.name.trim().toLowerCase();
+    final currentName = widget.workoutDay?.name.trim().toLowerCase();
 
     final exists = widget.existingNames.any((candidate) {
       final value = candidate.trim().toLowerCase();
@@ -95,8 +94,7 @@ class _CreateWorkoutDayScreenState
       return;
     }
 
-    final dayNumber =
-        int.tryParse(_dayNumberController.text.trim()) ?? 1;
+    final dayNumber = int.tryParse(_dayNumberController.text.trim()) ?? 1;
 
     Navigator.of(context).pop(
       WorkoutDay(
@@ -114,65 +112,83 @@ class _CreateWorkoutDayScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF05090C),
       appBar: AppBar(
-        title: Text(
-          _isEditing
-              ? 'Edit Workout Day'
-              : 'Create Workout Day',
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(_isEditing ? 'EDIT TRAINING DAY' : 'CREATE TRAINING DAY'),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Workout Day Name',
+      body: RitmoCyberpunkBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                children: [
+                  const RitmoHudSectionHeading(title: 'DAY CONFIGURATION'),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Add a training stage to this program.',
+                    style: TextStyle(color: Color(0xFFABC7CD)),
                   ),
-                  validator: _validateName,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _dayNumberController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Day Number',
+                  const SizedBox(height: 18),
+                  RitmoHudPanel(
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: ritmoCoreHudInputDecoration(
+                            label: 'DAY NAME',
+                          ),
+                          validator: _validateName,
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _dayNumberController,
+                          keyboardType: TextInputType.number,
+                          decoration: ritmoCoreHudInputDecoration(
+                            label: 'DAY NUMBER',
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _descriptionController,
+                          minLines: 3,
+                          maxLines: 5,
+                          decoration: ritmoCoreHudInputDecoration(
+                            label: 'DESCRIPTION',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _descriptionController,
-                  minLines: 3,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
+                  const SizedBox(height: 16),
+                  RitmoHudPanel(
+                    child: SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'REST DAY',
+                        style: TextStyle(
+                          color: Color(0xFFD8FCFF),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Mark this day as a recovery/rest day.',
+                      ),
+                      activeThumbColor: ritmoCyan,
+                      value: _isRestDay,
+                      onChanged: (value) => setState(() => _isRestDay = value),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                SwitchListTile(
-                  title: const Text('Rest Day'),
-                  subtitle: const Text(
-                    'Mark this day as a recovery/rest day.',
+                  const SizedBox(height: 24),
+                  RitmoActionButton(
+                    label: _isEditing ? 'UPDATE DAY' : 'SAVE DAY',
+                    onPressed: _save,
                   ),
-                  value: _isRestDay,
-                  onChanged: (value) {
-                    setState(() {
-                      _isRestDay = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 32),
-                FilledButton(
-                  onPressed: _save,
-                  child: Text(
-                    _isEditing ? 'Update' : 'Save',
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

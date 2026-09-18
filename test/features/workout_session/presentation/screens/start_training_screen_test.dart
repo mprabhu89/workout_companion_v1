@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:workout_companion_v1/features/exercise/data/repositories/in_memory_exercise_repository.dart';
 import 'package:workout_companion_v1/features/exercise/domain/entities/exercise.dart';
 import 'package:workout_companion_v1/features/exercise/domain/enums/difficulty_level.dart';
@@ -133,6 +134,54 @@ void main() {
       expect(find.text('TRAINING NOT READY'), findsNothing);
     },
   );
+
+  testWidgets('reloads Plans after returning from Workout Plan authoring', (
+    tester,
+  ) async {
+    final planRepository = InMemoryWorkoutPlanRepository();
+    final dayRepository = InMemoryWorkoutDayRepository();
+    late final GoRouter router;
+    router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, _) => StartTrainingScreen(
+            workoutPlanRepository: planRepository,
+            workoutDayRepository: dayRepository,
+          ),
+        ),
+        GoRoute(
+          path: '/workout-plans',
+          builder: (context, _) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () async {
+                  await planRepository.saveWorkoutPlan(_plan());
+                  if (context.mounted) {
+                    context.pop();
+                  }
+                },
+                child: const Text('Finish authoring'),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    expect(find.text('NO TRAINING PROGRAMS AVAILABLE'), findsOneWidget);
+
+    await tester.tap(find.text('OPEN WORKOUT PLANS'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Finish authoring'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('NO TRAINING DAYS AVAILABLE'), findsOneWidget);
+    expect(find.text('NO TRAINING PROGRAMS AVAILABLE'), findsNothing);
+  });
 }
 
 class _TrainingSetup {

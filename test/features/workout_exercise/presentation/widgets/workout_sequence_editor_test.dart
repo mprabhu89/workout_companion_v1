@@ -279,7 +279,7 @@ void main() {
         await tester.tap(find.byTooltip('Edit Step'));
         await tester.pumpAndSettle();
         expect(find.text('Reps - Counter').last, findsOneWidget);
-        expect(find.text('Reps'), findsOneWidget);
+        expect(find.text('REPS'), findsOneWidget);
 
         await tester.enterText(
           find.byKey(const Key('sequence_step_counter_field')),

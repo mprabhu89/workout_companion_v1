@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'ritmo_hud_widgets.dart';
+
 class AppDeleteConfirmationDialog extends StatelessWidget {
   const AppDeleteConfirmationDialog({
     super.key,
@@ -16,19 +18,28 @@ class AppDeleteConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(title),
-      content: Text(message),
+    return RitmoHudDialog(
+      title: title,
+      destructive: true,
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(cancelButtonText),
+          style: OutlinedButton.styleFrom(foregroundColor: ritmoCyan),
+          child: Text(cancelButtonText.toUpperCase()),
         ),
-        FilledButton(
+        OutlinedButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text(deleteButtonText),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFFFF9A9A),
+            side: const BorderSide(color: Color(0xFFB65555)),
+          ),
+          child: Text(deleteButtonText.toUpperCase()),
         ),
       ],
+      child: Text(
+        message,
+        style: const TextStyle(color: Color(0xFFD2E6E9), height: 1.35),
+      ),
     );
   }
 

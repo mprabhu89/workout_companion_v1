@@ -95,7 +95,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await Future<void>.delayed(const Duration(milliseconds: 170));
     if (!mounted) return;
     setState(() => _isEntering = false);
-    context.push(_modules[_selectedModuleIndex].route);
+    await context.push(_modules[_selectedModuleIndex].route);
+    if (mounted) {
+      await _historyController.loadSessions();
+    }
   }
 
   Future<void> _moveToModule(int index) async {
@@ -153,7 +156,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         selectedIndex: _selectedModuleIndex,
                       ),
                       const SizedBox(height: 18),
-                      const _QuickStartHud(),
+                      _QuickStartHud(
+                        onTrainingReturned: _historyController.loadSessions,
+                      ),
                       const SizedBox(height: 18),
                       _LobbyTrainingData(
                         controller: _historyController,
@@ -474,7 +479,9 @@ class _CarouselIndicator extends StatelessWidget {
 }
 
 class _QuickStartHud extends StatefulWidget {
-  const _QuickStartHud();
+  const _QuickStartHud({required this.onTrainingReturned});
+
+  final Future<void> Function() onTrainingReturned;
 
   @override
   State<_QuickStartHud> createState() => _QuickStartHudState();
@@ -541,6 +548,11 @@ class _QuickStartHudState extends State<_QuickStartHud> {
     if (mounted) _loadPlans();
   }
 
+  Future<void> _openPlans() async {
+    await context.push('/workout-plans');
+    if (mounted) await _loadPlans();
+  }
+
   Future<void> _startWorkout() async {
     final plan = _selectedPlan;
     final day = _selectedDay;
@@ -555,6 +567,8 @@ class _QuickStartHudState extends State<_QuickStartHud> {
     );
     if (!mounted) return;
     setState(() => _isStarting = false);
+    await widget.onTrainingReturned();
+    if (!mounted) return;
     if (!started) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -601,10 +615,7 @@ class _QuickStartHudState extends State<_QuickStartHud> {
               ],
             ),
           ),
-          _QuickStartCommandButton(
-            label: 'CREATE PLAN',
-            onPressed: () => context.push('/workout-plans'),
-          ),
+          _QuickStartCommandButton(label: 'CREATE PLAN', onPressed: _openPlans),
         ],
       ),
     );

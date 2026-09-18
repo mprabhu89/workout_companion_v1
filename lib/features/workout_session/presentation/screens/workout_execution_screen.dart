@@ -237,21 +237,27 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     _isExitDialogVisible = true;
     final shouldLeave = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Leave workout?'),
-        content: const Text(
-          'Your active workout will be cancelled and will not be saved to history.',
-        ),
+      builder: (dialogContext) => RitmoHudDialog(
+        title: 'LEAVE TRAINING?',
+        destructive: true,
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Keep Workout'),
+            style: OutlinedButton.styleFrom(foregroundColor: ritmoCyan),
+            child: const Text('KEEP TRAINING'),
           ),
-          FilledButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Leave Workout'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFFF8C8C),
+              side: const BorderSide(color: Color(0xFFFF8C8C)),
+            ),
+            child: const Text('LEAVE WORKOUT'),
           ),
         ],
+        child: const Text(
+          'Your active workout will be cancelled and will not be saved to history.',
+        ),
       ),
     );
     _isExitDialogVisible = false;
@@ -268,19 +274,25 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   Future<void> _confirmEndWorkout() async {
     final shouldEnd = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('End workout?'),
-        content: const Text('This will complete the current workout.'),
+      builder: (dialogContext) => RitmoHudDialog(
+        title: 'END WORKOUT?',
+        destructive: true,
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Keep Training'),
+            style: OutlinedButton.styleFrom(foregroundColor: ritmoCyan),
+            child: const Text('KEEP TRAINING'),
           ),
-          FilledButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('End Workout'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFFF8C8C),
+              side: const BorderSide(color: Color(0xFFFF8C8C)),
+            ),
+            child: const Text('END WORKOUT'),
           ),
         ],
+        child: const Text('This will complete the current workout.'),
       ),
     );
     if (shouldEnd == true) {
@@ -677,6 +689,23 @@ class _StateHero extends StatelessWidget {
               ),
             ),
           )
+        else if (content.isGuidance)
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height < 700 ? 220 : 320,
+            ),
+            child: SingleChildScrollView(
+              child: Text(
+                content.primary,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  height: 1.12,
+                ),
+              ),
+            ),
+          )
         else
           Text(
             content.primary,
@@ -728,6 +757,7 @@ class _StateContent {
     this.iterationText,
     this.assetPath,
     this.isNumber = false,
+    this.isGuidance = false,
   });
 
   factory _StateContent.from({
@@ -760,6 +790,7 @@ class _StateContent {
           accent: ritmoCyan,
           glowStrength: 0.52,
           iterationText: iterationText,
+          isGuidance: true,
         );
       case WorkoutSequenceEventType.count:
         return _StateContent(
@@ -813,6 +844,7 @@ class _StateContent {
   final String? iterationText;
   final String? assetPath;
   final bool isNumber;
+  final bool isGuidance;
 }
 
 class _ExerciseProgress extends StatelessWidget {

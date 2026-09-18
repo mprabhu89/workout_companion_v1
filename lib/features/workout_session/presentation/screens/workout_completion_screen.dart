@@ -45,6 +45,8 @@ class WorkoutCompletionScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   session.workoutPlanName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Color(0xFFABC2C8)),
                 ),
@@ -52,6 +54,8 @@ class WorkoutCompletionScreen extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     session.workoutDayName!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: ritmoOrange,
@@ -87,7 +91,7 @@ class WorkoutCompletionScreen extends StatelessWidget {
                 ),
                 const Spacer(),
                 RitmoActionButton(
-                  label: 'Back to Day Overview',
+                  label: 'RETURN TO TRAINING',
                   onPressed: () => Navigator.of(context).pop(),
                   isPulsing: true,
                 ),

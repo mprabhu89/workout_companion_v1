@@ -259,10 +259,22 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
   Widget build(BuildContext context) {
     final isEditing = widget.initialStep != null;
 
-    return AlertDialog(
-      backgroundColor: const Color(0xFF102027),
-      title: Text(isEditing ? 'Edit Sequence Step' : 'Configure Sequence Step'),
-      content: SingleChildScrollView(
+    return RitmoHudDialog(
+      title: isEditing ? 'EDIT SEQUENCE STEP' : 'CONFIGURE SEQUENCE STEP',
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: OutlinedButton.styleFrom(foregroundColor: ritmoCyan),
+          child: const Text('Cancel'),
+        ),
+        OutlinedButton(
+          key: const Key('sequence_step_save_button'),
+          onPressed: _save,
+          style: OutlinedButton.styleFrom(foregroundColor: ritmoCyan),
+          child: const Text('Save'),
+        ),
+      ],
+      child: SingleChildScrollView(
         child: SizedBox(
           width: 360,
           child: Column(
@@ -272,10 +284,7 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
               DropdownButtonFormField<WorkoutSequenceStepType>(
                 key: const Key('sequence_step_type_dropdown'),
                 initialValue: _stepType,
-                decoration: const InputDecoration(
-                  labelText: 'Step Type',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: ritmoCoreHudInputDecoration(label: 'STEP TYPE'),
                 items: WorkoutSequenceStepType.values
                     .map(
                       (type) => DropdownMenuItem<WorkoutSequenceStepType>(
@@ -308,17 +317,6 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          key: const Key('sequence_step_save_button'),
-          onPressed: _save,
-          child: const Text('Save'),
-        ),
-      ],
     );
   }
 
@@ -332,11 +330,9 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
             minLines: 2,
             maxLines: 4,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Guide Text',
-              border: OutlineInputBorder(),
-              alignLabelWithHint: true,
-            ),
+            decoration: ritmoCoreHudInputDecoration(
+              label: 'GUIDE TEXT',
+            ).copyWith(alignLabelWithHint: true),
           ),
         ];
       case WorkoutSequenceStepType.count:
@@ -346,19 +342,13 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
             key: const Key('sequence_step_count_field'),
             controller: _countController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Count',
-              border: OutlineInputBorder(),
-            ),
+            decoration: ritmoCoreHudInputDecoration(label: 'COUNT'),
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<WorkoutCountDirection>(
             key: const Key('sequence_step_count_direction_dropdown'),
             initialValue: _countDirection,
-            decoration: const InputDecoration(
-              labelText: 'Direction',
-              border: OutlineInputBorder(),
-            ),
+            decoration: ritmoCoreHudInputDecoration(label: 'DIRECTION'),
             items: WorkoutCountDirection.values
                 .map(
                   (direction) => DropdownMenuItem<WorkoutCountDirection>(
@@ -384,10 +374,7 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
             key: const Key('sequence_step_counter_field'),
             controller: _counterController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Reps',
-              border: OutlineInputBorder(),
-            ),
+            decoration: ritmoCoreHudInputDecoration(label: 'REPS'),
           ),
         ];
       case WorkoutSequenceStepType.relax:
@@ -396,9 +383,8 @@ class _WorkoutSequenceStepDialogState extends State<WorkoutSequenceStepDialog> {
             key: const Key('sequence_step_relax_field'),
             controller: _relaxController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Relax Duration (seconds)',
-              border: OutlineInputBorder(),
+            decoration: ritmoCoreHudInputDecoration(
+              label: 'RELAX DURATION (SECONDS)',
             ),
           ),
           const SizedBox(height: 8),

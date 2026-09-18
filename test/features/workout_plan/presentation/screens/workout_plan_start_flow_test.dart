@@ -238,7 +238,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Delete Session').first);
         await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(FilledButton, 'Delete Session'));
+        await tester.tap(find.text('DELETE SESSION').last);
         await tester.pumpAndSettle();
 
         expect(find.text('NO SESSIONS YET'), findsOneWidget);
@@ -533,7 +533,7 @@ void main() {
           3,
         );
 
-        await tester.tap(find.text('Back to Day Overview'));
+        await tester.tap(find.text('RETURN TO TRAINING'));
         await tester.pumpAndSettle();
 
         expect(find.text('START TRAINING'), findsOneWidget);

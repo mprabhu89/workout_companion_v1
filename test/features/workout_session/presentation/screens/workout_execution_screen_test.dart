@@ -110,9 +110,14 @@ void main() {
 
     await tester.tap(find.text('II  PAUSE'));
     await tester.pump();
-    await tester.tap(find.text('END WORKOUT'));
+    await tester.tap(find.text('END WORKOUT').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('End Workout'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('END WORKOUT'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(keepAwake.disableCount, 1);
@@ -453,6 +458,51 @@ void main() {
     expect(historyRepository.savedSessions, hasLength(1));
   });
 
+  testWidgets('long Guide text remains readable on a narrow portrait screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const guide =
+        'Keep your shoulders relaxed, lift slowly with control, and pause at the top before lowering with the same steady form.';
+    final pendingSpeech = _PendingSpeechEngine();
+    final controller = WorkoutSessionController(
+      session: WorkoutSession(
+        workoutExercises: [
+          _exercise(
+            sequenceDefinition: WorkoutSequenceDefinition(
+              steps: [
+                WorkoutSequenceStep.guide(text: guide),
+                WorkoutSequenceStep.end(),
+              ],
+            ),
+          ),
+        ],
+      ),
+      voiceCoach: VoiceCoachService(speechEngine: pendingSpeech),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutExecutionScreen(
+          session: controller.session,
+          controller: controller,
+          voiceCoach: VoiceCoachService(speechEngine: _FakeSpeechEngine()),
+          workoutHistoryRepository: _FakeWorkoutHistoryRepository(),
+        ),
+      ),
+    );
+    controller.startCountdown();
+    await tester.pump();
+
+    expect(find.text(guide), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    controller.dispose();
+  });
+
   testWidgets('active workout requires confirmation before leaving', (
     tester,
   ) async {
@@ -497,15 +547,15 @@ void main() {
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Leave workout?'), findsOneWidget);
+    expect(find.text('LEAVE TRAINING?'), findsOneWidget);
 
-    await tester.tap(find.text('Keep Workout'));
+    await tester.tap(find.text('KEEP TRAINING'));
     await tester.pumpAndSettle();
     expect(find.text('Workout'), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Leave Workout'));
+    await tester.tap(find.text('LEAVE WORKOUT'));
     await tester.pumpAndSettle();
 
     expect(find.text('Open Workout'), findsOneWidget);

@@ -3,6 +3,30 @@ import 'package:flutter/material.dart';
 const ritmoCyan = Color(0xFF68E7F4);
 const ritmoOrange = Color(0xFFFFA64D);
 
+/// Keeps form controls visually aligned with the shared RITMO HUD panels.
+InputDecoration ritmoCoreHudInputDecoration({String? label, String? hint}) {
+  const border = OutlineInputBorder(
+    borderSide: BorderSide(color: Color(0xFF31535C)),
+  );
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    labelStyle: const TextStyle(
+      color: Color(0xFF9FC7CE),
+      fontWeight: FontWeight.w800,
+      letterSpacing: 0.7,
+    ),
+    hintStyle: const TextStyle(color: Color(0xFF78969D)),
+    filled: true,
+    fillColor: const Color(0xFF0B171C),
+    enabledBorder: border,
+    border: border,
+    focusedBorder: const OutlineInputBorder(
+      borderSide: BorderSide(color: ritmoCyan, width: 1.3),
+    ),
+  );
+}
+
 /// Reusable near-black game HUD treatment for RITMO presentation screens.
 class RitmoCyberpunkBackground extends StatelessWidget {
   const RitmoCyberpunkBackground({super.key, required this.child});
@@ -86,11 +110,7 @@ class RitmoHudPanel extends StatelessWidget {
 }
 
 class RitmoHudSectionHeading extends StatelessWidget {
-  const RitmoHudSectionHeading({
-    super.key,
-    required this.title,
-    this.trailing,
-  });
+  const RitmoHudSectionHeading({super.key, required this.title, this.trailing});
 
   final String title;
   final Widget? trailing;
@@ -105,9 +125,9 @@ class RitmoHudSectionHeading extends StatelessWidget {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
-                ),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
           ),
         ),
         ?trailing,
@@ -187,6 +207,62 @@ class RitmoActionButton extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shared modal shell for short confirmations and configuration prompts.
+class RitmoHudDialog extends StatelessWidget {
+  const RitmoHudDialog({
+    super.key,
+    required this.title,
+    this.actions = const [],
+    this.destructive = false,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+  final List<Widget> actions;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = destructive ? const Color(0xFFFF8C8C) : ritmoCyan;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: RitmoHudPanel(
+        glowStrength: 0.32,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: accent,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 14),
+              child,
+              if (actions.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: actions,
+                ),
+              ],
+            ],
           ),
         ),
       ),

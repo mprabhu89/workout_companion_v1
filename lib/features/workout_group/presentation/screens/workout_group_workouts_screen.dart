@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/di/repository_registry.dart';
+import '../../../../core/widgets/app_loading_indicator.dart';
 import '../../../../core/widgets/app_delete_confirmation_dialog.dart';
 import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../../workout_exercise/domain/entities/workout_exercise.dart';
@@ -191,7 +192,42 @@ class _WorkoutGroupWorkoutsScreenState
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const Center(
-                child: CircularProgressIndicator(color: ritmoCyan),
+                child: AppLoadingIndicator(
+                  message: 'Loading Training Session...',
+                ),
+              );
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: RitmoHudPanel(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'SESSION UNAVAILABLE',
+                        style: TextStyle(
+                          color: Color(0xFFD8FCFF),
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Please try loading this Training Session again.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _refreshWorkouts,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('RETRY'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: ritmoCyan,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             }
             final workouts = snapshot.data ?? const <_GroupWorkout>[];
@@ -468,7 +504,9 @@ class _WorkoutLibraryPickerState extends State<_WorkoutLibraryPicker> {
                   Expanded(
                     child: snapshot.connectionState != ConnectionState.done
                         ? const Center(
-                            child: CircularProgressIndicator(color: ritmoCyan),
+                            child: AppLoadingIndicator(
+                              message: 'Loading Workout Library...',
+                            ),
                           )
                         : workouts.isEmpty
                         ? const Center(

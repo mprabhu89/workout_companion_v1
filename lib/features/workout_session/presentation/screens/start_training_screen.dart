@@ -213,7 +213,12 @@ class _StartTrainingScreenState extends State<StartTrainingScreen> {
     }
   }
 
-  void _openWorkoutPlans() => context.push('/workout-plans');
+  Future<void> _openWorkoutPlans() async {
+    await context.push('/workout-plans');
+    if (mounted) {
+      await _loadPlans();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

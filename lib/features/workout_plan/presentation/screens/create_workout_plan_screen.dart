@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
+
 import '../../domain/entities/workout_plan.dart';
 import '../../domain/enums/workout_plan_category.dart';
 import '../../domain/enums/workout_plan_difficulty.dart';
@@ -20,8 +22,7 @@ class CreateWorkoutPlanScreen extends StatefulWidget {
       _CreateWorkoutPlanScreenState();
 }
 
-class _CreateWorkoutPlanScreenState
-    extends State<CreateWorkoutPlanScreen> {
+class _CreateWorkoutPlanScreenState extends State<CreateWorkoutPlanScreen> {
   static const Uuid _uuid = Uuid();
 
   final _formKey = GlobalKey<FormState>();
@@ -30,11 +31,9 @@ class _CreateWorkoutPlanScreenState
   late final TextEditingController _descriptionController;
   late final TextEditingController _durationController;
 
-  WorkoutPlanDifficulty _difficulty =
-      WorkoutPlanDifficulty.beginner;
+  WorkoutPlanDifficulty _difficulty = WorkoutPlanDifficulty.beginner;
 
-  WorkoutPlanCategory _category =
-      WorkoutPlanCategory.generalFitness;
+  WorkoutPlanCategory _category = WorkoutPlanCategory.generalFitness;
 
   bool get _isEditing => widget.workoutPlan != null;
 
@@ -51,16 +50,14 @@ class _CreateWorkoutPlanScreenState
     );
 
     _durationController = TextEditingController(
-      text: widget.workoutPlan?.estimatedDurationInMinutes
-              .toString() ??
-          '',
+      text: widget.workoutPlan?.estimatedDurationInMinutes.toString() ?? '',
     );
 
-    _difficulty = widget.workoutPlan?.difficulty ??
-        WorkoutPlanDifficulty.beginner;
+    _difficulty =
+        widget.workoutPlan?.difficulty ?? WorkoutPlanDifficulty.beginner;
 
-    _category = widget.workoutPlan?.category ??
-        WorkoutPlanCategory.generalFitness;
+    _category =
+        widget.workoutPlan?.category ?? WorkoutPlanCategory.generalFitness;
   }
 
   @override
@@ -80,8 +77,7 @@ class _CreateWorkoutPlanScreenState
 
     final normalized = name.toLowerCase();
 
-    final currentName =
-        widget.workoutPlan?.name.trim().toLowerCase();
+    final currentName = widget.workoutPlan?.name.trim().toLowerCase();
 
     final exists = widget.existingNames.any((item) {
       final candidate = item.trim().toLowerCase();
@@ -105,8 +101,7 @@ class _CreateWorkoutPlanScreenState
       return;
     }
 
-    final duration =
-        int.tryParse(_durationController.text.trim()) ?? 0;
+    final duration = int.tryParse(_durationController.text.trim()) ?? 0;
 
     Navigator.of(context).pop(
       WorkoutPlan(
@@ -116,8 +111,7 @@ class _CreateWorkoutPlanScreenState
         category: _category,
         difficulty: _difficulty,
         estimatedDurationInMinutes: duration,
-        isArchived:
-            widget.workoutPlan?.isArchived ?? false,
+        isArchived: widget.workoutPlan?.isArchived ?? false,
       ),
     );
   }
@@ -125,99 +119,113 @@ class _CreateWorkoutPlanScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF05090C),
       appBar: AppBar(
-        title: Text(
-          _isEditing
-              ? 'Edit Workout Plan'
-              : 'Create Workout Plan',
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(_isEditing ? 'EDIT PROGRAM' : 'CREATE PROGRAM'),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Workout Plan Name',
+      body: RitmoCyberpunkBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                children: [
+                  const RitmoHudSectionHeading(title: 'PROGRAM BUILDER'),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Define the structure for your training journey.',
+                    style: TextStyle(color: Color(0xFFABC7CD)),
                   ),
-                  validator: _validateName,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                  ),
-                  minLines: 3,
-                  maxLines: 5,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<WorkoutPlanCategory>(
-                  initialValue: _category,
-                  decoration: const InputDecoration(
-                    labelText: 'Category',
-                  ),
-                  items: WorkoutPlanCategory.values
-                      .map(
-                        (category) => DropdownMenuItem(
-                          value: category,
-                          child: Text(category.displayName),
+                  const SizedBox(height: 18),
+                  RitmoHudPanel(
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: ritmoCoreHudInputDecoration(
+                            label: 'PROGRAM NAME',
+                            hint: 'e.g. Strength Foundation',
+                          ),
+                          validator: _validateName,
                         ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-
-                    setState(() {
-                      _category = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<WorkoutPlanDifficulty>(
-                  initialValue: _difficulty,
-                  decoration: const InputDecoration(
-                    labelText: 'Difficulty',
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _descriptionController,
+                          decoration: ritmoCoreHudInputDecoration(
+                            label: 'DESCRIPTION',
+                          ),
+                          minLines: 3,
+                          maxLines: 5,
+                        ),
+                      ],
+                    ),
                   ),
-                  items: WorkoutPlanDifficulty.values
-                      .map(
-                        (difficulty) => DropdownMenuItem(
-                          value: difficulty,
-                          child: Text(
-                            difficulty.displayName,
+                  const SizedBox(height: 16),
+                  RitmoHudPanel(
+                    child: Column(
+                      children: [
+                        DropdownButtonFormField<WorkoutPlanCategory>(
+                          initialValue: _category,
+                          dropdownColor: const Color(0xFF102027),
+                          decoration: ritmoCoreHudInputDecoration(
+                            label: 'CATEGORY',
+                          ),
+                          items: WorkoutPlanCategory.values
+                              .map(
+                                (category) => DropdownMenuItem(
+                                  value: category,
+                                  child: Text(category.displayName),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _category = value);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        DropdownButtonFormField<WorkoutPlanDifficulty>(
+                          initialValue: _difficulty,
+                          dropdownColor: const Color(0xFF102027),
+                          decoration: ritmoCoreHudInputDecoration(
+                            label: 'DIFFICULTY',
+                          ),
+                          items: WorkoutPlanDifficulty.values
+                              .map(
+                                (difficulty) => DropdownMenuItem(
+                                  value: difficulty,
+                                  child: Text(difficulty.displayName),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _difficulty = value);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _durationController,
+                          keyboardType: TextInputType.number,
+                          decoration: ritmoCoreHudInputDecoration(
+                            label: 'ESTIMATED DURATION (MINUTES)',
                           ),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-
-                    setState(() {
-                      _difficulty = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _durationController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText:
-                        'Estimated Duration (minutes)',
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                FilledButton(
-                  onPressed: _save,
-                  child: Text(
-                    _isEditing ? 'Update' : 'Save',
+                  const SizedBox(height: 24),
+                  RitmoActionButton(
+                    label: _isEditing ? 'UPDATE PROGRAM' : 'SAVE PROGRAM',
+                    onPressed: _save,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

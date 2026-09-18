@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/repository_registry.dart';
 import '../../../../core/services/workout_export_permission.dart';
+import '../../../../core/widgets/app_loading_indicator.dart';
 import '../../../../core/widgets/app_delete_confirmation_dialog.dart';
 import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../domain/entities/ritmo_builtin_workouts.dart';
@@ -198,12 +199,17 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
           future: _items,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: AppLoadingIndicator(
+                  message: 'Loading Workout Library...',
+                ),
+              );
             }
             if (snapshot.hasError) {
-              return const _LibraryMessage(
+              return _LibraryMessage(
                 title: 'ARSENAL UNAVAILABLE',
                 message: 'Try opening the Workout Library again.',
+                onRetry: () => setState(_reload),
               );
             }
 
@@ -664,10 +670,15 @@ class _ArsenalEmptyState extends StatelessWidget {
 }
 
 class _LibraryMessage extends StatelessWidget {
-  const _LibraryMessage({required this.title, required this.message});
+  const _LibraryMessage({
+    required this.title,
+    required this.message,
+    this.onRetry,
+  });
 
   final String title;
   final String message;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -686,6 +697,15 @@ class _LibraryMessage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(message, style: const TextStyle(color: Color(0xFFABC7CD))),
+          if (onRetry != null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('RETRY'),
+              style: OutlinedButton.styleFrom(foregroundColor: ritmoCyan),
+            ),
+          ],
         ],
       ),
     );

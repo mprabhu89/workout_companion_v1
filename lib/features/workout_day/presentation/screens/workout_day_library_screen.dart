@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/repository_registry.dart';
 import '../../../../core/widgets/ritmo_hud_widgets.dart';
-import '../../../workout_group/presentation/screens/workout_group_library_screen.dart';
 import '../../../workout_plan/domain/enums/workout_plan_category.dart';
 import '../../../workout_plan/presentation/widgets/plan_sharing_placeholder.dart';
 import '../../../workout_plan/presentation/widgets/training_program_hud_widgets.dart';
@@ -95,20 +94,8 @@ class _WorkoutDayLibraryScreenState extends State<WorkoutDayLibraryScreen> {
   Future<void> _deleteWorkoutDay(WorkoutDay day) =>
       _controller.deleteWorkoutDay(day.id);
 
-  Future<void> _openWorkoutGroups(WorkoutDay day) async {
+  Future<void> _openWorkoutDayOverview(WorkoutDay day) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => WorkoutGroupLibraryScreen(
-          workoutDayId: day.id,
-          workoutDayName: day.name,
-        ),
-      ),
-    );
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _openWorkoutDayOverview(WorkoutDay day) {
-    return Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
             widget.workoutDayOverviewScreenBuilder?.call(day) ??
@@ -119,6 +106,7 @@ class _WorkoutDayLibraryScreenState extends State<WorkoutDayLibraryScreen> {
             ),
       ),
     );
+    if (mounted) setState(() {});
   }
 
   @override
@@ -188,7 +176,6 @@ class _WorkoutDayLibraryScreenState extends State<WorkoutDayLibraryScreen> {
                 onOpen: () => _openWorkoutDayOverview(entry.value),
                 onEdit: () => _editWorkoutDay(entry.value),
                 onDelete: () => _deleteWorkoutDay(entry.value),
-                onManageGroups: () => _openWorkoutGroups(entry.value),
               ),
             ),
           ),
@@ -203,14 +190,12 @@ class _TrainingDayCard extends StatelessWidget {
     required this.onOpen,
     required this.onEdit,
     required this.onDelete,
-    required this.onManageGroups,
   });
 
   final WorkoutDay day;
   final VoidCallback onOpen;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback onManageGroups;
 
   @override
   Widget build(BuildContext context) {
@@ -246,16 +231,9 @@ class _TrainingDayCard extends StatelessWidget {
                 case _DayAction.delete:
                   onDelete();
                   break;
-                case _DayAction.manageGroups:
-                  onManageGroups();
-                  break;
               }
             },
             itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: _DayAction.manageGroups,
-                child: Text('Manage Sessions'),
-              ),
               PopupMenuItem(value: _DayAction.edit, child: Text('Edit day')),
               PopupMenuItem(
                 value: _DayAction.delete,
@@ -294,4 +272,4 @@ class _DayCounts {
   final int workouts;
 }
 
-enum _DayAction { edit, delete, manageGroups }
+enum _DayAction { edit, delete }

@@ -144,7 +144,7 @@ void main() {
 
       await tester.tap(find.text('Unknown workout'));
       await tester.pumpAndSettle(const Duration(milliseconds: 300));
-      expect(find.text('RITMO Sample Workout'), findsOneWidget);
+      expect(find.text('READ-ONLY WORKOUT'), findsOneWidget);
       expect(
         find.text('This RITMO-provided workout is read-only.'),
         findsOneWidget,

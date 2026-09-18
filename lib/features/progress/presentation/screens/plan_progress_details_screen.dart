@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/ritmo_hud_widgets.dart';
 import '../../domain/models/workout_progress.dart';
 
 class PlanProgressDetailsScreen extends StatelessWidget {
@@ -10,116 +11,151 @@ class PlanProgressDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metrics = progress.metrics;
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Plan Progress')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            progress.plan.name,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+      backgroundColor: const Color(0xFF05090C),
+      appBar: AppBar(
+        title: const Text('PLAN PROGRESS'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: RitmoCyberpunkBackground(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+          children: [
+            const RitmoHudSectionHeading(title: 'PERFORMANCE HUD'),
+            const SizedBox(height: 14),
+            RitmoHudPanel(
+              glowStrength: 0.28,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _MetricRow(
-                    label: 'Completed Planned Workouts',
+                  Text(
+                    progress.plan.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _Metric(
+                    label: 'PLANNED COMPLETION',
                     value:
                         '${metrics.completedPlannedWorkouts} / ${metrics.plannedWorkouts}',
                   ),
-                  _MetricRow(
-                    label: 'Completion',
+                  _Metric(
+                    label: 'COMPLETION',
                     value:
                         '${metrics.completionPercentage.toStringAsFixed(0)}%',
                   ),
-                  _MetricRow(
-                    label: 'Actual Sessions',
+                  _Metric(
+                    label: 'ACTUAL SESSIONS',
                     value: '${metrics.actualSessions}',
                   ),
-                  _MetricRow(
-                    label: 'Total Workout Time',
+                  _Metric(
+                    label: 'TRAINING TIME',
                     value: _formatDuration(metrics.totalDurationInSeconds),
                     isLast: true,
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          Text('Workout Days', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          ...progress.days.map((dayProgress) => _DayProgressCard(dayProgress)),
-        ],
+            const SizedBox(height: 20),
+            const RitmoHudSectionHeading(title: 'TRAINING DAYS'),
+            const SizedBox(height: 10),
+            ...progress.days.map(
+              (dayProgress) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: RitmoHudPanel(
+                  padding: const EdgeInsets.all(14),
+                  glowStrength: dayProgress.isCompleted ? 0.18 : 0.05,
+                  child: Row(
+                    children: [
+                      Icon(
+                        dayProgress.isCompleted
+                            ? Icons.check_circle_outline
+                            : Icons.radio_button_unchecked,
+                        color: dayProgress.isCompleted
+                            ? ritmoCyan
+                            : const Color(0xFF78959B),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          dayProgress.day.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFD8FCFF),
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${dayProgress.completedSessionCount} SESSIONS',
+                        style: const TextStyle(
+                          color: Color(0xFFAAC5CA),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  String _formatDuration(int seconds) {
-    final duration = Duration(seconds: seconds);
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-
-    if (hours > 0) {
-      return '${hours}h ${minutes}m';
-    }
-    if (minutes > 0) {
-      return '${minutes}m';
-    }
-    return '${duration.inSeconds}s';
-  }
 }
 
-class _DayProgressCard extends StatelessWidget {
-  const _DayProgressCard(this.progress);
-
-  final WorkoutDayProgress progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final day = progress.day;
-    final status = day.isRestDay
-        ? 'Rest Day'
-        : progress.isCompleted
-        ? progress.completedSessionCount > 1
-              ? 'Completed ${progress.completedSessionCount} times'
-              : 'Completed'
-        : 'Not Completed';
-
-    return Card(
-      child: ListTile(
-        title: Text('Day ${day.dayNumber}: ${day.name}'),
-        subtitle: day.description.isEmpty ? null : Text(day.description),
-        trailing: Text(status),
-      ),
-    );
-  }
-}
-
-class _MetricRow extends StatelessWidget {
-  const _MetricRow({
+class _Metric extends StatelessWidget {
+  const _Metric({
     required this.label,
     required this.value,
     this.isLast = false,
   });
-
   final String label;
   final String value;
   final bool isLast;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          Text(value, style: Theme.of(context).textTheme.titleMedium),
-        ],
-      ),
-    );
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.only(bottom: isLast ? 0 : 13),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF88AAB0),
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Color(0xFFD8FCFF),
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+String _formatDuration(int seconds) {
+  final duration = Duration(seconds: seconds);
+  if (duration.inHours > 0) {
+    return '${duration.inHours}h ${duration.inMinutes.remainder(60)}m';
   }
+  if (duration.inMinutes > 0) return '${duration.inMinutes}m';
+  return '${duration.inSeconds}s';
 }

@@ -83,8 +83,8 @@ class _WorkoutPlanLibraryScreenState extends State<WorkoutPlanLibraryScreen> {
     if (updated != null) await _controller.saveWorkoutPlan(updated);
   }
 
-  Future<void> _openWorkoutDays(WorkoutPlan plan) {
-    return Navigator.of(context).push(
+  Future<void> _openWorkoutDays(WorkoutPlan plan) async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
             widget.workoutDayScreenBuilder?.call(plan) ??
@@ -96,6 +96,9 @@ class _WorkoutPlanLibraryScreenState extends State<WorkoutPlanLibraryScreen> {
             ),
       ),
     );
+    if (mounted) {
+      await _controller.loadWorkoutPlans();
+    }
   }
 
   Future<void> _deleteWorkoutPlan(WorkoutPlan plan) =>
